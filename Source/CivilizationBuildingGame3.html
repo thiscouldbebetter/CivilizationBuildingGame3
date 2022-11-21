@@ -1,0 +1,865 @@
+<html>
+<body>
+
+<div id="divUi">
+
+	<h3>Civilization-Building Game</h3>
+
+	<p>
+		Enter valid commands to play the game.  See below for a list of commands.
+	</p>
+
+	<div>
+		<label>Display:</label>
+		<br />
+		<textarea id="textareaDisplay" cols="80" rows="25" readonly="readonly"></textarea>
+	</div>
+
+	<div>
+		<label>Output:</label>
+		<br />
+		<textarea id="textareaOutputLog" cols="80" rows="8" readonly="readonly"></textarea>
+	</div>
+
+	<div>
+		<label>Command:</label>
+		<br />
+		<input id="inputCommand" readonly="readonly"></input>
+	</div>
+
+	<div>
+		<label>Commands Available:</label>
+		<ul>
+			<li>show world</li>
+			<li>end turn</li>
+
+			<li>list cities</li>
+			<li>select city [name]</li>
+			<li>show city</li>
+			<li>use offset [(x, y)] - Toggle usage of the cell at the specified offset.</li>
+			<li>build [buildable]</li>
+
+			<li>list units</li>
+			<li>select unit [id]</li>
+			<li>move [n|s|e|w] - Move or attack.</li>
+			<li>sleep - Ignore this unit indefinitely.</li>
+			<li>pass - End this unit's turn.</li>
+			<li>fortify - Increase defense or build a fort.</li>
+			<li>settle - Found a new city.</li>
+			<li>irrigate - Raze a forest or build irrigation.</li>
+			<li>mine - Build a mine or plant a forest.</li>
+			<li>road - Improve the current cell's road.</li>
+			<li>support - Support the unit from the city in the current cell.</li>
+			<li>disband - Destroy the unit.</li>
+
+			<li>show research</li>
+			<li>list techs</li>
+			<li>research [technology]</li>
+
+			<li>list civilizations</li>
+			<li>select civilzation [civlization]</li>
+			<li>show civilization</li>
+			<li>peace - Offer peace to the selected civilization.</li>
+			<li>war - Declare war on the selected civilization.</li>
+			<li>alliance - Offer an alliance to the selected civilization.</li>
+			<li>trade maps - Offer to trade maps with the selected civilization.</li>
+			<li>trade tech [your tech] for [their tech] - Offer to trade technologies.</li>
+			<li>accept - Accept an offer from another civilization.</li>
+			<li>decline - Decline an offer from another civilization.</li>
+
+		</ul>
+	</div>
+</div>
+
+<script type="text/javascript">
+
+class Game
+{
+	run()
+	{
+		var display = new Display("textareaDisplay");
+		var world = World.demo();
+		var universe = new Universe(display, world);
+		universe.initialize();
+	}
+}
+
+// Classes.
+
+class Base
+{
+	constructor
+	(
+		name,
+		pos,
+		ownerName,
+		population,
+		landUsage,
+		foodStockpiled,
+		industry
+	)
+	{
+		this.name = name;
+		this.pos = pos;
+		this.ownerName = ownerName;
+		this.population = population;
+		this.landUsage = landUsage;
+		this.foodStockpiled = foodStockpiled;
+		this.industry = industry;
+	}
+
+	turnUpdate(universe, world)
+	{
+		// todo
+	}
+}
+
+class BaseImprovementDefn
+{
+	constructor(name, effect)
+	{
+		this.name = name;
+		this.effect = effect;
+	}
+}
+
+class BaseIndustry
+{
+	constructor(buildableInProgressName, industryStockpiled)
+	{
+		this.buildableInProgressName = buildableInProgressName;
+		this.industryStockpiled = industryStockpiled;
+	}
+}
+
+class BaseLandUsage
+{
+	constructor(offsetsInUse)
+	{
+		this.offsetsInUse = offsetsInUse;
+	}
+}
+
+class Color
+{
+	constructor(name, systemColor)
+	{
+		this.name = name;
+		this.systemColor = systemColor;
+	}
+}
+
+class Command
+{
+	constructor(opcode, operands)
+	{
+		this.opcode = opcode;
+		this.operands = operands;
+	}
+
+	static fromText(commandText)
+	{
+		var commandParsed = null;
+
+		var opcode = CommandOpcode.fromCommandText(commandText);
+
+		if (opcode != null)
+		{
+			var commandTextMinusOpcode = commandText.substr(opcode.text.length);
+			var operands = commandTextMinusOpcode.split(" ").filter(x => x != "");
+
+			commandParsed = new Command(opcode, operands);
+		}
+
+		return commandParsed;
+	}
+
+	execute()
+	{
+		this.opcode.execute();
+	}
+}
+
+class CommandOpcode
+{
+	constructor(text, execute)
+	{
+		this.text = text;
+		this.execute = execute;
+	}
+
+	static Instances()
+	{
+		if (CommandOpcode._instances == null)
+		{
+			CommandOpcode._instances = new CommandOpcode_Instances();
+		}
+		return CommandOpcode._instances;
+	}
+
+	static fromCommandText(commandText)
+	{
+		var opcode = CommandOpcode.Instances().byCommandText(commandText);
+		return opcode;
+	}
+}
+
+class CommandOpcode_Instances
+{
+	constructor()
+	{
+		var co = (text, execute) => new CommandOpcode(text, execute);
+
+		var executeTodo = () => alert("todo");
+
+		this.CityBuild = co("build", executeTodo);
+		this.CityList = co("list cities", executeTodo);
+		this.CitySelect = co("select city", executeTodo);
+		this.CityShow = co("show city", executeTodo);
+		this.CityUseLandAtOffset = co("use offset", executeTodo);
+
+		this.CivList = co("list civilizations", executeTodo);
+		this.CivSelect = co("select civilzation", executeTodo);
+		this.CivShow = co("show civilization", executeTodo);
+
+		this.CivOfferAccept = co("accept offer", executeTodo);
+		this.CivOfferDecline = co("decline offer", executeTodo);
+		this.CivOfferAlliance = co("alliance", executeTodo);
+		this.CivOfferList = co("list offers", executeTodo);
+		this.CivOfferPeace = co("peace", executeTodo);
+		this.CivOfferTrade = co("trade", executeTodo);
+		this.CivOfferWar = co("war", executeTodo);
+
+		this.TechShow = co("show research", executeTodo);
+		this.TechList = co("list technologies", executeTodo);
+		this.TechResearch = co("research", executeTodo);
+
+		this.TurnEnd = co("end turn", executeTodo);
+
+		this.UnitDisband = co("disband", executeTodo);
+		this.UnitFortify = co("fortify", executeTodo);
+		this.UnitList = co("list unit", executeTodo);
+		this.UnitMove = co("move", executeTodo);
+		this.UnitPass = co("pass", executeTodo);
+		this.UnitSelect = co("select unit", executeTodo);
+		this.UnitSleep = co("sleep", executeTodo);
+		this.UnitSupport = co("support", executeTodo);
+
+		this.UnitSettlerIrrigate = co("irrigate", executeTodo);
+		this.UnitSettlerMine = co("mine", executeTodo);
+		this.UnitSettlerRoad = co("road", executeTodo); 
+		this.UnitSettlerSettle = co("settle", executeTodo);
+
+		this.WorldShow = co("show world", executeTodo);
+
+		this._All =
+		[
+			this.CityBuild,
+			this.CityList,
+			this.CitySelect,
+			this.CityShow,
+			this.CityUseLandAtOffset,
+
+			this.CivOfferAccept,
+			this.CivOfferDecline,
+			this.CivOfferAlliance,
+			this.CivOfferList,
+			this.CivOfferPeace,
+			this.CivOfferTrade,
+			this.CivOfferWar,
+
+			this.TechShow,
+			this.TechList,
+			this.TechResearch,
+
+			this.TurnEnd,
+
+			this.UnitDisband,
+			this.UnitFortify,
+			this.UnitList,
+			this.UnitMove,
+			this.UnitPass,
+			this.UnitSelect,
+			this.UnitSleep,
+			this.UnitSupport,
+
+			this.UnitSettlerIrrigate,
+			this.UnitSettlerMine,
+			this.UnitSettlerRoad,
+			this.UnitSettlerSettle,
+
+			this.WorldShow,
+		];
+	}
+
+	byCommandText(commandText)
+	{
+		var opcodeFound =
+			this._All.find(x => commandText.startsWith(x.text));
+		return opcodeFound;
+	}
+}
+
+class Coords
+{
+	constructor(x, y)
+	{
+		this.x = x;
+		this.y = y;
+	}
+
+	static create()
+	{
+		return new Coords(0, 0);
+	}
+
+	clone()
+	{
+		return new Coords(this.x, this.y);
+	}
+}
+
+class Display
+{
+	constructor(domElementId)
+	{
+		this.domElementId = domElementId;
+	}
+
+	drawStringAtPos(stringToDraw, pos)
+	{
+		var textareaDisplay = d.getElementById(this.domElementId);
+		var text = textareaDisplay.value;
+		var newline = "\n";
+		var lines = text.split(newline);
+		var line = lines[pos.y];
+		line = line.substr(0, pos.x) + stringToDraw + line.substr(pos.x + 1);
+		lines[pos.y] = lines;
+		text = lines.join(newline);
+		textareaDisplay.value = text;
+	}
+}
+
+class InputHelper
+{
+	initialize(universe)
+	{
+		var d = document;
+
+		var body = d.body;
+		body.onkeydown = this.keyDown.bind(this, universe);
+
+		var inputCommand = d.getElementById("inputCommand");
+		inputCommand.focus();
+
+		return this;
+	}
+
+	keyDown(universe, event)
+	{
+		event.preventDefault();
+
+		var key = event.key;
+
+		var d = document;
+		var inputCommand = d.getElementById("inputCommand");
+
+		if (key == "Enter")
+		{
+			var commandText = inputCommand.value;
+
+			inputCommand.value = "";
+			inputCommand.focus();
+
+			var command = Command.fromText(commandText);
+			if (command == null)
+			{
+				universe.outputLog.messageSet("Unrecognized command: " + commandText);
+			}
+			else
+			{
+				command.execute(universe, universe.world);
+			}
+		}
+		else if (key == "Backspace")
+		{
+			inputCommand.value = inputCommand.value.substr(0, inputCommand.value.length - 1);
+		}
+		else if (key.length == 1)
+		{
+			inputCommand.value += key;
+		}
+	}
+}
+
+class OutputLog
+{
+	constructor(domElementId)
+	{
+		this.domElementId = domElementId;
+	}
+
+	draw()
+	{
+		var d = document;
+		var domElement = d.getElementById(this.domElementId);
+		domElement.value = this.message;
+	}
+
+	initialize()
+	{
+		this.message = "[No output yet.]"
+		this.draw();
+	}
+
+	messageSet(value)
+	{
+		this.message = value;
+		this.draw();
+	}
+}
+
+class MapOfCells
+{
+	constructor(sizeInCells, cells)
+	{
+		this.sizeInCells = sizeInCells;
+		this.cells = cells;
+	}
+
+	static fromCellsAsStrings(cellsAsStrings)
+	{
+		var sizeInCells = new Coords
+		(
+			cellsAsStrings[0].length, cellsAsStrings.length)
+		;
+		var cells = [];
+
+		var map = new MapOfCells(sizeInCells, cells);
+
+		return map;
+	}
+
+	cellAtPos(posInCells)
+	{
+		return this.cells[this.cellIndexAtPos(posInCells)];
+	}
+
+	cellIndexAtPos(posInCells)
+	{
+		return posInCells.y * this.sizeInCells.x + posInCells.x;
+	}
+
+	draw(universe, world)
+	{
+		var diplay = universe.display;
+		var cellPosInCells = Coords.create();
+
+		for (var y = 0; y < this.sizeInCells.y; y++)
+		{
+			for (var x = 0; x < this.sizeInCells.x; x++)
+			{
+				var cellIndex = this.cellIndexAtPos(cellPos);
+				var cell = this.cells[i];
+				var cellTerrain = cell.terrain(world);
+				var cellTerrainSymbol = cellTerrain.symbol;
+				display.drawStringAtPos
+				(
+					cellTerrainSymbol, cellPosInCells
+				);
+			}
+		}
+	}
+}
+
+class MapOfCellsCell
+{
+	constructor
+	(
+		terrainName,
+		improvementsPresentNames,
+		unitsPresentIds
+	)
+	{
+		this.terrainName = terrainName;
+		this.improvementsPresentNames = improvementsPresentNames;
+		this.unitsPresentIds = unitsPresentIds;
+	}
+}
+
+class MapOfCellsCellImprovement
+{
+	constructor(name, effect)
+	{
+		this.name = name;
+		this.effect = effect;
+	}
+}
+
+class MapOfCellsCellTerrain
+{
+	constructor
+	(
+		name,
+		code,
+		colorName,
+		symbol,
+		movesToTraverse,
+		resourceProductionPerTurn
+	)
+	{
+		this.name = name;
+		this.code = code;
+		this.colorName = colorName;
+		this.symbol = symbol;
+		this.movesToTraverse = movesToTraverse;
+		this.resourceProductionPerTurn = resourceProductionPerTurn;
+	}
+}
+
+class Owner
+{
+	constructor
+	(
+		name,
+		colorName,
+		finance,
+		research,
+		bases,
+		units
+	)
+	{
+		this.name = name;
+		this.colorName = colorName;
+		this.incomeAllocation = incomeAllocation;
+		this.research = research;
+		this.bases = bases;
+		this.units = units;
+
+		this.cameraPosInCells = this.bases[0].pos.clone();
+	}
+}
+
+class OwnerIncomeAllocation
+{
+	constructor(upkeepFraction, researchFraction, luxuriesFraction)
+	{
+		this.upkeepFraction = upkeepFraction;
+		this.researchFraction = researchFraction;
+		this.luxuriesFraction = luxuriesFraction;
+	}
+}
+
+class OwnerMapKnowledge
+{
+	constructor(cellsKnownPositions)
+	{
+		this.cellsKnownPositions = cellsKnownPositions;
+	}
+}
+
+class OwnerResearch
+{
+	constructor
+	(
+		technologyBeingResearchedName,
+		technologyStockpiled
+	)
+	{
+		this.technologyBeingResearchedName = technologyBeingResearchedName;
+		this.researchStockpiled = researchStockpiled;
+	}
+}
+
+class ResourceProduction
+{
+	constructor(food, industry, trade)
+	{
+		this.food = food;
+		this.industry = industry;
+		this.trade = trade;
+	}
+}
+
+class Technology
+{
+	constructor
+	(
+		name,
+		researchToLearn,
+		prerequisiteNames,
+		unitDefnsAllowedNames
+	)
+	{
+		this.name = name;
+		this.researchToLearn = researchToLearn;
+		this.prerequisiteNames = prerequisiteNames;
+		this.unitDefnsAllowedNames = unitDefnsAllowedNames;
+	}
+}
+
+class Unit
+{
+	constructor(defnName, pos)
+	{
+		this.defnName = defnName;
+		this.pos = pos;
+
+		this.isSleeping = false;
+	}
+
+	defn(world)
+	{
+		return world.defns.unitDefnByName(this.defnName);
+	}
+
+	move(world, directionToMove)
+	{
+		var map = world.map;
+		var cellFromPos = this.pos;
+		var cellToPos = cellPos.add(directionToMove);
+
+		var cellFrom = map.cellAtPos(cellPosNext);
+		var cellTo = map.cellAtPos(cellPosNext);
+
+		var cellNextTerrain = cellNext.terrain(world);
+		var defn = this.defn(world);
+
+		var costToMove = defn.costToMoveFromCellToCell
+		(
+			world, cellFrom, cellTo
+		);
+
+		if (costToMove <= this.movesThisTurn)
+		{
+			this.movesThisTurn -= costToMove;
+			this.pos.overwriteWith(cellToPos);
+		}
+	}
+
+	turnUpdate()
+	{
+		var defn = this.defn();
+		this.movesThisTurn = defn.movesPerTurn;
+	}
+}
+
+class UnitActivity
+{
+	constructor(defnName, movesInvestedSoFar)
+	{
+		this.defnName = defnName;
+		this.movesInvestedSoFar = movesInvestedSoFar;
+	}
+}
+
+class UnitActivityDefn
+{
+	constructor(name, movesToComplete, effect)
+	{
+		this.name = name;
+		this.movesToComplete = movesToComplete;
+		this.effect = effect;
+	}
+}
+
+class UnitDefn
+{
+	constructor
+	(
+		name,
+		industryToBuild,
+		attack,
+		defense,
+		movement,
+		activityDefnsAvailableNames
+	)
+	{
+		this.name = name;
+		this.industryToBuild = industryToBuild;
+		this.attack = attack;
+		this.defense = defense;
+		this.movement = movement;
+		this.activityDefnsAvailableNames = activityDefnsAvailableNames;
+	}
+}
+
+class UnitDefnMovement
+{
+	constructor(movesPerTurn, costToMoveFromCellToCell)
+	{
+		this.movesPerTurn = movesPerTurn;
+		this.costToMoveFromCellToCell = costToMoveFromCellToCell;
+	}
+
+	static ground1()
+	{
+		return new UnitDefnMovement
+		(
+			1, // movesPerTurn
+			(universe, world, cellFrom, cellTo) =>
+			{
+				var cellToTerrain = cellTo.terrain(world);
+				var cellToTerrainIsGround = cellToTerrain.isGround();
+				var costToMove =
+				(
+					cellToTerrainIsGround
+					? cellTerrain.movesToTraverse
+					: Number.POSITIVE_INFINITY
+				);
+				return costToMove;
+			}
+		);
+	}
+
+	static ocean1()
+	{
+		return new UnitDefnMovement
+		(
+			1, // movesPerTurn
+			(universe, world, cellFrom, cellTo) =>
+			{
+				var cellToTerrain = cellTo.terrain(world);
+				var cellToTerrainIsGround = cellToTerrain.name == "Ocean";
+				var costToMove = (cellToTerrainIsGround ? 1 : Number.POSITIVE_INFINITY);
+				return costToMove;
+			}
+		);
+	}
+
+}
+
+class Universe
+{
+	constructor(display, world)
+	{
+		this.display = display;
+		this.world = world;
+
+		this.inputHelper = new InputHelper();
+		this.outputLog = new OutputLog("textareaOutputLog");
+	}
+
+	initialize()
+	{
+		this.inputHelper.initialize(this);
+		this.outputLog.initialize();
+	}
+}
+
+class World
+{
+	constructor(name, defns, turnsSoFar, map)
+	{
+		this.name = name;
+		this.defns = defns;
+		this.turnsSoFar = turnsSoFar;
+		this.map = map;
+	}
+
+	static demo()
+	{
+		var terrains =
+		[
+			new MapOfCellsCellTerrain
+			(
+				"Ocean",
+				"~", // code,
+				"Blue", // colorName,
+				".", // symbol,
+				100, // movesToTraverse,
+				null // resourceProductionPerTurn
+			),
+
+			new MapOfCellsCellTerrain
+			(
+				"Plain",
+				".", // code,
+				"Green", // colorName,
+				".", // symbol,
+				1, // movesToTraverse,
+				null // resourceProductionPerTurn
+			),
+		];
+
+		var unitDefns =
+		[
+			new UnitDefn
+			(
+				"Settlers",
+				50, // industryToBuild,
+				0, // attack,
+				1, // defense,
+				UnitDefnMovement.ground1(),
+				null // activityDefnsAvailableNames
+			)
+		];
+
+		var defns = new WorldDefns
+		(
+			terrains,
+			unitDefns
+		);
+
+		var map = MapOfCells.fromCellsAsStrings
+		([
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~..............................~",
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+		])
+
+		var worldDemo = new World
+		(
+			"Demo",
+			defns,
+			0, // turnsSoFar
+			map
+		);
+
+		return worldDemo;
+	}
+
+	draw(universe)
+	{
+		this.map.draw(universe, world);
+	}
+}
+
+class WorldDefns
+{
+	constructor(terrains, unitDefns)
+	{
+		this.terrains = terrains;
+		this.unitDefns = unitDefns;
+
+		this._terrainsByCode = new Map(this.terrains.map(x => [x.code, x]));
+		this._unitDefnsByName = new Map(this.unitDefns.map(x => [x.name, x]));
+	}
+
+	unitDefnByName(name)
+	{
+		return this._unitDefnsByName.get(name);
+	}
+}
+
+// Run.
+
+new Game().run();
+
+</script>
+
+</body>
+</html>
