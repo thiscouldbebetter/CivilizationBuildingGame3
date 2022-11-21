@@ -12,7 +12,7 @@
 	<div>
 		<label>Display:</label>
 		<br />
-		<div id="divDisplay"></div>
+		<div id="divDisplay" style="border:1px solid"></div>
 	</div>
 
 	<div>
@@ -35,7 +35,10 @@ class Game
 {
 	run()
 	{
-		var display = new DisplayCanvas("divDisplay", new Coords(1024, 512));
+		var display = new DisplayCanvas
+		(
+			"divDisplay", new Coords(1024, 512)
+		);
 		var world = World.demo();
 		var universe = new Universe(display, world);
 		universe.initialize();
@@ -66,6 +69,31 @@ class Base
 		this.industry = industry;
 	}
 
+	toStringDetails(world)
+	{
+		var defn = this.defn(world);
+
+		var lines =
+		[
+			"Name: " + this.id,
+			"Onwer:" + this.ownerName,
+			"Position: " + this.pos.toString(),
+			"Population: " + this.population,
+			"Food: " + this.foodStockpiled,
+			this.landUsage.toString(),
+			this.industry.toString()
+		];
+
+		var linesJoined = lines.join("<br />");
+
+		return linesJoined;
+	}
+
+	toStringForList()
+	{
+		return this.name + " @" + this.pos.toString();
+	}
+
 	turnUpdate(universe, world)
 	{
 		// todo
@@ -88,6 +116,17 @@ class BaseIndustry
 		this.buildableInProgressName = buildableInProgressName;
 		this.industryStockpiled = industryStockpiled;
 	}
+
+	toString()
+	{
+		var returnValue =
+			"Building: "
+			+ this.buildableInProgressName
+			+ this.industryStockpiled
+			+ "/?"; // todo
+
+		return returnValue;
+	}
 }
 
 class BaseLandUsage
@@ -95,6 +134,11 @@ class BaseLandUsage
 	constructor(offsetsInUse)
 	{
 		this.offsetsInUse = offsetsInUse;
+	}
+
+	toString()
+	{
+		return "Land Usage: " + this.offsetsInUse.map(x => x.toString()).join(";");
 	}
 }
 
@@ -168,10 +212,23 @@ class CommandOpcode_Instances
 	{
 		var co = (text, execute) => new CommandOpcode(text, execute);
 
-		var executeTodo = (u, w, c) => { u.display.writeLine("todo") };
+		var executeTodo = (u, w, c) => { alert("todo") };
 
 		this.CityBuild = co("build", executeTodo);
-		this.CityList = co("list cities", executeTodo);
+		this.CityList = co
+		(
+			"list cities",
+			(u, w, c) =>
+			{
+				var owner = w.ownerCurrent();
+				var bases = owner.bases;
+
+				var outputLog = u.outputLog;
+				outputLog.clear();
+				bases.forEach(x => outputLog.writeLine( x.toStringForList() ) );
+			}
+
+		);
 		this.CitySelect = co("select city", executeTodo);
 		this.CityShow = co("show city", executeTodo);
 		this.CityUseLandAtOffset = co("use offset", executeTodo);
@@ -240,12 +297,90 @@ class CommandOpcode_Instances
 
 		this.TurnEnd = co("end turn", executeTodo);
 
+		// Units.
+
+		this.UnitActionsShow = co
+		(
+			"list actions",
+			(u, w, c) =>
+			{
+				var owner = w.ownerCurrent();
+				var unit = owner.unitSelected();
+				var unitDefn = unit.defn(w);
+
+				var outputLog = u.outputLog;
+				outputLog.clear();
+				outputLog.writeLine("Actions available:");
+				var actionsAvailableNames = unitDefn.actionsAvailableNames;
+				actionsAvailableNames.forEach
+				(
+					x => outputLog.writeLine(x)
+				);
+			}
+		)
 		this.UnitDisband = co("disband", executeTodo);
 		this.UnitFortify = co("fortify", executeTodo);
-		this.UnitList = co("list units", executeTodo);
+
+		this.UnitList = co
+		(
+			"list units",
+			(u, w, c) =>
+			{
+				var owner = w.ownerCurrent();
+				var units = owner.units;
+
+				var outputLog = u.outputLog;
+				outputLog.clear();
+				units.forEach(x => outputLog.writeLine( x.toStringForList() ) );
+			}
+		);
+
 		this.UnitMove = co("move", executeTodo);
 		this.UnitPass = co("pass", executeTodo);
-		this.UnitSelect = co("select unit", executeTodo);
+
+		this.UnitSelect = co
+		(
+			"select unit",
+			(u, w, c) =>
+			{
+				var outputLog = u.outputLog;
+				outputLog.clear();
+
+				var owner = w.ownerCurrent();
+				var idToSelect = parseInt(c.operands[0]);
+				try
+				{
+					owner.unitSelectById(idToSelect);
+					outputLog.writeLine("Selected unit " + idToSelect);
+				}
+				catch (err)
+				{
+					outputLog.writeLine(err.message);
+				}
+			}
+		);
+
+		this.UnitShow = co
+		(
+			"show unit",
+			(u, w, c) =>
+			{
+				var outputLog = u.outputLog;
+				outputLog.clear();
+
+				var unitSelected = w.ownerCurrent().unitSelected();
+				if (unitSelected == null)
+				{
+					outputLog.writeLine("No unit selected!");
+				}
+				else
+				{
+					var unitDetails = unitSelected.toStringDetails(w);
+					outputLog.writeLine(unitDetails);
+				}
+			}
+		);
+
 		this.UnitSleep = co("sleep", executeTodo);
 		this.UnitSupport = co("support", executeTodo);
 
@@ -293,6 +428,7 @@ class CommandOpcode_Instances
 			this.UnitMove,
 			this.UnitPass,
 			this.UnitSelect,
+			this.UnitShow,
 			this.UnitSleep,
 			this.UnitSupport,
 
@@ -406,6 +542,34 @@ class Coords
 		this.y = Math.random();
 		return this;
 	}
+
+	toString()
+	{
+		return this.x + "," + this.y;
+	}
+
+	wrapXTrimYToMax(max)
+	{
+		while (this.x < 0)
+		{
+			this.x += max.x;
+		}
+		while (this.x >= max.x)
+		{
+			this.x -= max.x;
+		}
+
+		if (this.y < 0)
+		{
+			this.y = 0;
+		}
+		else if (this.y > max.y)
+		{
+			this.y = max.y - 1; // hack
+		}
+
+		return this;
+	}
 }
 
 class DisplayCanvas
@@ -454,20 +618,21 @@ class DisplayCanvas
 		);
 	}
 
-	drawCircle(pos, radius, colorFillName, colorBorderName)
+	drawCircle(center, radius, colorFillName, colorBorderName)
 	{
-		// todo - This is a rectangle again.
+		this.graphics.beginPath();
+		this.graphics.arc(center.x, center.y, radius, 0, Math.PI * 2);
 
 		if (colorFillName != null)
 		{
 			this.graphics.fillStyle = colorFillName;
-			this.graphics.fillRect(pos.x, pos.y, radius, radius);
+			this.graphics.fill();
 		}
 
 		if (colorBorderName != null)
 		{
 			this.graphics.strokeStyle = colorBorderName;
-			this.graphics.strokeRect(pos.x, pos.y, radius, radius);
+			this.graphics.stroke();
 		}
 	}
 
@@ -778,6 +943,46 @@ class Owner
 		this.mapKnowledge = mapKnowledge;
 		this.bases = bases;
 		this.units = units;
+
+		this.baseSelectedName = null;
+		this.unitSelectedId = null;
+	}
+
+	baseSelected()
+	{
+		var base =
+		(
+			this.baseSelectedName == null
+			? null
+			: this.bases.find(x => x.name == this.baseSelectedName)
+		);
+
+		return unit;
+	}
+
+	unitSelectById(idToSelect)
+	{
+		var unitToSelect = this.units.find(x => x.id == idToSelect);
+		if (unitToSelect == null)
+		{
+			throw new Error("No unit found with ID: " + idToSelect);
+		}
+		else
+		{
+			this.unitSelectedId = unitToSelect.id;
+		}
+	}
+
+	unitSelected()
+	{
+		var unit =
+		(
+			this.unitSelectedId == null
+			? null
+			: this.units.find(x => x.id == this.unitSelectedId)
+		);
+
+		return unit;
 	}
 }
 
@@ -826,7 +1031,7 @@ class OwnerMapKnowledge
 		var mapComplete = world.map;
 		var mapSizeInCells = mapComplete.sizeInCells;
 		var cellSizeInPixels = Coords.ones().multiplyScalar(16);
-		var cellSizeInPixelsHalf = cellSizeInPixels.half();
+		var cellSizeInPixelsHalf = cellSizeInPixels.clone().half();
 		var cellRadiusInPixels = cellSizeInPixelsHalf.x;
 		var cellPosInCells = Coords.create();
 		var cellPosInPixels = Coords.create();
@@ -863,40 +1068,63 @@ class OwnerMapKnowledge
 
 			var isCellCurrentlyVisible =
 				this.cellsVisibleIndicesByIndex.has(cellIndex);
-			if (isCellCurrentlyVisible)
-			{
-				var basePresent = cell.basePresent(world);
-				if (basePresent != null)
-				{
-					var basePresentOwner = basePresent.owner(world);
-					var basePresentColorName = basePresentOwner.colorName;
-					display.drawRectangle
-					(
-						cellPosInPixels, cellSizeInPixels, basePresentColorName, "Gray"
-					);
-					display.drawText
-					(
-						basePresent.name, cellPosInPixels, "White"
-					);
-				}
-
-				var unitsPresent = cell.unitsPresent(world);
-				for (var u = 0; u < unitsPresent.length; u++)
-				{
-					var unit = unitsPresent[u];
-					var unitDefn = unit.defn(world);
-					var unitSymbol = unitDefn.symbol;
-					var owner = unit.owner(world);
-					var ownerColorName = owner.colorName;
-					var cellCenterInPixels = cellPosInPixels.clone().add(cellSizeInPixelsHalf);
-					display.drawCircle(cellCenterInPixels, cellRadiusInPixels, ownerColorName, "Gray");
-					display.drawText(unitSymbol, cellPosInPixels, "Gray");
-				}
-			}
-			else
+			if (isCellCurrentlyVisible == false)
 			{
 				display.drawRectangle(cellPosInPixels, cellSizeInPixels, "rgba(0, 0, 0, 0.5)", null);
 			}
+		}
+
+		var cellsVisibleIndices = Array.from(this.cellsVisibleIndicesByIndex.keys());
+		for (var c = 0; c < cellsVisibleIndices.length; c++)
+		{
+			var cellIndex = cellsVisibleIndices[c];
+			cellPosInCells.overwriteWithXY
+			(
+				cellIndex % mapSizeInCells.x,
+				Math.floor(cellIndex / mapSizeInCells.x)
+			);
+			var cell = mapComplete.cellAtPosInCells(cellPosInCells);
+			cellPosInPixels.overwriteWith
+			(
+				cellPosInCells
+			).multiply
+			(
+				cellSizeInPixels
+			);
+
+			var basePresent = cell.basePresent(world);
+			if (basePresent != null)
+			{
+				var basePresentOwner = basePresent.owner(world);
+				var basePresentColorName = basePresentOwner.colorName;
+				display.drawRectangle
+				(
+					cellPosInPixels, cellSizeInPixels, basePresentColorName, "Gray"
+				);
+				display.drawText
+				(
+					basePresent.name, cellPosInPixels, "White"
+				);
+			}
+
+			var unitsPresent = cell.unitsPresent(world);
+			for (var u = 0; u < unitsPresent.length; u++)
+			{
+				var unit = unitsPresent[u];
+				var unitDefn = unit.defn(world);
+				var unitSymbol = unitDefn.symbol;
+				var owner = unit.owner(world);
+				var ownerColorName = owner.colorName;
+				var cellCenterInPixels =
+					cellPosInPixels.clone().add(cellSizeInPixelsHalf);
+				display.drawCircle
+				(
+					cellCenterInPixels, cellRadiusInPixels,
+					ownerColorName, "Gray"
+				);
+				display.drawText(unitSymbol, cellPosInPixels, "Gray");
+			}
+
 		}
 	}
 
@@ -1007,6 +1235,7 @@ class Unit
 		this.pos = pos;
 
 		this.id = IdHelper.idNext();
+		this.movesThisTurn = 0;
 		this.isSleeping = false;
 	}
 
@@ -1044,9 +1273,30 @@ class Unit
 		return world.ownerByName(this.ownerName);
 	}
 
-	turnUpdate()
+	toStringDetails(world)
 	{
-		var defn = this.defn();
+		var defn = this.defn(world);
+
+		var lines =
+		[
+			"ID: " + this.id,
+			"Type: " + this.defnName,
+			"Position: " + this.pos.toString(),
+			"Moves: " + this.movesThisTurn + "/" + defn.movement.movesPerTurn,
+			defn.combat.toString()
+		];
+		var linesJoined = lines.join("<br />");
+		return linesJoined
+	}
+
+	toStringForList()
+	{
+		return this.id + ": " + this.defnName + " @" + this.pos.toString();
+	}
+
+	turnUpdate(world)
+	{
+		var defn = this.defn(world);
 		this.movesThisTurn = defn.movesPerTurn;
 	}
 }
@@ -1078,7 +1328,7 @@ class UnitDefn
 		industryToBuild,
 		movement,
 		combat,
-		activityDefnsAvailableNames,
+		actionsAvailableNames,
 		symbol
 	)
 	{
@@ -1086,17 +1336,38 @@ class UnitDefn
 		this.industryToBuild = industryToBuild;
 		this.movement = movement;
 		this.combat = combat;
-		this.activityDefnsAvailableNames = activityDefnsAvailableNames;
+		this.actionsAvailableNames = actionsAvailableNames;
 		this.symbol = symbol;
+	}
+
+	static construct
+	(
+		name,
+		industryToBuild,
+		movement,
+		combat,
+		actionsAvailableNames,
+		symbol
+	)
+	{
+		return new UnitDefn
+		(
+			name,
+			industryToBuild,
+			movement,
+			combat,
+			actionsAvailableNames,
+			symbol
+		);
 	}
 
 	static Instances()
 	{
-		if (Unit._instances == null)
+		if (UnitDefn._instances == null)
 		{
-			Unit._instances = new Unit_Instances();
+			UnitDefn._instances = new UnitDefn_Instances();
 		}
-		return Unit._instances;
+		return UnitDefn._instances;
 	}
 }
 
@@ -1105,14 +1376,16 @@ class UnitDefn_Instances
 	constructor()
 	{
 		// Movements
-		var g1 = UnitDefnMovement.ground1();
+		var g1 = UnitDefnMovement.ground(1);
 		var g2 = UnitDefnMovement.ground(2);
-		var o1 = UnitDefnMovement.ocean1();
+		var g3 = UnitDefnMovement.ground(3);
+		var o1 = UnitDefnMovement.ocean(1);
+		var o3 = UnitDefnMovement.ocean(3);
 		var o5 = UnitDefnMovement.ocean(5);
 
 		var a0 = [];
-		var ud = new UnitDefn;
-		var c = new UnitDefnCombat; // attack, defense, integrityMax
+		var ud = UnitDefn.construct;
+		var c = UnitDefnCombat.construct; // attack, defense, integrityMax
 		var udTodo =
 			() =>
 			{
@@ -1234,6 +1507,16 @@ class UnitDefnCombat
 		this.defense = defense;
 		this.integrityMax = integrityMax;
 	}
+
+	static construct(attack, defense, integrityMax)
+	{
+		return new UnitDefnCombat(attack, defense, integrityMax);
+	}
+
+	toString()
+	{
+		return "Atk/Def: " + this.attack + "/" + this.defense;
+	}
 }
 
 class UnitDefnMovement
@@ -1244,11 +1527,11 @@ class UnitDefnMovement
 		this.costToMoveFromCellToCell = costToMoveFromCellToCell;
 	}
 
-	static ground1()
+	static ground(movesPerTurn)
 	{
 		return new UnitDefnMovement
 		(
-			1, // movesPerTurn
+			movesPerTurn,
 			(universe, world, cellFrom, cellTo) =>
 			{
 				var cellToTerrain = cellTo.terrain(world);
@@ -1264,16 +1547,16 @@ class UnitDefnMovement
 		);
 	}
 
-	static ocean1()
+	static ocean(movesPerTurn)
 	{
 		return new UnitDefnMovement
 		(
-			1, // movesPerTurn
+			movesPerTurn,
 			(universe, world, cellFrom, cellTo) =>
 			{
 				var cellToTerrain = cellTo.terrain(world);
-				var cellToTerrainIsGround = cellToTerrain.name == "Ocean";
-				var costToMove = (cellToTerrainIsGround ? 1 : Number.POSITIVE_INFINITY);
+				var cellToTerrainIsOcean = (cellToTerrain.name == "Ocean");
+				var costToMove = (cellToTerrainIsOcean ? 1 : Number.POSITIVE_INFINITY);
 				return costToMove;
 			}
 		);
@@ -1347,18 +1630,7 @@ class World
 			),
 		];
 
-		var unitDefns =
-		[
-			new UnitDefn
-			(
-				"Settlers",
-				50, // industryToBuild,
-				0, // attack,
-				1, // defense,
-				UnitDefnMovement.ground1(),
-				null // activityDefnsAvailableNames
-			)
-		];
+		var unitDefns = UnitDefn.Instances()._All;
 
 		var defns = new WorldDefns
 		(
@@ -1368,6 +1640,8 @@ class World
 
 		var map = MapOfCells.fromCellsAsStrings
 		([
+			//       10        20        30        40        5         60
+			//234567890123456789012345678901234567890123456789012345678901234
 			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
 			"~..............................................................~",
 			"~..............................................................~",
@@ -1377,6 +1651,7 @@ class World
 			"~..............................................................~",
 			"~..............................................................~",
 			"~..............................................................~",
+			"~..............................................................~", // 10
 			"~..............................................................~",
 			"~..............................................................~",
 			"~..............................................................~",
@@ -1386,6 +1661,7 @@ class World
 			"~..............................................................~",
 			"~..............................................................~",
 			"~..............................................................~",
+			"~..............................................................~", // 20
 			"~..............................................................~",
 			"~..............................................................~",
 			"~..............................................................~",
@@ -1395,9 +1671,7 @@ class World
 			"~..............................................................~",
 			"~..............................................................~",
 			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
+			"~..............................................................~", // 30
 			"~..............................................................~",
 			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
 		]);
