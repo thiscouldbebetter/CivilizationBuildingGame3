@@ -12,7 +12,7 @@
 	<div>
 		<label>Display:</label>
 		<br />
-		<div id="textareaDisplay" style="font:10px Courier New" readonly="readonly"></div>
+		<div id="divDisplay"></div>
 	</div>
 
 	<div>
@@ -35,7 +35,7 @@ class Game
 {
 	run()
 	{
-		var display = new Display("textareaDisplay");
+		var display = new DisplayCanvas("divDisplay", new Coords(1024, 512));
 		var world = World.demo();
 		var universe = new Universe(display, world);
 		universe.initialize();
@@ -326,14 +326,38 @@ class Coords
 		return new Coords(0, 0);
 	}
 
+	static ones()
+	{
+		return new Coords(1, 1);
+	}
+
 	static random()
 	{
 		return Coords.create().randomize();
 	}
 
+	static zeroes()
+	{
+		return new Coords(0, 0);
+	}
+
+	add(other)
+	{
+		this.x += other.x;
+		this.y += other.y;
+		return this;
+	}
+
 	clone()
 	{
 		return new Coords(this.x, this.y);
+	}
+
+	divideScalar(scalar)
+	{
+		this.x /= scalar;
+		this.y /= scalar;
+		return this;
 	}
 
 	floor()
@@ -343,10 +367,36 @@ class Coords
 		return this;
 	}
 
+	half()
+	{
+		return this.divideScalar(2);
+	}
+
 	multiply(other)
 	{
 		this.x *= other.x;
 		this.y *= other.y;
+		return this;
+	}
+
+	multiplyScalar(scalar)
+	{
+		this.x *= scalar;
+		this.y *= scalar;
+		return this;
+	}
+
+	overwriteWith(other)
+	{
+		this.x = other.x;
+		this.y = other.y;
+		return this;
+	}
+
+	overwriteWithXY(x, y)
+	{
+		this.x = x;
+		this.y = y;
 		return this;
 	}
 
@@ -358,7 +408,93 @@ class Coords
 	}
 }
 
-class Display
+class DisplayCanvas
+{
+	constructor(domElementParentId, sizeInPixels)
+	{
+		this.domElementParentId = domElementParentId;
+		this.sizeInPixels = sizeInPixels;
+
+		this.fontHeightInPixels = 10;
+		this.font = this.fontHeightInPixels + "px sans-serif";
+
+		this._zeroes = Coords.zeroes();
+
+		this.colorForegroundName = "Blue";
+		this.colorBackgroundName = "Black";
+	}
+
+	clear()
+	{
+		this.graphics.clearRect(this.sizeInPixels);
+	}
+
+	initialize(universe)
+	{
+		var d = document;
+		var canvas = d.createElement("canvas");
+		canvas.width = this.sizeInPixels.x;
+		canvas.height = this.sizeInPixels.y;
+
+		var domElementParent = d.getElementById(this.domElementParentId);
+		domElementParent.appendChild(canvas);
+
+		this.graphics = canvas.getContext("2d");
+
+		var divParent
+	}
+
+	// Draw.
+
+	drawBackground(colorName)
+	{
+		this.drawRectangle
+		(
+			this._zeroes, this.sizeInPixels, colorName, null
+		);
+	}
+
+	drawCircle(pos, radius, colorFillName, colorBorderName)
+	{
+		// todo - This is a rectangle again.
+
+		if (colorFillName != null)
+		{
+			this.graphics.fillStyle = colorFillName;
+			this.graphics.fillRect(pos.x, pos.y, radius, radius);
+		}
+
+		if (colorBorderName != null)
+		{
+			this.graphics.strokeStyle = colorBorderName;
+			this.graphics.strokeRect(pos.x, pos.y, radius, radius);
+		}
+	}
+
+	drawRectangle(pos, size, colorFillName, colorBorderName)
+	{
+		if (colorFillName != null)
+		{
+			this.graphics.fillStyle = colorFillName;
+			this.graphics.fillRect(pos.x, pos.y, size.x, size.y);
+		}
+
+		if (colorBorderName != null)
+		{
+			this.graphics.strokeStyle = colorBorderName;
+			this.graphics.strokeRect(pos.x, pos.y, size.x, size.y);
+		}
+	}
+
+	drawText(textToDraw, pos, colorName)
+	{
+		this.graphics.fillStyle = colorName;
+		this.graphics.fillText(textToDraw, pos.x, pos.y + this.fontHeightInPixels);
+	}
+
+}
+
+class DisplayText
 {
 	constructor(domElementId)
 	{
@@ -508,7 +644,7 @@ class MapOfCells
 		return map;
 	}
 
-	cellAtPos(posInCells)
+	cellAtPosInCells(posInCells)
 	{
 		return this.cells[this.cellIndexAtPos(posInCells)];
 	}
@@ -522,6 +658,8 @@ class MapOfCells
 	{
 		var display = universe.display;
 		var cellPosInCells = Coords.create();
+		var cellSizeInPixels = Coords.ones().multiplyScalar(16); // hack
+		var cellPosInPixels = Coords.create();
 
 		for (var y = 0; y < this.sizeInCells.y; y++)
 		{
@@ -531,17 +669,18 @@ class MapOfCells
 			{
 				cellPosInCells.x = x;
 
-				var cell = this.cellAtPos(cellPosInCells);
+				cellPosInPixels.overwriteWith(cellPosInCells).multiply(cellSizeInPixels);
+
+				var cell = this.cellAtPosInCells(cellPosInCells);
 				var cellTerrain = cell.terrain(world);
 				var cellTerrainSymbol = cellTerrain.symbol;
 				var cellTerrainColorName = cellTerrain.colorName;
 
-				var cellAsString = cellTerrainSymbol + cellTerrainSymbol;
-
-				display.writeString(cellAsString, cellTerrainColorName);
+				display.drawRectangle
+				(
+					cellPosInPixels, cellSizeInPixels, cellTerrainColorName, "Gray"
+				);
 			}
-
-			display.writeNewline();
 		}
 	}
 }
@@ -551,13 +690,13 @@ class MapOfCellsCell
 	constructor
 	(
 		terrainCode,
-		basesPresentNames,
+		basePresentName,
 		improvementsPresentNames,
 		unitsPresentIds
 	)
 	{
 		this.terrainCode = terrainCode;
-		this.basesPresentNames = basesPresentNames || [];
+		this.basePresentName = basePresentName;
 		this.improvementsPresentNames = improvementsPresentNames || [];
 		this.unitsPresentIds = unitsPresentIds || [];
 	}
@@ -565,6 +704,11 @@ class MapOfCellsCell
 	baseAdd(base)
 	{
 		this.basesPresentNames.push(base.name);
+	}
+
+	basePresent(world)
+	{
+		return (this.basePresentName == null ? null : world.baseByName(this.basePresentName));
 	}
 
 	terrain(world)
@@ -576,6 +720,12 @@ class MapOfCellsCell
 	{
 		this.unitsPresentIds.push(unit.id);
 	}
+
+	unitsPresent(world)
+	{
+		return (this.unitsPresentIds.map(x => world.unitById(x)));
+	}
+
 }
 
 class MapOfCellsCellImprovement
@@ -660,7 +810,10 @@ class OwnerMapKnowledge
 {
 	constructor(cellsKnownIndices)
 	{
-		this.cellsKnownIndices = cellsKnownIndices || [];
+		cellsKnownIndices = cellsKnownIndices || [];
+		this.cellsKnownIndicesByIndex =
+			new Map(cellsKnownIndices.map(x => [x, x]));
+		this.cellsVisibleIndicesByIndex = new Map();
 	}
 
 	static default()
@@ -668,9 +821,133 @@ class OwnerMapKnowledge
 		return new OwnerMapKnowledge(null);
 	}
 
-	mapKnownFromMapComplete(mapComplete)
+	draw(universe, world)
 	{
-		return mapComplete; // todo
+		var mapComplete = world.map;
+		var mapSizeInCells = mapComplete.sizeInCells;
+		var cellSizeInPixels = Coords.ones().multiplyScalar(16);
+		var cellSizeInPixelsHalf = cellSizeInPixels.half();
+		var cellRadiusInPixels = cellSizeInPixelsHalf.x;
+		var cellPosInCells = Coords.create();
+		var cellPosInPixels = Coords.create();
+
+		var mapSizeInPixels = mapSizeInCells.clone().multiply(cellSizeInPixels);
+		var display = universe.display;
+		display.drawBackground("Black");
+
+		var cellsKnownIndices = Array.from(this.cellsKnownIndicesByIndex.keys());
+		for (var c = 0; c < cellsKnownIndices.length; c++)
+		{
+			var cellIndex = cellsKnownIndices[c];
+			cellPosInCells.overwriteWithXY
+			(
+				cellIndex % mapSizeInCells.x,
+				Math.floor(cellIndex / mapSizeInCells.x)
+			);
+			var cell = mapComplete.cellAtPosInCells(cellPosInCells);
+			cellPosInPixels.overwriteWith
+			(
+				cellPosInCells
+			).multiply
+			(
+				cellSizeInPixels
+			);
+
+			var terrain = cell.terrain(world);
+			var terrainColorName = terrain.colorName;
+
+			display.drawRectangle
+			(
+				cellPosInPixels, cellSizeInPixels, terrainColorName, "Gray"
+			);
+
+			var isCellCurrentlyVisible =
+				this.cellsVisibleIndicesByIndex.has(cellIndex);
+			if (isCellCurrentlyVisible)
+			{
+				var basePresent = cell.basePresent(world);
+				if (basePresent != null)
+				{
+					var basePresentOwner = basePresent.owner(world);
+					var basePresentColorName = basePresentOwner.colorName;
+					display.drawRectangle
+					(
+						cellPosInPixels, cellSizeInPixels, basePresentColorName, "Gray"
+					);
+					display.drawText
+					(
+						basePresent.name, cellPosInPixels, "White"
+					);
+				}
+
+				var unitsPresent = cell.unitsPresent(world);
+				for (var u = 0; u < unitsPresent.length; u++)
+				{
+					var unit = unitsPresent[u];
+					var unitDefn = unit.defn(world);
+					var unitSymbol = unitDefn.symbol;
+					var owner = unit.owner(world);
+					var ownerColorName = owner.colorName;
+					var cellCenterInPixels = cellPosInPixels.clone().add(cellSizeInPixelsHalf);
+					display.drawCircle(cellCenterInPixels, cellRadiusInPixels, ownerColorName, "Gray");
+					display.drawText(unitSymbol, cellPosInPixels, "Gray");
+				}
+			}
+			else
+			{
+				display.drawRectangle(cellPosInPixels, cellSizeInPixels, "rgba(0, 0, 0, 0.5)", null);
+			}
+		}
+	}
+
+	update(universe, world, owner)
+	{
+		this.cellsVisibleIndicesByIndex = new Map();
+
+		var mapSizeInCells = world.map.sizeInCells;
+		var cellOffsetPos = Coords.create();
+
+		var ownerBases = owner.bases;
+
+		var ownerUnits = owner.units;
+
+		for (var i = 0; i < ownerUnits.length; i++)
+		{
+			var unit = ownerUnits[i];
+			var unitPos = unit.pos;
+			var cellsAdjacentPositions = [];
+			for (var y = -1; y <= 1; y++)
+			{
+				cellOffsetPos.y = y;
+
+				for (var x = -1; x <= 1; x++)
+				{
+					cellOffsetPos.x = x;
+
+					var cellAdjacentPos =
+						unitPos.clone().add(cellOffsetPos);
+					var cellAdjacentIndex =
+						cellAdjacentPos.y * mapSizeInCells.x + cellAdjacentPos.x;
+
+					if (this.cellsKnownIndicesByIndex.has(cellAdjacentIndex) == false)
+					{
+						this.cellsKnownIndicesByIndex.set
+						(
+							cellAdjacentIndex, cellAdjacentIndex
+						);
+					}
+
+					if (this.cellsVisibleIndicesByIndex.has(cellAdjacentIndex) == false)
+					{
+						this.cellsVisibleIndicesByIndex.set
+						(
+							cellAdjacentIndex, cellAdjacentIndex
+						);
+					}
+
+				}
+			}
+		}
 	}
 }
 
@@ -744,8 +1021,8 @@ class Unit
 		var cellFromPos = this.pos;
 		var cellToPos = cellPos.add(directionToMove);
 
-		var cellFrom = map.cellAtPos(cellPosNext);
-		var cellTo = map.cellAtPos(cellPosNext);
+		var cellFrom = map.cellAtPosInCells(cellPosNext);
+		var cellTo = map.cellAtPosInCells(cellPosNext);
 
 		var cellNextTerrain = cellNext.terrain(world);
 		var defn = this.defn(world);
@@ -760,6 +1037,11 @@ class Unit
 			this.movesThisTurn -= costToMove;
 			this.pos.overwriteWith(cellToPos);
 		}
+	}
+
+	owner(world)
+	{
+		return world.ownerByName(this.ownerName);
 	}
 
 	turnUpdate()
@@ -1007,12 +1289,13 @@ class Universe
 		this.world = world;
 
 		this.inputHelper = new InputHelper();
-		this.outputLog = new Display("textareaOutputLog");
+		this.outputLog = new DisplayText("textareaOutputLog");
 	}
 
 	initialize()
 	{
 		this.inputHelper.initialize(this);
+		this.display.initialize(this);
 	}
 }
 
@@ -1132,7 +1415,7 @@ class World
 			var unitInitial = new Unit
 			(
 				ownerName,
-				"Settler",
+				"Settlers",
 				posRandom
 			);
 
@@ -1167,16 +1450,22 @@ class World
 	draw(universe, world)
 	{
 		var display = universe.display;
-		display.writeLine(this.name);
-		this.map.draw(universe, world);
-		display.writeNewline();
+		var ownerCurrent = world.ownerCurrent();
+		var ownerCurrentMapKnowledge = ownerCurrent.mapKnowledge;
+		ownerCurrentMapKnowledge.update(universe, world, ownerCurrent);
+		ownerCurrentMapKnowledge.draw(universe, world);
 	}
 
 	baseAdd(base)
 	{
 		this.bases.push(base);
-		var cell = this.map.cellAtPos(base.pos);
+		var cell = this.map.cellAtPosInCells(base.pos);
 		cell.baseAdd(cell);
+	}
+
+	baseByName(name)
+	{
+		return this.bases.find(x => x.name == name);
 	}
 
 	ownerByName(name)
@@ -1203,7 +1492,7 @@ class World
 	unitAdd(unit)
 	{
 		this.units.push(unit);
-		var cell = this.map.cellAtPos(unit.pos);
+		var cell = this.map.cellAtPosInCells(unit.pos);
 		cell.unitAdd(unit);
 	}
 
