@@ -69,6 +69,11 @@ class Base
 		this.industry = industry;
 	}
 
+	initialize(world)
+	{
+		// todo
+	}
+
 	toStringDetails(world)
 	{
 		var defn = this.defn(world);
@@ -94,9 +99,10 @@ class Base
 		return this.name + " @" + this.pos.toString();
 	}
 
-	turnUpdate(universe, world)
+	turnAdvance(world)
 	{
-		// todo
+		this.landUsage.turnAdvance(world, this);
+		this.industry.turnAdvance(world, this);
 	}
 }
 
@@ -127,6 +133,11 @@ class BaseIndustry
 
 		return returnValue;
 	}
+
+	turnAdvance(world, base)
+	{
+		// todo
+	}
 }
 
 class BaseLandUsage
@@ -139,6 +150,22 @@ class BaseLandUsage
 	toString()
 	{
 		return "Land Usage: " + this.offsetsInUse.map(x => x.toString()).join(";");
+	}
+
+	turnAdvance(world, base)
+	{
+		var basePos = base.pos;
+		var cellsInUsePositions =
+			this.offsetsInUse.map(x => x.clone().add(basePos));
+		var map = world.map();
+		var cellsInUse =
+			cellsInUsePositions.map(x => map.cellAtPosInCells(x) );
+		var resourcesProducedByCells =
+			cellsInUse.map(x => x.resourcesProduced(world, base) );
+		var resourcesProducedByBase =
+			ResourceProduction.create();
+		resourcesProducedByCells.forEach(x => resourcesProducedByBase.add(x) );
+		// todo
 	}
 }
 
@@ -295,7 +322,17 @@ class CommandOpcode_Instances
 
 		this.TechResearch = co("research", executeTodo);
 
-		this.TurnEnd = co("end turn", executeTodo);
+		this.TurnEnd = co
+		(
+			"end turn",
+			(u, w, c) =>
+			{
+				var outputLog = u.outputLog;
+				outputLog.clear();
+				w.turnAdvance(u);
+				outputLog.writeLine("Next turn:" + w.turnsSoFar);
+			}
+		);
 
 		// Units.
 
@@ -343,12 +380,13 @@ class CommandOpcode_Instances
 				var outputLog = u.outputLog;
 				outputLog.clear();
 
-				var unitSelected = w.ownerCurrent().unitSelected();
+				var ownerCurrent = w.ownerCurrent();
+				var unitSelected = ownerCurrent.unitSelected();
 				if (unitSelected == null)
 				{
 					outputLog.writeLine("No unit selected!");
 				}
-				else if (unitSelected.movesThisTurn <= 0)
+				else if (unitSelected.hasMovesThisTurn() == false)
 				{
 					outputLog.writeLine("Unit " + unitSelected.id + " has no moves left!");
 				}
@@ -363,12 +401,48 @@ class CommandOpcode_Instances
 					}
 					else
 					{
-						unitSelected.moveInDirection(directionToMove, w);
-						message =
-							"Unit " + unitSelected.id + " moved "
-							+ directionToMove.name.toLowerCase();
+						var canMove =
+							unitSelected.canMoveInDirection(directionToMove, w);
+
+						if (canMove)
+						{
+							unitSelected.moveInDirection(directionToMove, w);
+							message =
+								"Unit " + unitSelected.id + " moved "
+								+ directionToMove.name.toLowerCase() + ".";
+							outputLog.writeLine(message);
+
+							if (unitSelected.hasMovesThisTurn() == false)
+							{
+								message =
+									"Unit " + unitSelected.id + " out of moves this turn.";
+								outputLog.writeLine(message);
+
+								ownerCurrent.unitSelectNextWithMoves();
+								unitSelected = ownerCurrent.unitSelected();
+
+								if (unitSelected == null)
+								{
+									message =
+										"No more units with moves this turn."
+										+ "  Enter 'end turn' to end the turn.";
+									outputLog.writeLine(message);
+								}
+								else
+								{
+									message = "Selected next unit with moves: " + unitSelected.id + "."
+									outputLog.writeLine(message);
+								}
+							}
+						}
+						else
+						{
+							message =
+								"Unit " + unitSelected.id + " cannot move "
+								+ directionToMove.name.toLowerCase() + ".";
+							outputLog.writeLine(message);
+						}
 					}
-					outputLog.writeLine(message);
 				}
 			}
 		);
@@ -384,10 +458,25 @@ class CommandOpcode_Instances
 				outputLog.clear();
 
 				var owner = w.ownerCurrent();
-				var idToSelect = parseInt(c.operands[0]);
+				var operand0 = c.operands[0];
 				try
 				{
-					owner.unitSelectById(idToSelect);
+					var idToSelect = null;
+
+					if (operand0 == "next")
+					{
+						owner.unitSelectNextWithMoves();
+						var unitSelected = owner.unitSelected();
+						if (unitSelected != null)
+						{
+							idToSelect = unitSelected.id;
+						}
+					}
+					else
+					{
+						idToSelect = parseInt(operand0);
+						owner.unitSelectById(idToSelect);
+					}
 					outputLog.writeLine("Selected unit " + idToSelect + ".");
 				}
 				catch (err)
@@ -432,6 +521,10 @@ class CommandOpcode_Instances
 			(u, w, c) =>
 			{
 				w.draw(u, w);
+				var outputLog = u.outputLog;
+				outputLog.clear();
+				var worldDetails = "Turn: " + w.turnsSoFar;
+				outputLog.writeLine(worldDetails);
 			}
 		);
 
@@ -862,7 +955,9 @@ class InputHelper
 			}
 			else
 			{
-				command.execute(universe, universe.world);
+				var world = universe.world;
+				command.execute(universe, world);
+				universe.world.draw(universe);
 			}
 		}
 		else if (key == "Backspace")
@@ -907,6 +1002,7 @@ class MapOfCells
 
 				var cell = new MapOfCellsCell
 				(
+					cellPosInCells.clone(),
 					cellTerrainCode
 				);
 
@@ -964,16 +1060,20 @@ class MapOfCellsCell
 {
 	constructor
 	(
+		pos,
 		terrainCode,
 		basePresentName,
 		improvementsPresentNames,
 		unitsPresentIds
 	)
 	{
+		this.pos = pos;
 		this.terrainCode = terrainCode;
 		this.basePresentName = basePresentName;
 		this.improvementsPresentNames = improvementsPresentNames || [];
 		this.unitsPresentIds = unitsPresentIds || [];
+
+		this._resourcesProducedThisTurn = ResourceProduction.create();
 	}
 
 	baseAdd(base)
@@ -984,6 +1084,17 @@ class MapOfCellsCell
 	basePresent(world)
 	{
 		return (this.basePresentName == null ? null : world.baseByName(this.basePresentName));
+	}
+
+	resourcesProduced(world, base)
+	{
+		var terrain = this.terrain(world);
+		var resources = this._resourcesProducedThisTurn.overwriteWith
+		(
+			terrain.resourceProductionPerTurn
+		);
+		// todo - Apply improvements, bonuses, penalties.
+		return resources;
 	}
 
 	terrain(world)
@@ -1063,9 +1174,63 @@ class MapOfCellsCellTerrain
 		this.resourceProductionPerTurn = resourceProductionPerTurn;
 	}
 
+	static Instances()
+	{
+		if (MapOfCellsCellTerrain._instances == null)
+		{
+			MapOfCellsCellTerrain._instances =
+				new MapOfCellsCellTerrain_Instances();
+		}
+		return MapOfCellsCellTerrain._instances;
+	}
+
 	isLand()
 	{
 		return (this.categoryName == "Land");
+	}
+}
+
+class MapOfCellsCellTerrain_Instances
+{
+	constructor()
+	{
+		var t = (a, b, c, d, e, f, g) =>
+		{
+			return new MapOfCellsCellTerrain(a, b, c, d, e, f, g);
+		};
+
+		var land = "Land";
+		var water = "Water";
+
+		// 					name,			cat,	code,	color,				symbol, moves, 	resourceProd
+		this.Desert 	= t("Desert",		land,	"/", 	"rgb(255,000,128)",	"/",	1,		null);
+		this.Forest		= t("Forest", 		land,	"@",	"rgb(000,255,000)",	"@",	2,		null);
+		this.Glacier	= t("Glacier", 		land,	"#",	"rgb(255,255,255)",	"#",	2,		null);
+		this.Grassland	= t("Grassland", 	land,	":",	"rgb(000,255,000)",	":",	1,		null);
+		this.Hills		= t("Hills",		land,	"*",	"rgb(000,255,000)",	"*",	2,		null);
+		this.Jungle		= t("Jungle",		land, 	"&",	"rgb(000,064,000)",	"&",	2,		null);
+		this.Mountains	= t("Mountains",	land, 	"^", 	"rgb(128,128,128)",	"^",	3, 		null);
+		this.Ocean 		= t("Ocean",		water,	"~",	"rgb(000,000,255)",	"~",	100,	null);
+		this.Plains 	= t("Plains",		land,	".",	"rgb(000,128,000)",	".",	1,		null);
+		this.River		= t("River",		land,	"S",	"rgb(000,255,032)",	"S",	1,		null);
+		this.Swamp		= t("Swamp",		land,	"=",	"rgb(064,192,000)",	"=",	2,		null);
+		this.Tundra		= t("Tundra",		land, 	"-",	"rgb(128,255,128)",	"-",	2,		null);
+
+		this._All =
+		[
+			this.Desert,
+			this.Forest,
+			this.Glacier,
+			this.Grassland,
+			this.Hills,
+			this.Jungle,
+			this.Mountains,
+			this.Ocean,
+			this.Plains,
+			this.River,
+			this.Swamp,
+			this.Tundra
+		];
 	}
 }
 
@@ -1091,7 +1256,7 @@ class Owner
 		this.units = units;
 
 		this.baseSelectedName = null;
-		this.unitSelectedId = null;
+		this.unitSelectedIndex = null;
 	}
 
 	baseSelected()
@@ -1103,7 +1268,23 @@ class Owner
 			: this.bases.find(x => x.name == this.baseSelectedName)
 		);
 
-		return unit;
+		return base;
+	}
+
+	initialize(world)
+	{
+		this.bases.forEach(x => x.initialize(world) );
+		this.units.forEach(x => x.initialize(world) );
+
+		this.unitSelectNextWithMoves();
+	}
+
+	turnAdvance(world)
+	{
+		this.bases.forEach(x => x.turnAdvance(world) );
+		this.units.forEach(x => x.turnAdvance(world) );
+
+		this.unitSelectNextWithMoves();
 	}
 
 	unitSelectById(idToSelect)
@@ -1115,7 +1296,42 @@ class Owner
 		}
 		else
 		{
-			this.unitSelectedId = unitToSelect.id;
+			var unitToSelectIndex = this.units.indexOf(unitToSelect);
+			this.unitSelectedIndex = unitToSelect.id;
+		}
+	}
+
+	unitSelectNextWithMoves()
+	{
+		var areThereAnyUnitsWithMoves =
+			this.units.some(x => x.hasMovesThisTurn());
+
+		if (areThereAnyUnitsWithMoves == false)
+		{
+			this.unitSelectedIndex = null;
+		}
+		else
+		{
+			if (this.unitSelectedIndex == null)
+			{
+				this.unitSelectedIndex = -1;
+			}
+
+			while (true)
+			{
+				this.unitSelectedIndex++;
+				if (this.unitSelectedIndex >= this.units.length)
+				{
+					this.unitSelectedIndex = 0;
+				}
+
+				var unitSelected = this.unitSelected();
+				if (unitSelected.hasMovesThisTurn())
+				{
+					break;
+				}
+
+			}
 		}
 	}
 
@@ -1123,9 +1339,9 @@ class Owner
 	{
 		var unit =
 		(
-			this.unitSelectedId == null
+			this.unitSelectedIndex == null
 			? null
-			: this.units.find(x => x.id == this.unitSelectedId)
+			: this.units[this.unitSelectedIndex]
 		);
 
 		return unit;
@@ -1172,7 +1388,7 @@ class OwnerMapKnowledge
 		return new OwnerMapKnowledge(null);
 	}
 
-	draw(universe, world)
+	draw(universe, world, owner)
 	{
 		var mapComplete = world.map;
 		var mapSizeInCells = mapComplete.sizeInCells;
@@ -1254,6 +1470,8 @@ class OwnerMapKnowledge
 		var cellSizeInPixelsHalf = cellSizeInPixels.clone().half();
 		var cellCenterInPixels = Coords.create();
 
+		var baseSelected = owner.baseSelected();
+
 		basesVisible.forEach(base =>
 		{
 			cellPosInPixels.overwriteWith
@@ -1274,17 +1492,21 @@ class OwnerMapKnowledge
 
 			var baseOwner = base.owner(world);
 			var baseColorName = baseOwner.colorName;
+			var isSelected = (base == baseSelected);
+			var borderColor = (isSelected ? "White" : "Gray");
+
 			display.drawRectangle
 			(
 				cellPosInPixels, cellSizeInPixels,
-				basePresentColorName, "Gray"
+				basePresentColorName, borderColor
 			);
 			display.drawText
 			(
-				basePresent.name, cellCenterInPixels, "White"
+				basePresent.name, cellCenterInPixels, borderColor
 			);
 		});
 
+		var unitSelected = owner.unitSelected();
 		unitsVisible.forEach(unit =>
 		{
 			cellPosInPixels.overwriteWith
@@ -1305,14 +1527,17 @@ class OwnerMapKnowledge
 
 			var unitDefn = unit.defn(world);
 			var unitSymbol = unitDefn.symbol;
-			var owner = unit.owner(world);
-			var ownerColorName = owner.colorName;
+			var unitOwner = unit.owner(world);
+			var unitOwnerColorName = unitOwner.colorName;
+
+			var isSelected = (unit == unitSelected);
+			var borderColor = (isSelected ? "White" : "Gray");
 			display.drawCircle
 			(
 				cellCenterInPixels, cellRadiusInPixels,
-				ownerColorName, "Gray"
+				unitOwnerColorName, borderColor
 			);
-			display.drawText(unitSymbol, cellCenterInPixels, "White");
+			display.drawText(unitSymbol, cellCenterInPixels, borderColor);
 		});
 	}
 
@@ -1394,6 +1619,18 @@ class ResourceProduction
 		this.food = food;
 		this.industry = industry;
 		this.trade = trade;
+	}
+
+	static create()
+	{
+		return new ResourceProduction(0, 0, 0);
+	}
+
+	add(other)
+	{
+		this.food += other.food;
+		this.industry += other.industry;
+		this.trade += other.trade;
 	}
 }
 
@@ -1625,37 +1862,14 @@ class Unit
 		return world.defns.unitDefnByName(this.defnName);
 	}
 
-	initialize(world)
+	hasMovesThisTurn()
 	{
-		this.turnUpdate(world);
+		return (this.movesThisTurn > 0);
 	}
 
-	moveInDirection(directionToMove, world)
+	initialize(world)
 	{
-		var map = world.map;
-		var cellFromPos = this.pos;
-		var offsetToMove = directionToMove.offset;
-		var cellToPos =
-			this._cellToPos.overwriteWith(cellFromPos).add(offsetToMove);
-
-		var cellFrom = map.cellAtPosInCells(cellFromPos);
-		var cellTo = map.cellAtPosInCells(cellToPos);
-
-		var cellToTerrain = cellTo.terrain(world);
-		var defn = this.defn(world);
-
-		var costToMove = defn.movement.costToMoveFromCellToCell
-		(
-			world, cellFrom, cellTo
-		);
-
-		if (costToMove <= this.movesThisTurn)
-		{
-			this.movesThisTurn -= costToMove;
-			this.pos.overwriteWith(cellToPos);
-			cellFrom.unitRemove(this);
-			cellTo.unitAdd(this);
-		}
+		this.turnAdvance(world);
 	}
 
 	owner(world)
@@ -1684,10 +1898,69 @@ class Unit
 		return this.id + ": " + this.defnName + " @" + this.pos.toString();
 	}
 
-	turnUpdate(world)
+	turnAdvance(world)
 	{
 		var defn = this.defn(world);
 		this.movesThisTurn = defn.movement.movesPerTurn;
+	}
+
+	// Movement.
+
+	canMoveInDirection(directionToMove, world)
+	{
+		var costToMove =
+			this.costToMoveInDirection(directionToMove, world);
+		var canMove = (costToMove <= this.movesThisTurn);
+		return canMove;
+	}
+
+	cellsFromAndTo(directionToMove, world)
+	{
+		var map = world.map;
+		var cellFromPos = this.pos;
+		var offsetToMove = directionToMove.offset;
+		var cellToPos =
+			this._cellToPos.overwriteWith(cellFromPos).add(offsetToMove);
+
+		var cellFrom = map.cellAtPosInCells(cellFromPos);
+		var cellTo = map.cellAtPosInCells(cellToPos);
+
+		return [ cellFrom, cellTo ];
+	}
+
+	costToMoveInDirection(directionToMove, world)
+	{
+		var cellsFromAndTo = this.cellsFromAndTo(directionToMove, world);
+		var cellFrom = cellsFromAndTo[0];
+		var cellTo = cellsFromAndTo[1];
+
+		var cellToTerrain = cellTo.terrain(world);
+		var defn = this.defn(world);
+
+		var costToMove = defn.movement.costToMoveFromCellToCell
+		(
+			world, cellFrom, cellTo
+		);
+
+		return costToMove;
+	}
+
+	moveInDirection(directionToMove, world)
+	{
+		var costToMove =
+			this.costToMoveInDirection(directionToMove, world);
+
+		if (costToMove <= this.movesThisTurn)
+		{
+			var cellsFromAndTo = this.cellsFromAndTo(directionToMove, world);
+			var cellFrom = cellsFromAndTo[0];
+			var cellTo = cellsFromAndTo[1];
+
+			this.movesThisTurn -= costToMove;
+			this.pos.overwriteWith(cellTo.pos);
+			cellFrom.unitRemove(this);
+			cellTo.unitAdd(this);
+		}
 	}
 }
 
@@ -1998,30 +2271,7 @@ class World
 
 	static demo()
 	{
-		var terrains =
-		[
-			new MapOfCellsCellTerrain
-			(
-				"Ocean",
-				"Water", // categoryName
-				"~", // code,
-				"Blue", // colorName,
-				"~", // symbol,
-				100, // movesToTraverse,
-				null // resourceProductionPerTurn
-			),
-
-			new MapOfCellsCellTerrain
-			(
-				"Plain",
-				"Land", // categoryName
-				".", // code,
-				"Green", // colorName,
-				".", // symbol,
-				1, // movesToTraverse,
-				null // resourceProductionPerTurn
-			),
-		];
+		var terrains = MapOfCellsCellTerrain.Instances()._All;
 
 		var unitDefns = UnitDefn.Instances()._All;
 
@@ -2036,36 +2286,36 @@ class World
 			//       10        20        30        40        5         60
 			//234567890123456789012345678901234567890123456789012345678901234
 			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~", // 10
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~", // 20
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~",
-			"~..............................................................~", // 30
-			"~..............................................................~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~", // 10
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~", // 20
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~",
+			"~~............................~~..............................~~", // 30
+			"~~............................~~..............................~~",
 			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
 		]);
 
@@ -2114,15 +2364,6 @@ class World
 		return worldDemo;
 	}
 
-	draw(universe, world)
-	{
-		var display = universe.display;
-		var ownerCurrent = world.ownerCurrent();
-		var ownerCurrentMapKnowledge = ownerCurrent.mapKnowledge;
-		ownerCurrentMapKnowledge.update(universe, world, ownerCurrent);
-		ownerCurrentMapKnowledge.draw(universe, world);
-	}
-
 	baseAdd(base)
 	{
 		this.bases.push(base);
@@ -2135,9 +2376,20 @@ class World
 		return this.bases.find(x => x.name == name);
 	}
 
+	draw(universe)
+	{
+		var display = universe.display;
+		var ownerCurrent = this.ownerCurrent();
+		var ownerCurrentMapKnowledge = ownerCurrent.mapKnowledge;
+		ownerCurrentMapKnowledge.update(universe, this, ownerCurrent);
+		ownerCurrentMapKnowledge.draw(universe, this, ownerCurrent);
+	}
+
 	initialize(universe)
 	{
-		this.units.forEach(x => x.initialize(this));
+		this.owners.forEach(x => x.initialize(this));
+
+		this.draw(universe);
 	}
 
 	ownerByName(name)
@@ -2155,10 +2407,16 @@ class World
 		this.ownerCurrentIndex++;
 		if (this.ownerCurrentIndex >= this.owners.length)
 		{
-			this.ownerCurrentIndex = 0;
+			this.turnAdvance();
 		}
 
 		return this.ownerCurrent();
+	}
+
+	turnAdvance()
+	{
+		this.owners.forEach(x => x.turnAdvance(this) );
+		this.turnsSoFar++;
 	}
 
 	unitAdd(unit)
