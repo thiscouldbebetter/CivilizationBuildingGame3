@@ -335,7 +335,44 @@ class CommandOpcode_Instances
 			}
 		);
 
-		this.UnitMove = co("move", executeTodo);
+		this.UnitMove = co
+		(
+			"move",
+			(u, w, c) =>
+			{
+				var outputLog = u.outputLog;
+				outputLog.clear();
+
+				var unitSelected = w.ownerCurrent().unitSelected();
+				if (unitSelected == null)
+				{
+					outputLog.writeLine("No unit selected!");
+				}
+				else if (unitSelected.movesThisTurn <= 0)
+				{
+					outputLog.writeLine("Unit " + unitSelected.id + " has no moves left!");
+				}
+				else
+				{
+					var directionToMoveCode = c.operands[0];
+					var directionToMove = Direction.byCode(directionToMoveCode);
+					var message = null;
+					if (directionToMove == null)
+					{
+						message = "Invalid direction: " + directionToMoveCode;
+					}
+					else
+					{
+						unitSelected.moveInDirection(directionToMove, w);
+						message =
+							"Unit " + unitSelected.id + " moved "
+							+ directionToMove.name.toLowerCase();
+					}
+					outputLog.writeLine(message);
+				}
+			}
+		);
+
 		this.UnitPass = co("pass", executeTodo);
 
 		this.UnitSelect = co
@@ -351,7 +388,7 @@ class CommandOpcode_Instances
 				try
 				{
 					owner.unitSelectById(idToSelect);
-					outputLog.writeLine("Selected unit " + idToSelect);
+					outputLog.writeLine("Selected unit " + idToSelect + ".");
 				}
 				catch (err)
 				{
@@ -543,6 +580,13 @@ class Coords
 		return this;
 	}
 
+	subtract(other)
+	{
+		this.x -= other.x;
+		this.y -= other.y;
+		return this;
+	}
+
 	toString()
 	{
 		return this.x + "," + this.y;
@@ -572,6 +616,65 @@ class Coords
 	}
 }
 
+class Direction
+{
+	constructor(name, code, offset)
+	{
+		this.name = name;
+		this.code = code;
+		this.offset = offset;
+	}
+
+	static Instances()
+	{
+		if (Direction._instances == null)
+		{
+			Direction._instances = new Direction_Instances();
+		}
+		return Direction._instances;
+	}
+
+	static byCode(code)
+	{
+		return Direction.Instances().byCode(code);
+	}
+}
+
+class Direction_Instances
+{
+	constructor()
+	{
+		this.East = new Direction("East", "e", new Coords(1, 0) );
+		this.North = new Direction("North", "n", new Coords(0, -1) );
+		this.Northeast = new Direction("Northeast", "ne", new Coords(1, -1) );
+		this.Northwest = new Direction("Northwest", "nw", new Coords(-1, -1) );
+		this.South = new Direction("South", "s", new Coords(0, 1) );
+		this.Southeast = new Direction("Southeast", "se", new Coords(1, 1) );
+		this.Southwest = new Direction("Southwest", "sw", new Coords(-1, 1) );
+		this.West = new Direction("West", "w", new Coords(-1, 0) );
+
+		this._All =
+		[
+			this.East,
+			this.Southeast,
+			this.South,
+			this.Southwest,
+			this.West,
+			this.Northwest,
+			this.North,
+			this.Northeast
+		];
+
+		this._AllByCode = new Map(this._All.map(x => [x.code, x] ) );
+	}
+
+	byCode(code)
+	{
+		return this._AllByCode.get(code);
+	}
+}
+
+
 class DisplayCanvas
 {
 	constructor(domElementParentId, sizeInPixels)
@@ -580,6 +683,7 @@ class DisplayCanvas
 		this.sizeInPixels = sizeInPixels;
 
 		this.fontHeightInPixels = 10;
+		this.fontHeightInPixelsHalf = this.fontHeightInPixels / 2;
 		this.font = this.fontHeightInPixels + "px sans-serif";
 
 		this._zeroes = Coords.zeroes();
@@ -653,8 +757,14 @@ class DisplayCanvas
 
 	drawText(textToDraw, pos, colorName)
 	{
+		var textWidth = this.graphics.measureText(textToDraw).width;
 		this.graphics.fillStyle = colorName;
-		this.graphics.fillText(textToDraw, pos.x, pos.y + this.fontHeightInPixels);
+		this.graphics.fillText
+		(
+			textToDraw,
+			pos.x - textWidth / 2,
+			pos.y + this.fontHeightInPixelsHalf
+		);
 	}
 
 }
@@ -886,6 +996,11 @@ class MapOfCellsCell
 		this.unitsPresentIds.push(unit.id);
 	}
 
+	unitRemove(unit)
+	{
+		this.unitsPresentIds.splice(this.unitsPresentIds.indexOf(unit.id), 1);
+	}
+
 	unitsPresent(world)
 	{
 		return (this.unitsPresentIds.map(x => world.unitById(x)));
@@ -895,10 +1010,34 @@ class MapOfCellsCell
 
 class MapOfCellsCellImprovement
 {
-	constructor(name, effect)
+	constructor(name, code, effect)
 	{
 		this.name = name;
+		this.code = code;
 		this.effect = effect;
+	}
+
+	static Instances()
+	{
+		if (MapOfCellsCellImprovement._instances == null)
+		{
+			MapOfCellsCellImprovement._instances =
+				new MapOfCellsCellImprovement_Instances();
+		}
+		return MapOfCellsCellImprovement._instances;
+	}
+}
+
+class MapOfCellsCellImprovement_Instances
+{
+	constructor()
+	{
+		var effectTodo = "";
+
+		this.Irrigation = new MapOfCellsCellImprovement("Irrigation", "i", effectTodo);
+		this.Mine = new MapOfCellsCellImprovement("Mine", "m", effectTodo);
+		this.Railroads = new MapOfCellsCellImprovement("Railroads", "R", effectTodo);
+		this.Roads = new MapOfCellsCellImprovement("Roads", "r", effectTodo);
 	}
 }
 
@@ -907,6 +1046,7 @@ class MapOfCellsCellTerrain
 	constructor
 	(
 		name,
+		categoryName,
 		code,
 		colorName,
 		symbol,
@@ -915,11 +1055,17 @@ class MapOfCellsCellTerrain
 	)
 	{
 		this.name = name;
+		this.categoryName = categoryName;
 		this.code = code;
 		this.colorName = colorName;
 		this.symbol = symbol;
 		this.movesToTraverse = movesToTraverse;
 		this.resourceProductionPerTurn = resourceProductionPerTurn;
+	}
+
+	isLand()
+	{
+		return (this.categoryName == "Land");
 	}
 }
 
@@ -1074,6 +1220,9 @@ class OwnerMapKnowledge
 			}
 		}
 
+		var basesVisible = [];
+		var unitsVisible = [];
+
 		var cellsVisibleIndices = Array.from(this.cellsVisibleIndicesByIndex.keys());
 		for (var c = 0; c < cellsVisibleIndices.length; c++)
 		{
@@ -1095,37 +1244,76 @@ class OwnerMapKnowledge
 			var basePresent = cell.basePresent(world);
 			if (basePresent != null)
 			{
-				var basePresentOwner = basePresent.owner(world);
-				var basePresentColorName = basePresentOwner.colorName;
-				display.drawRectangle
-				(
-					cellPosInPixels, cellSizeInPixels, basePresentColorName, "Gray"
-				);
-				display.drawText
-				(
-					basePresent.name, cellPosInPixels, "White"
-				);
+				basesVisible.push(basePresent);
 			}
 
 			var unitsPresent = cell.unitsPresent(world);
-			for (var u = 0; u < unitsPresent.length; u++)
-			{
-				var unit = unitsPresent[u];
-				var unitDefn = unit.defn(world);
-				var unitSymbol = unitDefn.symbol;
-				var owner = unit.owner(world);
-				var ownerColorName = owner.colorName;
-				var cellCenterInPixels =
-					cellPosInPixels.clone().add(cellSizeInPixelsHalf);
-				display.drawCircle
-				(
-					cellCenterInPixels, cellRadiusInPixels,
-					ownerColorName, "Gray"
-				);
-				display.drawText(unitSymbol, cellPosInPixels, "Gray");
-			}
-
+			unitsVisible.push(...unitsPresent);
 		}
+
+		var cellSizeInPixelsHalf = cellSizeInPixels.clone().half();
+		var cellCenterInPixels = Coords.create();
+
+		basesVisible.forEach(base =>
+		{
+			cellPosInPixels.overwriteWith
+			(
+				base.pos
+			).multiply
+			(
+				cellSizeInPixels
+			);
+
+			cellCenterInPixels.overwriteWith
+			(
+				cellPosInPixels
+			).add
+			(
+				cellSizeInPixelsHalf
+			);
+
+			var baseOwner = base.owner(world);
+			var baseColorName = baseOwner.colorName;
+			display.drawRectangle
+			(
+				cellPosInPixels, cellSizeInPixels,
+				basePresentColorName, "Gray"
+			);
+			display.drawText
+			(
+				basePresent.name, cellCenterInPixels, "White"
+			);
+		});
+
+		unitsVisible.forEach(unit =>
+		{
+			cellPosInPixels.overwriteWith
+			(
+				unit.pos
+			).multiply
+			(
+				cellSizeInPixels
+			);
+
+			cellCenterInPixels.overwriteWith
+			(
+				cellPosInPixels
+			).add
+			(
+				cellSizeInPixelsHalf
+			);
+
+			var unitDefn = unit.defn(world);
+			var unitSymbol = unitDefn.symbol;
+			var owner = unit.owner(world);
+			var ownerColorName = owner.colorName;
+			display.drawCircle
+			(
+				cellCenterInPixels, cellRadiusInPixels,
+				ownerColorName, "Gray"
+			);
+			display.drawText(unitSymbol, cellCenterInPixels, "White");
+		});
 	}
 
 	update(universe, world, owner)
@@ -1216,13 +1404,204 @@ class Technology
 		name,
 		researchToLearn,
 		prerequisiteNames,
-		unitDefnsAllowedNames
+		buildablesAllowedNames,
 	)
 	{
 		this.name = name;
 		this.researchToLearn = researchToLearn;
 		this.prerequisiteNames = prerequisiteNames;
-		this.unitDefnsAllowedNames = unitDefnsAllowedNames;
+		this.buildablesAllowedNames = buildablesAllowedNames;
+	}
+}
+
+class Technology_Instances
+{
+	constructor()
+	{
+		var t = (n, r, p, u) => { return new Technology(n, r, p, u); };
+
+		this.AdvancedFlight		= t("Advanced Flight");
+		this.Alphabet			= t("Alphabet");
+		this.AmphibiousWarfare	= t("Amphibious Warfare");
+		this.Astronomy			= t("Astronomy");
+		this.AtomicTheory		= t("Atomic Theory");
+		this.Automobile			= t("Automobile");
+		this.Banking			= t("Banking");
+		this.BridgeBuilding		= t("BridgeBuilding");
+		this.BronzeWorking 		= t("Bronze Working");
+		this.CeremonialBurial	= t("Ceremonial Burial");
+		this.Chemistry			= t("Chemistry");
+		this.Chivalry			= t("Chivalry");
+		this.CodeOfLaws			= t("Code of Laws");
+		this.CombinedArms		= t("Combined Arms");
+		this.Combustion			= t("Combustion");
+		this.Communism			= t("Communism");
+		this.Computers			= t("Computers");
+		this.Conscription		= t("Conscription");
+		this.Construction		= t("Construction");
+		this.Corporation		= t("Corporation");
+		this.Currency 			= t("Currency");
+		this.Democracy			= t("Democracy");
+		this.Economics			= t("Economics");
+		this.Electricity		= t("Electricity");
+		this.Electronics		= t("Electronics");
+		this.Engineering		= t("Engineering");
+		this.Environmentalism	= t("Environmentalism");
+		this.Espionage			= t("Espionage");
+		this.Explosives			= t("Explosives");
+		this.Feudalism			= t("Feudalism");
+		this.Flight				= t("Flight");
+		this.Fundamentalism		= t("Fundamentalism");
+		this.FusionPower		= t("Fusion Power");
+		this.GeneticEngineering	= t("Genetic Engineering");
+		this.GuerrillaWarfare	= t("Guerrilla Warfare");
+		this.Gunpowder 			= t("Gunpowder");
+		this.HorsebackRiding 	= t("Horseback Riding");
+		this.Industrialization	= t("Industrialization");
+		this.Invention			= t("Invention");
+		this.IronWorking		= t("IronWorking");
+		this.LaborUnion			= t("Labor Union");
+		this.Laser				= t("Laser");
+		this.Leadership			= t("Leadership");
+		this.Literacy			= t("Literacy");
+		this.MachineTools		= t("Machine Tools");
+		this.Magnetism			= t("Magnetism");
+		this.MapMaking			= t("Map Making");
+		this.Masonry			= t("Masonry");
+		this.MassProduction		= t("Mass Production");
+		this.Mathematics		= t("Mathematics");
+		this.Medicine			= t("Medicine");
+		this.Metallurgy			= t("Metallurgy");
+		this.Miniaturization	= t("Miniaturization");
+		this.MobileWarfare		= t("Mobile Warfare");
+		this.Monarchy			= t("Monarchy");
+		this.Monotheism			= t("Monotheism");
+		this.Mysticism			= t("Mysticism");
+		this.Navigation			= t("Navigation");
+		this.NuclearFission		= t("Nuclear Fission");
+		this.NuclearPower		= t("Nuclear Power");
+		this.Philosophy			= t("Philosophy");
+		this.Physics			= t("Physics");
+		this.Plastics			= t("Plastics");
+		this.Polytheism			= t("Polytheism");
+		this.Pottery			= t("Pottery");
+		this.Radio				= t("Radio");
+		this.Railroad			= t("Railroad");
+		this.Recycling			= t("Recycling");
+		this.Refining			= t("Refining");
+		this.Refrigeration		= t("Refrigeration");
+		this.Republic			= t("Republic");
+		this.Robotics			= t("Robotics");
+		this.Rocketry			= t("Rocketry");
+		this.Sanitization		= t("Sanitization");
+		this.Seafaring			= t("Seafaring");
+		this.Spaceflight		= t("Spaceflight");
+		this.Stealth			= t("Stealth");
+		this.SteamEngine		= t("Steam Engine");
+		this.Steel				= t("Steel");
+		this.Superconductors	= t("Superconductors");
+		this.Tactics			= t("Tactics");
+		this.Theology			= t("Theology");
+		this.TheoryOfGravity	= t("TheoryOfGravity");
+		this.Trade				= t("Trade");
+		this.University			= t("University");
+		this.WarriorCode		= t("Warrior Code");
+		this.Wheels				= t("Wheels");
+		this.Writing			= t("Writing");
+
+		this._All =
+		[
+			this.AdvancedFlight,
+			this.Alphabet,
+			this.AmphibiousWarfare,
+			this.Astronomy,
+			this.AtomicTheory,
+			this.Automobile,
+			this.Banking,
+			this.BridgeBuilding,
+			this.BronzeWorking,
+			this.CeremonialBurial,
+			this.Chemistry,
+			this.Chivalry,
+			this.CodeOfLaws,
+			this.CombinedArms,
+			this.Combustion,
+			this.Communism,
+			this.Computers,
+			this.Conscription,
+			this.Construction,
+			this.Corporation,
+			this.Currency,
+			this.Democracy,
+			this.Economics,
+			this.Electricity,
+			this.Electronics,
+			this.Engineering,
+			this.Environmentalism,
+			this.Espionage,
+			this.Explosives,
+			this.Feudalism,
+			this.Flight,
+			this.Fundamentalism,
+			this.FusionPower,
+			this.GeneticEngineering,
+			this.GuerrillaWarfare,
+			this.Gunpowder,
+			this.HorsebackRiding,
+			this.Industrialization,
+			this.Invention,
+			this.IronWorking,
+			this.LaborUnion,
+			this.Laser,
+			this.Leadership,
+			this.Literacy,
+			this.MachineTools,
+			this.Magnetism,
+			this.MapMaking,
+			this.Masonry,
+			this.MassProduction,
+			this.Mathematics,
+			this.Medicine,
+			this.Metallurgy,
+			this.Miniaturization,
+			this.MobileWarfare,
+			this.Monarchy,
+			this.Monotheism,
+			this.Mysticism,
+			this.Navigation,
+			this.NuclearFission,
+			this.NuclearPower,
+			this.Philosophy,
+			this.Physics,
+			this.Plastics,
+			this.Polytheism,
+			this.Pottery,
+			this.Radio,
+			this.Railroad,
+			this.Recycling,
+			this.Refining,
+			this.Refrigeration,
+			this.Republic,
+			this.Robotics,
+			this.Rocketry,
+			this.Sanitization,
+			this.Seafaring,
+			this.Spaceflight,
+			this.Stealth,
+			this.SteamEngine,
+			this.Steel,
+			this.Superconductors,
+			this.Tactics,
+			this.Theology,
+			this.TheoryOfGravity,
+			this.Trade,
+			this.University,
+			this.WarriorCode,
+			this.Wheels,
+			this.Writing
+		];
+
+		this._AllByName = new Map(this._All.map(x => [x.name, x] ) );
 	}
 }
 
@@ -1237,6 +1616,8 @@ class Unit
 		this.id = IdHelper.idNext();
 		this.movesThisTurn = 0;
 		this.isSleeping = false;
+
+		this._cellToPos = Coords.create();
 	}
 
 	defn(world)
@@ -1244,19 +1625,26 @@ class Unit
 		return world.defns.unitDefnByName(this.defnName);
 	}
 
-	move(world, directionToMove)
+	initialize(world)
+	{
+		this.turnUpdate(world);
+	}
+
+	moveInDirection(directionToMove, world)
 	{
 		var map = world.map;
 		var cellFromPos = this.pos;
-		var cellToPos = cellPos.add(directionToMove);
+		var offsetToMove = directionToMove.offset;
+		var cellToPos =
+			this._cellToPos.overwriteWith(cellFromPos).add(offsetToMove);
 
-		var cellFrom = map.cellAtPosInCells(cellPosNext);
-		var cellTo = map.cellAtPosInCells(cellPosNext);
+		var cellFrom = map.cellAtPosInCells(cellFromPos);
+		var cellTo = map.cellAtPosInCells(cellToPos);
 
-		var cellNextTerrain = cellNext.terrain(world);
+		var cellToTerrain = cellTo.terrain(world);
 		var defn = this.defn(world);
 
-		var costToMove = defn.costToMoveFromCellToCell
+		var costToMove = defn.movement.costToMoveFromCellToCell
 		(
 			world, cellFrom, cellTo
 		);
@@ -1265,6 +1653,8 @@ class Unit
 		{
 			this.movesThisTurn -= costToMove;
 			this.pos.overwriteWith(cellToPos);
+			cellFrom.unitRemove(this);
+			cellTo.unitAdd(this);
 		}
 	}
 
@@ -1297,7 +1687,7 @@ class Unit
 	turnUpdate(world)
 	{
 		var defn = this.defn(world);
-		this.movesThisTurn = defn.movesPerTurn;
+		this.movesThisTurn = defn.movement.movesPerTurn;
 	}
 }
 
@@ -1532,14 +1922,14 @@ class UnitDefnMovement
 		return new UnitDefnMovement
 		(
 			movesPerTurn,
-			(universe, world, cellFrom, cellTo) =>
+			(world, cellFrom, cellTo) =>
 			{
 				var cellToTerrain = cellTo.terrain(world);
-				var cellToTerrainIsGround = cellToTerrain.isGround();
+				var cellToTerrainIsLand = cellToTerrain.isLand();
 				var costToMove =
 				(
-					cellToTerrainIsGround
-					? cellTerrain.movesToTraverse
+					cellToTerrainIsLand
+					? cellToTerrain.movesToTraverse
 					: Number.POSITIVE_INFINITY
 				);
 				return costToMove;
@@ -1552,7 +1942,7 @@ class UnitDefnMovement
 		return new UnitDefnMovement
 		(
 			movesPerTurn,
-			(universe, world, cellFrom, cellTo) =>
+			(world, cellFrom, cellTo) =>
 			{
 				var cellToTerrain = cellTo.terrain(world);
 				var cellToTerrainIsOcean = (cellToTerrain.name == "Ocean");
@@ -1579,6 +1969,7 @@ class Universe
 	{
 		this.inputHelper.initialize(this);
 		this.display.initialize(this);
+		this.world.initialize(this);
 	}
 }
 
@@ -1612,6 +2003,7 @@ class World
 			new MapOfCellsCellTerrain
 			(
 				"Ocean",
+				"Water", // categoryName
 				"~", // code,
 				"Blue", // colorName,
 				"~", // symbol,
@@ -1622,6 +2014,7 @@ class World
 			new MapOfCellsCellTerrain
 			(
 				"Plain",
+				"Land", // categoryName
 				".", // code,
 				"Green", // colorName,
 				".", // symbol,
@@ -1740,6 +2133,11 @@ class World
 	baseByName(name)
 	{
 		return this.bases.find(x => x.name == name);
+	}
+
+	initialize(universe)
+	{
+		this.units.forEach(x => x.initialize(this));
 	}
 
 	ownerByName(name)
