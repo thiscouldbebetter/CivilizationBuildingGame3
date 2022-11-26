@@ -293,7 +293,7 @@ class CommandOpcode_Instances
 
 		// Units.
 
-		this.UnitActionsShow = co("list actions", keyNone, this.unitActionsShow);
+		this.UnitActionsShow = co("list actions", "?", this.unitActionsShow);
 		this.UnitDisband = co("disband", keyNone, executeTodo);
 		this.UnitFortify = co("fortify", keyNone, executeTodo);
 		this.UnitList = co("list units", keyNone, this.unitList);
@@ -344,15 +344,12 @@ class CommandOpcode_Instances
 
 			this.TurnEnd,
 
-			this.UnitDisband,
-			this.UnitFortify,
+			this.UnitActionsShow,
 			this.UnitList,
 			this.UnitMove,
 			this.UnitPass,
 			this.UnitSelect,
 			this.UnitShow,
-			this.UnitSleep,
-			this.UnitSupport,
 
 			this.UnitMoveE,
 			this.UnitMoveN,
@@ -452,7 +449,7 @@ class CommandOpcode_Instances
 		var actionsAvailableNames = unitDefn.actionsAvailableNames;
 		actionsAvailableNames.forEach
 		(
-			x => outputLog.writeLine(x)
+			(x, i) => outputLog.writeLine(i + ": " + x)
 		);
 	}
 
@@ -2272,6 +2269,62 @@ class UnitActivityDefn
 		this.movesToComplete = movesToComplete;
 		this.effect = effect;
 	}
+
+	static Instances()
+	{
+		if (UnitActivityDefn._instances == null)
+		{
+			UnitActivityDefn._instances = new UnitActivityDefn_Instances();
+		}
+		return UnitActivityDefn._instances;
+	}
+
+	static byName(name)
+	{
+		return UnitActivityDefn.Instances().byName(name);
+	}
+}
+
+class UnitActivityDefn_Instances
+{
+	constructor()
+	{
+		var effectNone = null;
+
+		this.Disband = new UnitActivityDefn("Disband", 1, effectNone);
+		this.Fortify = new UnitActivityDefn("Fortify", 1, effectNone);
+		this.Sleep = new UnitActivityDefn("Fortify", 1, effectNone);
+
+		this.SettlersBuildFort = new UnitActivityDefn("Build Road", 3, effectNone);
+		this.SettlersBuildIrrigation = new UnitActivityDefn("Build Irrigation", 3, effectNone);
+		this.SettlersBuildMine = new UnitActivityDefn("Build Mine", 3, effectNone);
+		this.SettlersBuildRoad = new UnitActivityDefn("Build Road", 3, effectNone);
+		this.SettlersClearForest = new UnitActivityDefn("Clear Forest", 3, effectNone);
+		this.SettlersPlantForest = new UnitActivityDefn("Clear Forest", 3, effectNone);
+		this.SettlersStartCity = new UnitActivityDefn("Start City", 1, effectNone);
+
+		this._All =
+		[
+			this.Disband,
+			this.Fortify,
+			this.Sleep,
+
+			this.SettlersBuildFort,
+			this.SettlersBuildIrrigation,
+			this.SettlersBuildMine,
+			this.SettlersBuildRoad,
+			this.SettlersClearForest,
+			this.SettlersPlantForest,
+			this.SettlersStartCity
+		];
+
+		this._AllByName = new Map(this._All.map(x => [x.name, x] ) );
+	}
+
+	static byName(name)
+	{
+		return this._AllByName.get(name);
+	}
 }
 
 class UnitDefn
@@ -2337,7 +2390,21 @@ class UnitDefn_Instances
 		var o3 = UnitDefnMovement.ocean(3);
 		var o5 = UnitDefnMovement.ocean(5);
 
+		var ads = UnitActivityDefn.Instances();
 		var a0 = [];
+		var aSet =
+		[
+			ads.SettlersBuildFort,
+			ads.SettlersBuildIrrigation,
+			ads.SettlersBuildMine,
+			ads.SettlersBuildRoad,
+			ads.SettlersClearForest,
+			ads.SettlersPlantForest,
+			ads.SettlersStartCity,
+			ads.Sleep,
+			ads.Disband
+		].map(x => x.name);
+
 		var ud = UnitDefn.construct;
 		var c = UnitDefnCombat.construct; // attack, defense, integrityMax
 		var udTodo =
@@ -2393,7 +2460,7 @@ class UnitDefn_Instances
 		this.Phalanx		= ud("Phalanx",			20,		g1,		c(1,2,1),	a0,		"Pha");
 		this.Pikemen		= ud("Pikemen",			20,		g1,		c(1,2,1),	a0,		"Pik");
 		this.Riflemen		= ud("Riflemen",		40,		g1,		c(4,2,1),	a0,		"Rif");
-		this.Settlers 		= ud("Settlers", 		40, 	g1, 	c(0,1,2),	a0,		"Set");
+		this.Settlers 		= ud("Settlers", 		40, 	g1, 	c(0,1,2),	aSet,	"Set");
 		this.Spy			= ud("Spy", 			30,		g3,		c(0,0,1),	a0,		"Spy");
 		this.StealthBomber	= udTodo();
 		this.StealthFighter	= udTodo();
