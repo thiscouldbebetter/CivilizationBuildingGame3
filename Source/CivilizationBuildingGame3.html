@@ -1366,18 +1366,6 @@ class Owner
 		this.selection = new OwnerSelection();
 	}
 
-	baseSelected()
-	{
-		var base =
-		(
-			this.baseSelectedName == null
-			? null
-			: this.bases.find(x => x.name == this.baseSelectedName)
-		);
-
-		return base;
-	}
-
 	initialize(world)
 	{
 		this.bases.forEach(x => x.initialize(world) );
@@ -1395,6 +1383,16 @@ class Owner
 	}
 
 	// Selection.
+
+	baseSelectNextIdle()
+	{
+		return this.selection.baseSelectNextIdle(this);
+	}
+
+	baseSelected()
+	{
+		return this.selection.baseSelected(this);
+	}
 
 	unitSelectById(idToSelect)
 	{
@@ -1459,7 +1457,6 @@ class OwnerMapKnowledge
 		var mapSizeInCells = mapComplete.sizeInCells;
 		var cellSizeInPixels = Coords.ones().multiplyScalar(16);
 		var cellSizeInPixelsHalf = cellSizeInPixels.clone().half();
-		var cellRadiusInPixels = cellSizeInPixelsHalf.x;
 		var cellPosInCells = Coords.create();
 		var cellPosInPixels = Coords.create();
 
@@ -1467,6 +1464,69 @@ class OwnerMapKnowledge
 		var display = universe.display;
 		display.drawBackground("Black");
 
+		this.draw_1_CellsKnown
+		(
+			cellPosInCells,
+			mapSizeInCells,
+			mapComplete,
+			cellPosInPixels,
+			cellSizeInPixels,
+			world,
+			display
+		);
+
+		var basesAndUnitsVisible = this.draw_2_CellsVisible
+		(
+			cellPosInCells,
+			mapSizeInCells,
+			mapComplete,
+			cellPosInPixels,
+			cellSizeInPixels,
+			world,
+			display
+		);
+
+		var cellSizeInPixelsHalf = cellSizeInPixels.clone().half();
+		var cellCenterInPixels = Coords.create();
+
+		var basesVisible = basesAndUnitsVisible[0];
+		this.draw_3_BasesVisible
+		(
+			owner,
+			basesVisible,
+			cellPosInPixels,
+			cellSizeInPixels,
+			cellCenterInPixels,
+			cellSizeInPixelsHalf,
+			world,
+			display
+		);
+
+		var unitsVisible = basesAndUnitsVisible[1];
+		this.draw_4_UnitsVisible
+		(
+			owner,
+			unitsVisible,
+			cellPosInPixels,
+			cellSizeInPixels,
+			cellCenterInPixels,
+			cellSizeInPixelsHalf,
+			world,
+			display
+		);
+	}
+
+	draw_1_CellsKnown
+	(
+		cellPosInCells,
+		mapSizeInCells,
+		mapComplete,
+		cellPosInPixels,
+		cellSizeInPixels,
+		world,
+		display
+	)
+	{
 		var cellsKnownIndices = Array.from(this.cellsKnownIndicesByIndex.keys());
 		for (var c = 0; c < cellsKnownIndices.length; c++)
 		{
@@ -1500,7 +1560,19 @@ class OwnerMapKnowledge
 				display.drawRectangle(cellPosInPixels, cellSizeInPixels, "rgba(0, 0, 0, 0.5)", null);
 			}
 		}
+	}
 
+	draw_2_CellsVisible
+	(
+		cellPosInCells,
+		mapSizeInCells,
+		mapComplete,
+		cellPosInPixels,
+		cellSizeInPixels,
+		world,
+		display
+	)
+	{
 		var basesVisible = [];
 		var unitsVisible = [];
 
@@ -1532,9 +1604,23 @@ class OwnerMapKnowledge
 			unitsVisible.push(...unitsPresent);
 		}
 
-		var cellSizeInPixelsHalf = cellSizeInPixels.clone().half();
-		var cellCenterInPixels = Coords.create();
+		var basesAndUnitsVisible = [ basesVisible, unitsVisible];
 
+		return basesAndUnitsVisible;
+	}
+
+	draw_3_BasesVisible
+	(
+		owner,
+		basesVisible,
+		cellPosInPixels,
+		cellSizeInPixels,
+		cellCenterInPixels,
+		cellSizeInPixelsHalf,
+		world,
+		display
+	)
+	{
 		var baseSelected = owner.baseSelected();
 
 		basesVisible.forEach(base =>
@@ -1570,6 +1656,21 @@ class OwnerMapKnowledge
 				basePresent.name, cellCenterInPixels, borderColor
 			);
 		});
+	}
+
+	draw_4_UnitsVisible
+	(
+		owner,
+		unitsVisible,
+		cellPosInPixels,
+		cellSizeInPixels,
+		cellCenterInPixels,
+		cellSizeInPixelsHalf,
+		world,
+		display
+	)
+	{
+		var cellRadiusInPixels = cellSizeInPixelsHalf.x;
 
 		var unitSelected = owner.unitSelected();
 		unitsVisible.forEach(unit =>
@@ -1681,8 +1782,58 @@ class OwnerSelection
 {
 	constructor()
 	{
-		this.baseSelectedName = null;
+		this.baseSelectedIndex = null;
 		this.unitSelectedIndex = null;
+	}
+
+	baseSelectNextIdle(owner)
+	{
+		var bases = owner.bases;
+
+		var areThereAnyBasesIdle =
+			bases.some(x => x.isIdle());
+
+		if (areThereAnyBasesIdle == false)
+		{
+			this.baseSelectedIndex = null;
+		}
+		else
+		{
+			if (this.baseSelectedIndex == null)
+			{
+				this.baseSelectedIndex = -1;
+			}
+
+			while (true)
+			{
+				this.baseSelectedIndex++;
+				if (this.baseSelectedIndex >= bases.length)
+				{
+					this.baseSelectedIndex = 0;
+				}
+
+				var baseSelected = this.baseSelected(owner);
+				if (baseSelected.isIdle())
+				{
+					break;
+				}
+
+			}
+		}
+	}
+
+	baseSelected(owner)
+	{
+		var bases = owner.bases;
+
+		var base =
+		(
+			this.baseSelectedIndex == null
+			? null
+			: bases[this.baseSelectedIndex]
+		);
+
+		return base;
 	}
 
 	unitSelectById(owner, idToSelect)
