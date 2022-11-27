@@ -25,8 +25,8 @@ class Owner
 
 	areAnyBasesOrUnitsIdle(world)
 	{
-		var areAnyBasesIdle = false; // todo
-		var areAnyUnitsIdle = this.units.some(x => x.hasMovesThisTurn());
+		var areAnyBasesIdle = this.bases.some(x => x.isIdle() );
+		var areAnyUnitsIdle = this.units.some(x => x.isIdle() );
 		var returnValue = (areAnyBasesIdle || areAnyUnitsIdle);
 		return returnValue;
 	}
@@ -36,7 +36,7 @@ class Owner
 		this.bases.forEach(x => x.initialize(world) );
 		this.units.forEach(x => x.initialize(world) );
 
-		this.unitSelectNextWithMoves();
+		this.unitSelectNextIdle();
 	}
 
 	turnAdvance(world)
@@ -44,7 +44,7 @@ class Owner
 		this.bases.forEach(x => x.turnAdvance(world) );
 		this.units.forEach(x => x.turnAdvance(world) );
 
-		this.unitSelectNextWithMoves();
+		this.unitSelectNextIdle();
 	}
 
 	unitRemove(unit)
@@ -74,9 +74,9 @@ class Owner
 		return this.selection.unitSelectById(this, idSelect);
 	}
 
-	unitSelectNextWithMoves()
+	unitSelectNextIdle()
 	{
-		return this.selection.unitSelectNextWithMoves(this);
+		return this.selection.unitSelectNextIdle(this);
 	}
 
 	unitSelected()
@@ -370,15 +370,32 @@ class OwnerMapKnowledge
 			var unitSymbol = unitDefn.symbol;
 			var unitOwner = unit.owner(world);
 			var unitOwnerColorName = unitOwner.colorName;
+			var fillColorName = unitOwnerColorName;
 
 			var isSelected = (unit == unitSelected);
-			var borderColor = (isSelected ? "White" : "Gray");
+			var borderColorName =
+			(
+				isSelected && (unit.isSleeping == false)
+				? "White"
+				: "Gray"
+			);
+
 			display.drawCircle
 			(
 				cellCenterInPixels, cellRadiusInPixels,
-				unitOwnerColorName, borderColor
+				fillColorName, borderColorName
 			);
-			display.drawText(unitSymbol, cellCenterInPixels, borderColor);
+
+			if (unit.isSleeping)
+			{
+				display.drawCircle
+				(
+					cellCenterInPixels, cellRadiusInPixels,
+					"rgb(255, 255, 255, 0.25)", null
+				);
+			}
+
+			display.drawText(unitSymbol, cellCenterInPixels, borderColorName);
 		});
 	}
 
@@ -525,7 +542,7 @@ class OwnerSelection
 		}
 		else if (this.selectableSelectedCategoryIndex == categories.Units.index)
 		{
-			returnValue = this.unitSelectNextWithMoves(owner);
+			returnValue = this.unitSelectNextIdle(owner);
 		}
 
 		return returnValue;
@@ -564,14 +581,14 @@ class OwnerSelection
 		}
 	}
 
-	unitSelectNextWithMoves(owner)
+	unitSelectNextIdle(owner)
 	{
 		var units = owner.units;
 
-		var areThereAnyUnitsWithMoves =
-			units.some(x => x.hasMovesThisTurn());
+		var areThereAnyUnitsIdle =
+			units.some(x => x.isIdle());
 
-		if (areThereAnyUnitsWithMoves == false)
+		if (areThereAnyUnitsIdle == false)
 		{
 			this.unitSelectedIndex = null;
 		}
@@ -595,7 +612,6 @@ class OwnerSelection
 				{
 					break;
 				}
-
 			}
 		}
 	}

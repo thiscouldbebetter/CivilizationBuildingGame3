@@ -14,6 +14,11 @@ class Unit
 		this._cellToPos = Coords.create();
 	}
 
+	activitySet(activityDefn)
+	{
+		this.activity = new UnitActivity(activityDefn.name, 0);
+	}
+
 	category()
 	{
 		return SelectableCategory.Instances().Units;
@@ -29,9 +34,19 @@ class Unit
 		return (this.movesThisTurn > 0);
 	}
 
+	isIdle()
+	{
+		return (this.hasMovesThisTurn() && this.isSleeping == false);
+	}
+
 	initialize(world)
 	{
 		this.turnAdvance(world);
+	}
+
+	movesThisTurnClear()
+	{
+		this.movesThisTurn = 0;
 	}
 
 	owner(world)
@@ -64,6 +79,11 @@ class Unit
 	{
 		var defn = this.defn(world);
 		this.movesThisTurn = defn.movement.movesPerTurn;
+		var owner = this.owner(world);
+		if (this.activity != null)
+		{
+			this.activity.advance(null, world, owner, this);
+		}
 	}
 
 	// Movement.
@@ -133,6 +153,27 @@ class UnitActivity
 		this.defnName = defnName;
 		this.movesInvestedSoFar = movesInvestedSoFar;
 	}
+
+	advance(universe, world, owner, unit)
+	{
+		this.movesInvestedSoFar += this.movesThisTurn;
+		var defn = this.defn();
+		if (this.movesInvestedSoFar >= defn.movesToComplete)
+		{
+			this.complete();
+		}
+		this.movesThisTurnClear();
+	}
+
+	complete(universe, world, owner, unit)
+	{
+		this.defn().perform(universe, world, owner, unit)
+	}
+
+	defn()
+	{
+		return UnitActivityDefn.byName(this.defnName);
+	}
 }
 
 class UnitActivityDefn
@@ -148,7 +189,8 @@ class UnitActivityDefn
 	{
 		if (UnitActivityDefn._instances == null)
 		{
-			UnitActivityDefn._instances = new UnitActivityDefn_Instances();
+			UnitActivityDefn._instances =
+				new UnitActivityDefn_Instances();
 		}
 		return UnitActivityDefn._instances;
 	}
@@ -224,18 +266,22 @@ class UnitActivityDefn_Instances
 
 	fortify(universe, world, owner, unit)
 	{
-		alert("To be implemented!");
+		unit.activityStart
+		(
+			ActivityDefn.Instances().Fortify
+		);
 	}
 
 	pass(universe, world, owner, unit)
 	{
 		unit.movesThisTurn = 0;
-		owner.unitSelectNextWithMoves();
+		owner.unitSelectNextIdle();
 	}
 
 	sleep(universe, world, owner, unit)
 	{
-		alert("To be implemented!");
+		unit.isSleeping = true;
+		owner.unitSelectNextIdle();
 	}
 
 	// Settlers.
@@ -329,6 +375,14 @@ class UnitDefn
 	actionsAvailable()
 	{
 		return this.actionsAvailableNames.map(x => UnitActivityDefn.byName(x));
+	}
+
+	build(world, base)
+	{
+		var unitPos = base.pos.clone();
+		var unit = new Unit(this.name, unitPos);
+		base.unitSupport(unit);
+		world.unitAdd(unit);
 	}
 }
 

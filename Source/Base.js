@@ -19,6 +19,8 @@ class Base
 		this.landUsage = landUsage;
 		this.foodStockpiled = foodStockpiled;
 		this.industry = industry;
+
+		this.unitsSupportedIds = [];
 	}
 
 	category()
@@ -29,6 +31,11 @@ class Base
 	initialize(world)
 	{
 		// todo
+	}
+
+	isIdle()
+	{
+		return (this.industry.buildableInProgressName == null);
 	}
 
 	toStringDetails(world)
@@ -61,6 +68,37 @@ class Base
 		this.landUsage.turnAdvance(world, this);
 		this.industry.turnAdvance(world, this);
 	}
+
+	unitSupport(unit)
+	{
+		this.unitsSupportedIds.push(unit.id);
+	}
+
+	unitsSupported(world)
+	{
+		return this.unitsSupportedIds.map(x => world.unitById(x));
+	}
+}
+
+class BaseBuildable
+{
+	static byName(name)
+	{
+		var returnValue = null;
+
+		var unitDefn = UnitDefn.byName(name);
+		if (unitDefn != null)
+		{
+			returnValue = unitDefn;
+		}
+		else
+		{
+			var improvementDefn = BaseImprovementDefn.byName(name);
+			returnValue = improvementDefn;
+		}
+
+		return returnValue;
+	}
 }
 
 class BaseImprovementDefn
@@ -80,6 +118,22 @@ class BaseIndustry
 		this.industryStockpiled = industryStockpiled;
 	}
 
+	buildableInProgress(world, base)
+	{
+		var returnValue = null;
+
+		if (this.buildableInProgressName != null)
+		{
+			var owner = base.owner(world);
+			returnValue = BaseBuildable.byName
+			(
+				this.buildableInProgressName
+			);
+		}
+
+		return returnValue;
+	}
+
 	toString()
 	{
 		var returnValue =
@@ -93,7 +147,14 @@ class BaseIndustry
 
 	turnAdvance(world, base)
 	{
-		// todo
+		var industryThisTurn = 1; // hack
+		this.industryStockpiled += industryThisTurn;
+		var buildableInProgress = this.buildableInProgress(world);
+		var industryRequired = buildableInProgress.industryToBuild;
+		if (this.industryStockpiled >= industryRequired)
+		{
+			buildable.build(world, base);
+		}
 	}
 }
 

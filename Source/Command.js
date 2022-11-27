@@ -263,11 +263,17 @@ class CommandOpcode_Instances
 		var owner = w.ownerCurrent();
 		if (owner.areAnyBasesOrUnitsIdle(w) )
 		{
-			outputLog.writeLine("Cannot end turn while any units or cities are idle!");
+			outputLog.writeLine
+			(
+				"Cannot end turn while any units or cities are idle!"
+			);
 		}
 		else
 		{
-			outputLog.writeLine("Player " + owner.name + " ends turn: " + w.turnsSoFar + ".");
+			outputLog.writeLine
+			(
+				"Player " + owner.name + " ends turn: " + w.turnsSoFar + "."
+			);
 			w.turnAdvance(u);
 			outputLog.writeLine("Next turn begins: " + w.turnsSoFar + ".");
 		}
@@ -299,7 +305,10 @@ class CommandOpcode_Instances
 				|| actionIndex >= actionsAvailable.length
 			)
 			{
-				outputLog.writeLine("Invalid action number: " + (actionIndex + 1) + "."); 
+				outputLog.writeLine
+				(
+					"Invalid action number: " + (actionIndex + 1) + "."
+				); 
 			}
 			else
 			{
@@ -318,18 +327,26 @@ class CommandOpcode_Instances
 
 	unitActionsShow(u, w, c)
 	{
-		var owner = w.ownerCurrent();
-		var unit = owner.unitSelected();
-		var unitDefn = unit.defn(w);
-
 		var outputLog = u.outputLog;
 		outputLog.clear();
-		outputLog.writeLine("Actions available:");
-		var actionsAvailableNames = unitDefn.actionsAvailableNames;
-		actionsAvailableNames.forEach
-		(
-			(x, i) => outputLog.writeLine( (i + 1) + ": " + x)
-		);
+
+		var owner = w.ownerCurrent();
+		var unit = owner.unitSelected();
+		if (unit == null)
+		{
+			outputLog.writeLine("No unit selected!");
+		}
+		else
+		{
+			var unitDefn = unit.defn(w);
+
+			outputLog.writeLine("Actions available:");
+			var actionsAvailableNames = unitDefn.actionsAvailableNames;
+			actionsAvailableNames.forEach
+			(
+				(x, i) => outputLog.writeLine( (i + 1) + ": " + x)
+			);
+		}
 	}
 
 	unitList(u, w, c)
@@ -395,10 +412,11 @@ class CommandOpcode_Instances
 				if (unitSelected.hasMovesThisTurn() == false)
 				{
 					message =
-						"Unit " + unitSelected.id + " out of moves this turn.";
+						"Unit " + unitSelected.id
+						+ " out of moves this turn.";
 					outputLog.writeLine(message);
 
-					ownerCurrent.unitSelectNextWithMoves();
+					ownerCurrent.unitSelectNextIdle();
 					unitSelected = ownerCurrent.unitSelected();
 
 					if (unitSelected == null)
@@ -410,7 +428,9 @@ class CommandOpcode_Instances
 					}
 					else
 					{
-						message = "Selected next unit with moves: " + unitSelected.id + "."
+						message =
+							"Selected next unit with moves: "
+							+ unitSelected.id + "."
 						outputLog.writeLine(message);
 					}
 				}
@@ -494,7 +514,7 @@ class CommandOpcode_Instances
 
 			if (operand0 == "next")
 			{
-				owner.unitSelectNextWithMoves();
+				owner.unitSelectNextIdle();
 				var unitSelected = owner.unitSelected();
 				if (unitSelected != null)
 				{
