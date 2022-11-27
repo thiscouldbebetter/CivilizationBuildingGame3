@@ -21,6 +21,11 @@ class Base
 		this.industry = industry;
 	}
 
+	category()
+	{
+		return SelectableCategory.Instances().Bases;
+	}
+
 	initialize(world)
 	{
 		// todo

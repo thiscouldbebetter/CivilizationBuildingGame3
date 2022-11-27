@@ -55,18 +55,38 @@ class InputHelper
 		}
 		else
 		{
-			var command = Command.fromKeyboardKey(key);
-			if (command == null)
+			var keyAsInt = parseInt(key);
+			if (isNaN(keyAsInt) == false)
 			{
-				if (key.length == 1)
+				if (inputCommand.value.length == 0)
+				{
+					var command = Command.fromKeyboardKey(key);
+					if (command != null)
+					{
+						command.execute(universe, world);
+						world.draw(universe);
+					}
+				}
+				else
 				{
 					inputCommand.value += key;
 				}
 			}
 			else
 			{
-				command.execute(universe, world);
-				world.draw(universe);
+				var command = Command.fromKeyboardKey(key);
+				if (command == null)
+				{
+					if (key.length == 1)
+					{
+						inputCommand.value += key;
+					}
+				}
+				else
+				{
+					command.execute(universe, world);
+					world.draw(universe);
+				}
 			}
 		}
 	}

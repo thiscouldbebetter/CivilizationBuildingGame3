@@ -183,6 +183,13 @@ class World
 	{
 		return this.units.find(x => x.id == id);
 	}
+
+	unitRemove(unit)
+	{
+		this.units.splice(this.units.indexOf(unit), 1);
+		var cell = this.map.cellAtPosInCells(unit.pos);
+		cell.unitRemove(unit);
+	}
 }
 
 class WorldDefns

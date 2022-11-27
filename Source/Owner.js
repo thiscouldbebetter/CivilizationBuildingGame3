@@ -23,6 +23,14 @@ class Owner
 		this.selection = new OwnerSelection();
 	}
 
+	areAnyBasesOrUnitsIdle(world)
+	{
+		var areAnyBasesIdle = false; // todo
+		var areAnyUnitsIdle = this.units.some(x => x.hasMovesThisTurn());
+		var returnValue = (areAnyBasesIdle || areAnyUnitsIdle);
+		return returnValue;
+	}
+
 	initialize(world)
 	{
 		this.bases.forEach(x => x.initialize(world) );
@@ -39,6 +47,11 @@ class Owner
 		this.unitSelectNextWithMoves();
 	}
 
+	unitRemove(unit)
+	{
+		this.units.splice(this.units.indexOf(unit), 1);
+	}
+
 	// Selection.
 
 	baseSelectNextIdle()
@@ -49,6 +62,11 @@ class Owner
 	baseSelected()
 	{
 		return this.selection.baseSelected(this);
+	}
+
+	selectableSelected()
+	{
+		return this.selection.selectableSelected(this);
 	}
 
 	unitSelectById(idToSelect)
@@ -441,6 +459,9 @@ class OwnerSelection
 	{
 		this.baseSelectedIndex = null;
 		this.unitSelectedIndex = null;
+
+		this.selectableSelectedCategoryIndex =
+			SelectableCategory.Instances().Units.index;
 	}
 
 	baseSelectNextIdle(owner)
@@ -474,7 +495,6 @@ class OwnerSelection
 				{
 					break;
 				}
-
 			}
 		}
 	}
@@ -491,6 +511,42 @@ class OwnerSelection
 		);
 
 		return base;
+	}
+
+	selectableSelectNextIdle(owner)
+	{
+		var returnValue = null;
+
+		var categories = SelectableCategory.Instances();
+
+		if (this.selectableSelectedCategoryIndex == categories.Bases.index)
+		{
+			returnValue = this.baseSelectNextIdle(owner);
+		}
+		else if (this.selectableSelectedCategoryIndex == categories.Units.index)
+		{
+			returnValue = this.unitSelectNextWithMoves(owner);
+		}
+
+		return returnValue;
+	}
+
+	selectableSelected(owner)
+	{
+		var returnValue = null;
+
+		var categories = SelectableCategory.Instances();
+
+		if (this.selectableSelectedCategoryIndex == categories.Bases.index)
+		{
+			returnValue = this.baseSelected(owner);
+		}
+		else if (this.selectableSelectedCategoryIndex == categories.Units.index)
+		{
+			returnValue = this.unitSelected(owner);
+		}
+
+		return returnValue;
 	}
 
 	unitSelectById(owner, idToSelect)

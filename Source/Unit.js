@@ -14,6 +14,11 @@ class Unit
 		this._cellToPos = Coords.create();
 	}
 
+	category()
+	{
+		return SelectableCategory.Instances().Units;
+	}
+
 	defn(world)
 	{
 		return world.defns.unitDefnByName(this.defnName);
@@ -132,11 +137,11 @@ class UnitActivity
 
 class UnitActivityDefn
 {
-	constructor(name, movesToComplete, effect)
+	constructor(name, movesToComplete, perform)
 	{
 		this.name = name;
 		this.movesToComplete = movesToComplete;
-		this.effect = effect;
+		this._perform = perform;
 	}
 
 	static Instances()
@@ -152,30 +157,44 @@ class UnitActivityDefn
 	{
 		return UnitActivityDefn.Instances().byName(name);
 	}
+
+	perform(universe, world, owner, unit)
+	{
+		this._perform(universe, world, owner, unit);
+	}
 }
 
 class UnitActivityDefn_Instances
 {
 	constructor()
 	{
-		var effectNone = null;
+		var performNone = null;
 
-		this.Disband = new UnitActivityDefn("Disband", 1, effectNone);
-		this.Fortify = new UnitActivityDefn("Fortify", 1, effectNone);
-		this.Sleep = new UnitActivityDefn("Fortify", 1, effectNone);
+		this.Disband = new UnitActivityDefn("Disband", 1, this.disband);
+		this.Fortify = new UnitActivityDefn("Fortify", 1, this.fortify);
+		this.Pass = new UnitActivityDefn("Pass", 1, this.pass);
+		this.Sleep = new UnitActivityDefn("Sleep", 1, this.sleep);
 
-		this.SettlersBuildFort = new UnitActivityDefn("Build Road", 3, effectNone);
-		this.SettlersBuildIrrigation = new UnitActivityDefn("Build Irrigation", 3, effectNone);
-		this.SettlersBuildMine = new UnitActivityDefn("Build Mine", 3, effectNone);
-		this.SettlersBuildRoad = new UnitActivityDefn("Build Road", 3, effectNone);
-		this.SettlersClearForest = new UnitActivityDefn("Clear Forest", 3, effectNone);
-		this.SettlersPlantForest = new UnitActivityDefn("Clear Forest", 3, effectNone);
-		this.SettlersStartCity = new UnitActivityDefn("Start City", 1, effectNone);
+		this.SettlersBuildFort =
+			new UnitActivityDefn("Build Road", 3, this.settlersBuildFort);
+		this.SettlersBuildIrrigation =
+			new UnitActivityDefn("Build Irrigation", 3, this.settlersBuildIrrigation);
+		this.SettlersBuildMine =
+			new UnitActivityDefn("Build Mine", 3, this.settlersBuildMine);
+		this.SettlersBuildRoad =
+			new UnitActivityDefn("Build Road", 3, this.settlersBuildRoad);
+		this.SettlersClearForest =
+			new UnitActivityDefn("Clear Forest", 3, this.settlersClearForest);
+		this.SettlersPlantForest
+			= new UnitActivityDefn("Plant Forest", 3, this.settlersPlantForest);
+		this.SettlersStartCity =
+			new UnitActivityDefn("Start City", 1, this.settlersStartCity);
 
 		this._All =
 		[
 			this.Disband,
 			this.Fortify,
+			this.Pass,
 			this.Sleep,
 
 			this.SettlersBuildFort,
@@ -190,9 +209,70 @@ class UnitActivityDefn_Instances
 		this._AllByName = new Map(this._All.map(x => [x.name, x] ) );
 	}
 
-	static byName(name)
+	byName(name)
 	{
 		return this._AllByName.get(name);
+	}
+
+	// Performs.
+
+	disband(universe, world, owner, unit)
+	{
+		owner.unitRemove(unit);
+		world.unitRemove(unit);
+	}
+
+	fortify(universe, world, owner, unit)
+	{
+		alert("To be implemented!");
+	}
+
+	pass(universe, world, owner, unit)
+	{
+		unit.movesThisTurn = 0;
+		owner.unitSelectNextWithMoves();
+	}
+
+	sleep(universe, world, owner, unit)
+	{
+		alert("To be implemented!");
+	}
+
+	// Settlers.
+
+	settlersBuildFort(universe, world, owner, unit)
+	{
+		alert("To be implemented!");
+	}
+
+	settlersBuildIrrigation(universe, world, owner, unit)
+	{
+		alert("To be implemented!");
+	}
+
+	settlersBuildMine(universe, world, owner, unit)
+	{
+		alert("To be implemented!");
+	}
+
+	settlersBuildRoad(universe, world, owner, unit)
+	{
+		alert("To be implemented!");
+	}
+
+	settlersClearForest(universe, world, owner, unit)
+	{
+		alert("To be implemented!");
+	}
+
+	settlersPlantForest(universe, world, owner, unit)
+	{
+		alert("To be implemented!");
+	}
+
+	settlersStartCity(universe, world, owner, unit)
+	{
+		alert("To be implemented!");
 	}
 }
 
@@ -245,6 +325,11 @@ class UnitDefn
 		}
 		return UnitDefn._instances;
 	}
+
+	actionsAvailable()
+	{
+		return this.actionsAvailableNames.map(x => UnitActivityDefn.byName(x));
+	}
 }
 
 class UnitDefn_Instances
@@ -263,6 +348,8 @@ class UnitDefn_Instances
 		var a0 = [];
 		var aSet =
 		[
+			ads.Sleep,
+			ads.Pass,
 			ads.SettlersBuildFort,
 			ads.SettlersBuildIrrigation,
 			ads.SettlersBuildMine,
@@ -270,7 +357,6 @@ class UnitDefn_Instances
 			ads.SettlersClearForest,
 			ads.SettlersPlantForest,
 			ads.SettlersStartCity,
-			ads.Sleep,
 			ads.Disband
 		].map(x => x.name);
 
@@ -405,7 +491,7 @@ class UnitDefnCombat
 
 	toString()
 	{
-		return "Atk/Def: " + this.attack + "/" + this.defense;
+		return "Attack/Defense: " + this.attack + "/" + this.defense;
 	}
 }
 

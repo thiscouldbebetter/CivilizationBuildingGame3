@@ -46,10 +46,10 @@ class Command
 
 class CommandOpcode
 {
-	constructor(text, keyboardKey, execute)
+	constructor(text, keyboardKeys, execute)
 	{
 		this.text = text;
-		this.keyboardKey = keyboardKey;
+		this.keyboardKeys = keyboardKeys;
 		this.execute = execute;
 	}
 
@@ -82,71 +82,59 @@ class CommandOpcode_Instances
 		var co = (text, keyboardKey, execute) =>
 			new CommandOpcode(text, keyboardKey, execute);
 
-		var keyNone = null;
+		var keysNone = [];
 		var executeTodo = (u, w, c) => { alert("todo") };
 
-		this.CityBuild = co("build", keyNone, executeTodo);
-		this.CityList = co("list cities", keyNone, this.cityList);
-		this.CitySelect = co("select city", keyNone, executeTodo);
-		this.CityShow = co("show city", keyNone, executeTodo);
-		this.CityUseLandAtOffset = co("use offset", keyNone, executeTodo);
+		this.CityList = co("list cities", keysNone, this.cityList);
+		this.CitySelect = co("select city", keysNone, executeTodo);
+		this.CityUseLandAtOffset = co("use", keysNone, executeTodo);
 
-		this.CivList = co("list civilizations", keyNone, executeTodo);
-		this.CivSelect = co("select civilzation", keyNone, executeTodo);
-		this.CivShow = co("show civilization", keyNone, executeTodo);
+		this.CivList = co("list civilizations", keysNone, executeTodo);
+		this.CivSelect = co("select civilzation", keysNone, executeTodo);
+		this.CivShow = co("show civilization", keysNone, executeTodo);
 
-		this.CivOfferAccept = co("accept offer", keyNone, executeTodo);
-		this.CivOfferDecline = co("decline offer", keyNone, executeTodo);
-		this.CivOfferAlliance = co("alliance", keyNone, executeTodo);
-		this.CivOfferList = co("list offers", keyNone, executeTodo);
-		this.CivOfferPeace = co("peace", keyNone, executeTodo);
-		this.CivOfferTrade = co("trade", keyNone, executeTodo);
-		this.CivOfferWar = co("war", keyNone, executeTodo);
+		this.CivOfferAccept = co("accept offer", keysNone, executeTodo);
+		this.CivOfferDecline = co("decline offer", keysNone, executeTodo);
+		this.CivOfferAlliance = co("alliance", keysNone, executeTodo);
+		this.CivOfferList = co("list offers", keysNone, executeTodo);
+		this.CivOfferPeace = co("peace", keysNone, executeTodo);
+		this.CivOfferTrade = co("trade", keysNone, executeTodo);
+		this.CivOfferWar = co("war", keysNone, executeTodo);
 
-		this.Help = co("help", keyNone, this.help);
+		this.Help = co("help", keysNone, this.help);
+
+		this.SelectionShow = co("show selected", [ "?" ], this.selectionShow);
 
 		// Tech.
 
-		this.TechShow = co("show research", keyNone, this.techShow);
-		this.TechList = co("list techs", keyNone, this.techList);
-		this.TechResearch = co("research", keyNone, executeTodo);
-		this.TurnEnd = co("end turn", "Insert", this.turnEnd);
+		this.TechShow = co("show research", keysNone, this.techShow);
+		this.TechList = co("list techs", keysNone, this.techList);
+		this.TechResearch = co("research", keysNone, executeTodo);
+		this.TurnEnd = co("end turn", [ "Insert", "0" ], this.turnEnd);
 
 		// Units.
 
-		this.UnitActionsShow = co("list actions", "?", this.unitActionsShow);
-		this.UnitDisband = co("disband", keyNone, executeTodo);
-		this.UnitFortify = co("fortify", keyNone, executeTodo);
-		this.UnitList = co("list units", keyNone, this.unitList);
-		this.UnitMove = co("move", keyNone, this.unitMove.bind(this) );
-		this.UnitPass = co("pass", keyNone, executeTodo);
-		this.UnitSelect = co("select unit", keyNone, this.unitSelect);
-		this.UnitShow = co("show unit", keyNone, this.unitShow);
-		this.UnitSleep = co("sleep", keyNone, executeTodo);
-		this.UnitSupport = co("support", keyNone, executeTodo);
+		this.UnitActionPerform = co("do", keysNone, this.unitActionPerform);
+		this.UnitActionsShow = co("list actions", [ "`" ], this.unitActionsShow);
+		this.UnitList = co("list units", keysNone, this.unitList);
+		this.UnitMove = co("move", keysNone, this.unitMove.bind(this) );
+		this.UnitSelect = co("select unit", keysNone, this.unitSelect);
 
-		this.UnitMoveE = co("move_e", "ArrowRight", this.unitMoveE);
-		this.UnitMoveN = co("move_n", "ArrowUp", this.unitMoveN);
-		this.UnitMoveNE = co("move_ne", "PageUp", this.unitMoveNE);
-		this.UnitMoveNW = co("move_nw", "Home", this.unitMoveNW);
-		this.UnitMoveS = co("move_s", "ArrowDown", this.unitMoveS);
-		this.UnitMoveSE = co("move_se", "PageDown", this.unitMoveSE);
-		this.UnitMoveSW = co("move_sw", "End", this.unitMoveSW);
-		this.UnitMoveW = co("move_w", "ArrowLeft", this.unitMoveW);
+		this.UnitMoveE = co("move_e", [ "ArrowRight", "6" ], this.unitMoveE);
+		this.UnitMoveN = co("move_n", [ "ArrowUp", "8" ], this.unitMoveN);
+		this.UnitMoveNE = co("move_ne", [ "PageUp", "9" ], this.unitMoveNE);
+		this.UnitMoveNW = co("move_nw", [ "Home", "7" ], this.unitMoveNW);
+		this.UnitMoveS = co("move_s", [ "ArrowDown", "2" ], this.unitMoveS);
+		this.UnitMoveSE = co("move_se", [ "PageDown", "3" ], this.unitMoveSE);
+		this.UnitMoveSW = co("move_sw", [ "End", "1" ], this.unitMoveSW);
+		this.UnitMoveW = co("move_w", [ "ArrowLeft", "4" ], this.unitMoveW);
 
-		this.UnitSettlerIrrigate = co("irrigate", keyNone, executeTodo);
-		this.UnitSettlerMine = co("mine", keyNone, executeTodo);
-		this.UnitSettlerRoad = co("road", keyNone, executeTodo); 
-		this.UnitSettlerSettle = co("settle", keyNone, executeTodo);
-
-		this.WorldShow = co("show world", keyNone, this.worldShow);
+		this.WorldShow = co("show world", keysNone, this.worldShow);
 
 		this._All =
 		[
-			this.CityBuild,
 			this.CityList,
 			this.CitySelect,
-			this.CityShow,
 			this.CityUseLandAtOffset,
 
 			this.CivOfferAccept,
@@ -159,18 +147,19 @@ class CommandOpcode_Instances
 
 			this.Help,
 
+			this.SelectionShow,
+
 			this.TechShow,
 			this.TechList,
 			this.TechResearch,
 
 			this.TurnEnd,
 
+			this.UnitActionPerform,
 			this.UnitActionsShow,
 			this.UnitList,
 			this.UnitMove,
-			this.UnitPass,
 			this.UnitSelect,
-			this.UnitShow,
 
 			this.UnitMoveE,
 			this.UnitMoveN,
@@ -180,11 +169,6 @@ class CommandOpcode_Instances
 			this.UnitMoveSE,
 			this.UnitMoveSW,
 			this.UnitMoveW,
-
-			this.UnitSettlerIrrigate,
-			this.UnitSettlerMine,
-			this.UnitSettlerRoad,
-			this.UnitSettlerSettle,
 
 			this.WorldShow,
 		];
@@ -200,7 +184,7 @@ class CommandOpcode_Instances
 	byKeyboardKey(key)
 	{
 		var opcodeFound =
-			this._All.find(x => x.keyboardKey == key);
+			this._All.find(x => x.keyboardKeys.indexOf(key) >= 0);
 		return opcodeFound;
 	}
 
@@ -225,6 +209,28 @@ class CommandOpcode_Instances
 		(
 			x => u.outputLog.writeLine(x.text)
 		);
+	}
+
+	selectionShow(u, w, c)
+	{
+		var outputLog = u.outputLog;
+		outputLog.clear();
+
+		var owner = w.ownerCurrent();
+		outputLog.writeLine("Owner: " + owner.name);
+
+		var selectableSelected = owner.selectableSelected();
+		if (selectableSelected == null)
+		{
+			outputLog.writeLine("Nothing selected!");
+		}
+		else
+		{
+			var category = selectableSelected.category(w);
+			outputLog.writeLine("Category: " + category.name); 
+			var selectableDetails = selectableSelected.toStringDetails(w);
+			outputLog.writeLine(selectableDetails);
+		}
 	}
 
 	techList(u, w, c)
@@ -254,8 +260,60 @@ class CommandOpcode_Instances
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
-		w.turnAdvance(u);
-		outputLog.writeLine("Next turn:" + w.turnsSoFar);
+		var owner = w.ownerCurrent();
+		if (owner.areAnyBasesOrUnitsIdle(w) )
+		{
+			outputLog.writeLine("Cannot end turn while any units or cities are idle!");
+		}
+		else
+		{
+			outputLog.writeLine("Player " + owner.name + " ends turn: " + w.turnsSoFar + ".");
+			w.turnAdvance(u);
+			outputLog.writeLine("Next turn begins: " + w.turnsSoFar + ".");
+		}
+	}
+
+	unitActionPerform(u, w, c)
+	{
+		var outputLog = u.outputLog;
+		outputLog.clear();
+
+		var owner = w.ownerCurrent();
+		var unit = owner.unitSelected();
+
+		if (unit == null)
+		{
+			outputLog.writeLine("No unit selected!");
+		}
+		else
+		{
+			var unitDefn = unit.defn(w);
+			var actionsAvailable = unitDefn.actionsAvailable();
+
+			var actionIndex = parseInt(c.operands[0]) - 1;
+
+			if
+			(
+				isNaN(actionIndex)
+				|| actionIndex < 0
+				|| actionIndex >= actionsAvailable.length
+			)
+			{
+				outputLog.writeLine("Invalid action number: " + (actionIndex + 1) + "."); 
+			}
+			else
+			{
+				var actionToPerform = actionsAvailable[actionIndex]; // todo
+
+				outputLog.writeLine
+				(
+					"Unit " + unit.id + " doing: " + actionToPerform.name + "."
+				);
+				actionToPerform.perform(u, w, owner, unit);
+
+				w.draw(u);
+			}
+		}
 	}
 
 	unitActionsShow(u, w, c)
@@ -270,7 +328,7 @@ class CommandOpcode_Instances
 		var actionsAvailableNames = unitDefn.actionsAvailableNames;
 		actionsAvailableNames.forEach
 		(
-			(x, i) => outputLog.writeLine(i + ": " + x)
+			(x, i) => outputLog.writeLine( (i + 1) + ": " + x)
 		);
 	}
 
@@ -453,23 +511,6 @@ class CommandOpcode_Instances
 		catch (err)
 		{
 			outputLog.writeLine(err.message);
-		}
-	}
-
-	unitShow(u, w, c)
-	{
-		var outputLog = u.outputLog;
-		outputLog.clear();
-
-		var unitSelected = w.ownerCurrent().unitSelected();
-		if (unitSelected == null)
-		{
-			outputLog.writeLine("No unit selected!");
-		}
-		else
-		{
-			var unitDetails = unitSelected.toStringDetails(w);
-			outputLog.writeLine(unitDetails);
 		}
 	}
 
