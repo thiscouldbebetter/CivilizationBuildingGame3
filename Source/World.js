@@ -121,12 +121,12 @@ class World
 	{
 		this.bases.push(base);
 		var cell = this.map.cellAtPosInCells(base.pos);
-		cell.baseAdd(cell);
+		cell.baseAdd(base);
 	}
 
-	baseByName(name)
+	baseById(id)
 	{
-		return this.bases.find(x => x.name == name);
+		return this.bases.find(x => x.id == id);
 	}
 
 	draw(universe)
@@ -160,15 +160,15 @@ class World
 		this.ownerCurrentIndex++;
 		if (this.ownerCurrentIndex >= this.owners.length)
 		{
-			this.turnAdvance();
+			this.turnUpdate();
 		}
 
 		return this.ownerCurrent();
 	}
 
-	turnAdvance()
+	turnUpdate()
 	{
-		this.owners.forEach(x => x.turnAdvance(this) );
+		this.owners.forEach(x => x.turnUpdate(this) );
 		this.turnsSoFar++;
 	}
 

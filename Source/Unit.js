@@ -14,9 +14,21 @@ class Unit
 		this._cellToPos = Coords.create();
 	}
 
-	activitySet(activityDefn)
+	activityStart(activityDefn)
 	{
-		this.activity = new UnitActivity(activityDefn.name, 0);
+		this.activity = new UnitActivity
+		(
+			activityDefn.name, this.movesThisTurn
+		);
+	}
+
+	activityUpdate(universe, world)
+	{
+		if (this.activity != null)
+		{
+			var owner = this.owner(world);
+			this.activity.turnUpdate(universe, world, owner, this);
+		}
 	}
 
 	category()
@@ -41,7 +53,7 @@ class Unit
 
 	initialize(world)
 	{
-		this.turnAdvance(world);
+		this.turnUpdate(world);
 	}
 
 	movesThisTurnClear()
@@ -75,14 +87,14 @@ class Unit
 		return this.id + ": " + this.defnName + " @" + this.pos.toString();
 	}
 
-	turnAdvance(world)
+	turnUpdate(world)
 	{
 		var defn = this.defn(world);
 		this.movesThisTurn = defn.movement.movesPerTurn;
 		var owner = this.owner(world);
 		if (this.activity != null)
 		{
-			this.activity.advance(null, world, owner, this);
+			this.activity.turnUpdate(null, world, owner, this);
 		}
 	}
 
@@ -154,15 +166,15 @@ class UnitActivity
 		this.movesInvestedSoFar = movesInvestedSoFar;
 	}
 
-	advance(universe, world, owner, unit)
+	turnUpdate(universe, world, owner, unit)
 	{
-		this.movesInvestedSoFar += this.movesThisTurn;
+		this.movesInvestedSoFar += unit.movesThisTurn;
 		var defn = this.defn();
 		if (this.movesInvestedSoFar >= defn.movesToComplete)
 		{
-			this.complete();
+			this.complete(universe, world, owner, unit);
 		}
-		this.movesThisTurnClear();
+		unit.movesThisTurnClear();
 	}
 
 	complete(universe, world, owner, unit)
@@ -266,10 +278,7 @@ class UnitActivityDefn_Instances
 
 	fortify(universe, world, owner, unit)
 	{
-		unit.activityStart
-		(
-			ActivityDefn.Instances().Fortify
-		);
+		unit.fortify();
 	}
 
 	pass(universe, world, owner, unit)
@@ -288,37 +297,64 @@ class UnitActivityDefn_Instances
 
 	settlersBuildFort(universe, world, owner, unit)
 	{
-		alert("To be implemented!");
+		var map = world.map;
+		var cell = map.cellAtPos(unit.pos);
+		cell.hasFort = true;
 	}
 
 	settlersBuildIrrigation(universe, world, owner, unit)
 	{
-		alert("To be implemented!");
+		var map = world.map;
+		var cell = map.cellAtPos(unit.pos);
+		cell.hasIrrigation = true;
 	}
 
 	settlersBuildMine(universe, world, owner, unit)
 	{
-		alert("To be implemented!");
+		var map = world.map;
+		var cell = map.cellAtPos(unit.pos);
+		cell.hasMine = true;
 	}
 
 	settlersBuildRoad(universe, world, owner, unit)
 	{
-		alert("To be implemented!");
+		var map = world.map;
+		var cell = map.cellAtPos(unit.pos);
+		cell.hasRoads = true;
 	}
 
 	settlersClearForest(universe, world, owner, unit)
 	{
-		alert("To be implemented!");
+		var map = world.map;
+		var cell = map.cellAtPos(unit.pos);
+		// todo
 	}
 
 	settlersPlantForest(universe, world, owner, unit)
 	{
-		alert("To be implemented!");
+		var map = world.map;
+		var cell = map.cellAtPos(unit.pos);
+		// todo
 	}
 
 	settlersStartCity(universe, world, owner, unit)
 	{
-		alert("To be implemented!");
+		var base = new Base
+		(
+			null, // name
+			unit.pos.clone(),
+			owner.name,
+			1, // population
+			null, // landUsage,
+			0, // foodStockpiled,
+			null, // industry
+		);
+		world.baseAdd(base);
+		world.unitRemove(unit);
+
+		owner.baseAdd(base);
+		owner.unitRemove(unit);
+		owner.unitSelectNextIdle();
 	}
 }
 

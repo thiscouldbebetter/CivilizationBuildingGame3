@@ -31,6 +31,16 @@ class Owner
 		return returnValue;
 	}
 
+	baseAdd(base)
+	{
+		this.bases.push(base);
+	}
+
+	baseRemove(base)
+	{
+		this.bases.splice(this.bases.indexOf(base), 1);
+	}
+
 	initialize(world)
 	{
 		this.bases.forEach(x => x.initialize(world) );
@@ -39,12 +49,17 @@ class Owner
 		this.unitSelectNextIdle();
 	}
 
-	turnAdvance(world)
+	turnUpdate(world)
 	{
-		this.bases.forEach(x => x.turnAdvance(world) );
-		this.units.forEach(x => x.turnAdvance(world) );
+		this.bases.forEach(x => x.turnUpdate(world) );
+		this.units.forEach(x => x.turnUpdate(world) );
 
 		this.unitSelectNextIdle();
+	}
+
+	unitAdd(unit)
+	{
+		this.units.push(unit);
 	}
 
 	unitRemove(unit)
@@ -324,11 +339,11 @@ class OwnerMapKnowledge
 			display.drawRectangle
 			(
 				cellPosInPixels, cellSizeInPixels,
-				basePresentColorName, borderColor
+				baseColorName, borderColor
 			);
 			display.drawText
 			(
-				basePresent.name, cellCenterInPixels, borderColor
+				base.name, cellCenterInPixels, borderColor
 			);
 		});
 	}
@@ -406,14 +421,14 @@ class OwnerMapKnowledge
 		var mapSizeInCells = world.map.sizeInCells;
 		var cellOffsetPos = Coords.create();
 
-		var ownerBases = owner.bases;
+		var ownerViewers = [];
+		ownerViewers.push(...owner.bases);
+		ownerViewers.push(...owner.units);
 
-		var ownerUnits = owner.units;
-
-		for (var i = 0; i < ownerUnits.length; i++)
+		for (var i = 0; i < ownerViewers.length; i++)
 		{
-			var unit = ownerUnits[i];
-			var unitPos = unit.pos;
+			var viewer = ownerViewers[i];
+			var viewerPos = viewer.pos;
 			var cellsAdjacentPositions = [];
 			for (var y = -1; y <= 1; y++)
 			{
@@ -424,7 +439,7 @@ class OwnerMapKnowledge
 					cellOffsetPos.x = x;
 
 					var cellAdjacentPos =
-						unitPos.clone().add(cellOffsetPos);
+						viewerPos.clone().add(cellOffsetPos);
 					var cellAdjacentIndex =
 						cellAdjacentPos.y * mapSizeInCells.x + cellAdjacentPos.x;
 
@@ -443,7 +458,6 @@ class OwnerMapKnowledge
 							cellAdjacentIndex, cellAdjacentIndex
 						);
 					}
-
 				}
 			}
 		}

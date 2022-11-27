@@ -29,8 +29,10 @@ class Command
 
 		if (opcode != null)
 		{
-			var commandTextMinusOpcode = commandText.substr(opcode.text.length);
-			var operands = commandTextMinusOpcode.split(" ").filter(x => x != "");
+			var commandTextMinusOpcode =
+				commandText.substr(opcode.text.length);
+			var operands =
+				commandTextMinusOpcode.split(" ").filter(x => x != "");
 
 			commandParsed = new Command(opcode, operands);
 		}
@@ -114,7 +116,7 @@ class CommandOpcode_Instances
 
 		// Units.
 
-		this.UnitActionPerform = co("do", keysNone, this.unitActionPerform);
+		this.UnitActionStart = co("do", keysNone, this.unitActionStart);
 		this.UnitActionsShow = co("list actions", [ "`" ], this.unitActionsShow);
 		this.UnitList = co("list units", keysNone, this.unitList);
 		this.UnitMove = co("move", keysNone, this.unitMove.bind(this) );
@@ -155,7 +157,7 @@ class CommandOpcode_Instances
 
 			this.TurnEnd,
 
-			this.UnitActionPerform,
+			this.UnitActionStart,
 			this.UnitActionsShow,
 			this.UnitList,
 			this.UnitMove,
@@ -274,12 +276,12 @@ class CommandOpcode_Instances
 			(
 				"Player " + owner.name + " ends turn: " + w.turnsSoFar + "."
 			);
-			w.turnAdvance(u);
+			w.turnUpdate(u);
 			outputLog.writeLine("Next turn begins: " + w.turnsSoFar + ".");
 		}
 	}
 
-	unitActionPerform(u, w, c)
+	unitActionStart(u, w, c)
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
@@ -307,7 +309,8 @@ class CommandOpcode_Instances
 			{
 				outputLog.writeLine
 				(
-					"Invalid action number: " + (actionIndex + 1) + "."
+					"Invalid action number: "
+					+ (actionIndex + 1) + "."
 				); 
 			}
 			else
@@ -316,9 +319,11 @@ class CommandOpcode_Instances
 
 				outputLog.writeLine
 				(
-					"Unit " + unit.id + " doing: " + actionToPerform.name + "."
+					"Unit " + unit.id + " doing: "
+					+ actionToPerform.name + "."
 				);
-				actionToPerform.perform(u, w, owner, unit);
+				unit.activityStart(actionToPerform);
+				unit.activityUpdate(u, w);
 
 				w.draw(u);
 			}

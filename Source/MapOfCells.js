@@ -90,14 +90,14 @@ class MapOfCellsCell
 	(
 		pos,
 		terrainCode,
-		basePresentName,
+		basePresentId,
 		improvementsPresentNames,
 		unitsPresentIds
 	)
 	{
 		this.pos = pos;
 		this.terrainCode = terrainCode;
-		this.basePresentName = basePresentName;
+		this.basePresentId = basePresentId;
 		this.improvementsPresentNames = improvementsPresentNames || [];
 		this.unitsPresentIds = unitsPresentIds || [];
 
@@ -106,12 +106,12 @@ class MapOfCellsCell
 
 	baseAdd(base)
 	{
-		this.basesPresentNames.push(base.name);
+		this.basePresentId = base.id;
 	}
 
 	basePresent(world)
 	{
-		return (this.basePresentName == null ? null : world.baseByName(this.basePresentName));
+		return (this.basePresentId == null ? null : world.baseById(this.basePresentId));
 	}
 
 	resourcesProduced(world, base)

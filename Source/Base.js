@@ -12,7 +12,9 @@ class Base
 		industry
 	)
 	{
-		this.name = name;
+		this.id = IdHelper.idNext();
+
+		this.name = name || ("City" + this.id);
 		this.pos = pos;
 		this.ownerName = ownerName;
 		this.population = population;
@@ -36,6 +38,11 @@ class Base
 	isIdle()
 	{
 		return (this.industry.buildableInProgressName == null);
+	}
+
+	owner(world)
+	{
+		return world.owners.find(x => x.name == this.ownerName);
 	}
 
 	toStringDetails(world)
@@ -63,10 +70,10 @@ class Base
 		return this.name + " @" + this.pos.toString();
 	}
 
-	turnAdvance(world)
+	turnUpdate(world)
 	{
-		this.landUsage.turnAdvance(world, this);
-		this.industry.turnAdvance(world, this);
+		this.landUsage.turnUpdate(world, this);
+		this.industry.turnUpdate(world, this);
 	}
 
 	unitSupport(unit)
@@ -162,15 +169,43 @@ class BaseLandUsage
 {
 	constructor(offsetsInUse)
 	{
-		this.offsetsInUse = offsetsInUse;
+		this.offsetsInUse = offsetsInUse || [];
+	}
+
+	static default()
+	{
+		return new BaseLandUsage(null);
+	}
+
+	optimize(base)
+	{
+		this.offsetsInUse.length = 0;
+
+		var offset = Coords.create();
+
+		for (var y = -2; y <= 2; y++)
+		{
+			offset.y = y;
+
+			for (var x = -2; x <= 2; x++)
+			{
+				offset.x = x;
+
+				this.offsetsInUse.push(offset.clone());
+			}
+		}
 	}
 
 	toString()
 	{
-		return "Land Usage: " + this.offsetsInUse.map(x => x.toString()).join(";");
+		var returnValue =
+			"Land Usage: "
+			+ this.offsetsInUse.map(x => x.toString()).join(";");
+
+		return returnValue;
 	}
 
-	turnAdvance(world, base)
+	turnUpdate(world, base)
 	{
 		var basePos = base.pos;
 		var cellsInUsePositions =
