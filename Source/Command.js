@@ -272,12 +272,7 @@ class CommandOpcode_Instances
 		}
 		else
 		{
-			outputLog.writeLine
-			(
-				"Player " + owner.name + " ends turn: " + w.turnsSoFar + "."
-			);
-			w.turnUpdate(u);
-			outputLog.writeLine("Next turn begins: " + w.turnsSoFar + ".");
+			w.ownerCurrentAdvance(u);
 		}
 	}
 

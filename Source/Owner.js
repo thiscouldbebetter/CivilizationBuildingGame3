@@ -99,6 +99,12 @@ class Owner
 		return this.selection.unitSelected(this);
 	}
 
+	unitSelectedClear()
+	{
+		this.selection.clear();
+		return this;
+	}
+
 }
 
 class OwnerIncomeAllocation
@@ -578,6 +584,14 @@ class OwnerSelection
 		}
 
 		return returnValue;
+	}
+
+	clear()
+	{
+		this.baseSelectedIndex = null;
+		this.unitSelectedIndex = null;
+
+		return this;
 	}
 
 	unitSelectById(owner, idToSelect)

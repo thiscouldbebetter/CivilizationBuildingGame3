@@ -46,6 +46,17 @@ class Coords
 		return this;
 	}
 
+	equals(other)
+	{
+		var areDimensionsEqual =
+		(
+			this.x == other.x
+			&& this.y == other.y
+		);
+
+		return areDimensionsEqual;
+	}
+
 	floor()
 	{
 		this.x = Math.floor(this.x);

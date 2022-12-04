@@ -29,6 +29,7 @@
 
 </div>
 
+<script type="text/javascript" src="_Other.js"></script>
 <script type="text/javascript" src="Base.js"></script>
 <script type="text/javascript" src="Command.js"></script>
 <script type="text/javascript" src="Coords.js"></script>
@@ -51,116 +52,13 @@ class Game
 		(
 			"divDisplay", new Coords(1024, 512)
 		);
+		var inputHelper = new InputHelper();
+		var outputLog = new DisplayText("textareaOutputLog");
 		var world = World.demo();
-		var universe = new Universe(display, world);
+		var universe = new Universe(display, inputHelper, outputLog, world);
 		universe.initialize();
 	}
 }
-
-// Classes.
-
-class Color
-{
-	constructor(name, systemColor)
-	{
-		this.name = name;
-		this.systemColor = systemColor;
-	}
-}
-
-class IdHelper
-{
-	static _idNext = 0;
-
-	static idNext()
-	{
-		var id = this._idNext;
-		this._idNext++;
-		return id;
-	}
-}
-
-class ResourceProduction
-{
-	constructor(food, industry, trade)
-	{
-		this.food = food;
-		this.industry = industry;
-		this.trade = trade;
-	}
-
-	static create()
-	{
-		return new ResourceProduction(0, 0, 0);
-	}
-
-	add(other)
-	{
-		this.food += other.food;
-		this.industry += other.industry;
-		this.trade += other.trade;
-	}
-}
-
-class SelectableCategory
-{
-	constructor(index, name)
-	{
-		this.index = index;
-		this.name = name;
-	}
-
-	static Instances()
-	{
-		if (SelectableCategory._instances == null)
-		{
-			SelectableCategory._instances = new SelectableCategory_Instances();
-		}
-		return SelectableCategory._instances;
-	}
-
-	static byName(name)
-	{
-		return SelectableCategory.Instances().byName(name);
-	}
-}
-
-class SelectableCategory_Instances
-{
-	constructor()
-	{
-		this.Bases = new SelectableCategory(0, "Bases");
-		this.Units = new SelectableCategory(1, "Units");
-
-		this._All =
-		[
-			this.Bases,
-			this.Units
-		];
-
-		this._AllByName = new Map(this._All.map(x => [x.name, x] ) )
-	}
-}
-
-class Universe
-{
-	constructor(display, world)
-	{
-		this.display = display;
-		this.world = world;
-
-		this.inputHelper = new InputHelper();
-		this.outputLog = new DisplayText("textareaOutputLog");
-	}
-
-	initialize()
-	{
-		this.inputHelper.initialize(this);
-		this.display.initialize(this);
-		this.world.initialize(this);
-	}
-}
-
 
 // Run.
 

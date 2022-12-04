@@ -16,6 +16,7 @@ class InputHelper
 
 	keyDown(universe, event)
 	{
+		var outputLog = universe.outputLog;
 		var world = universe.world;
 
 		event.preventDefault();
@@ -35,7 +36,7 @@ class InputHelper
 			var command = Command.fromText(commandText);
 			if (command == null)
 			{
-				universe.outputLog.clearAndWriteLine
+				outputLog.clearAndWriteLine
 				(
 					"Unrecognized command: " + commandText
 				);
@@ -52,6 +53,40 @@ class InputHelper
 			(
 				0, inputCommand.value.length - 1
 			);
+		}
+		else if
+		(
+			key.startsWith("F")
+			&& key.length > 1
+			&& key.length < 4
+		)
+		{
+			var functionKeyNumberAsString = key.substring(1);
+			var functionKeyNumber = parseInt(functionKeyNumberAsString);
+			if
+			(
+				functionKeyNumber < 1
+				|| functionKeyNumber > 12
+			)
+			{
+				outputLog.writeLine
+				(
+					"Unrecognized function key number: " + functionKeyNumber + "."
+				);
+			}
+			else
+			{
+				var actionToPerformNumber = functionKeyNumber;
+				var command = new Command
+				(
+					CommandOpcode.Instances().UnitActionStart,
+					[
+						actionToPerformNumber
+					]
+				);
+				command.execute(universe, world);
+				world.draw(universe);
+			}
 		}
 		else
 		{

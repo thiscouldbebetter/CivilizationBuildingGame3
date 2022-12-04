@@ -74,19 +74,24 @@ class World
 
 		var owners = [];
 		var ownerCount = 2;
-		var ownerColorNames = [ "Blue", "Green" ];
+		var ownerColorNames = [ "Blue", "Orange" ];
+		var ownerStartingPositions =
+		[
+			new Coords(8, 8),
+			new Coords(56, 8),
+		];
 
 		for (var i = 0; i < ownerCount; i++)
 		{
 			var ownerName = "Owner" + i;
 			var ownerColorName = ownerColorNames[i];
 
-			var posRandom = Coords.random().multiply(map.sizeInCells).floor();
+			var startingPos = ownerStartingPositions[i];
 			var unitInitial = new Unit
 			(
 				ownerName,
 				"Settlers",
-				posRandom
+				startingPos
 			);
 
 			var owner = new Owner
@@ -155,15 +160,27 @@ class World
 		return this.owners[this.ownerCurrentIndex];
 	}
 
-	ownerCurrentAdvance()
+	ownerCurrentAdvance(universe)
 	{
+		var world = universe.world;
+
+		var outputLog = universe.outputLog;
+		var ownerCurrent = this.ownerCurrent();
+		outputLog.writeLine("Player " + ownerCurrent.name + "'s turn ends.");
+
 		this.ownerCurrentIndex++;
 		if (this.ownerCurrentIndex >= this.owners.length)
 		{
+			this.ownerCurrentIndex = 0;
+
+			outputLog.writeLine("Turn " + world.turnsSoFar + " ends.");
 			this.turnUpdate();
 		}
 
-		return this.ownerCurrent();
+		ownerCurrent = this.ownerCurrent();
+		ownerCurrent.unitSelectedClear().unitSelectNextIdle();
+
+		return ownerCurrent;
 	}
 
 	turnUpdate()

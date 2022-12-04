@@ -1,0 +1,175 @@
+<html>
+<body>
+
+<h3>Civilization-Building Game - Automated Test Suite</h3>
+
+<script type="text/javascript" src="../Source/_Other.js"></script>
+<script type="text/javascript" src="../Source/Base.js"></script>
+<script type="text/javascript" src="../Source/Command.js"></script>
+<script type="text/javascript" src="../Source/Coords.js"></script>
+<script type="text/javascript" src="../Source/Direction.js"></script>
+<script type="text/javascript" src="../Source/Display.js"></script>
+<script type="text/javascript" src="../Source/InputHelper.js"></script>
+<script type="text/javascript" src="../Source/MapOfCells.js"></script>
+<script type="text/javascript" src="../Source/Owner.js"></script>
+<script type="text/javascript" src="../Source/Technology.js"></script>
+<script type="text/javascript" src="../Source/Unit.js"></script>
+<script type="text/javascript" src="../Source/World.js"></script>
+
+<script type="text/javascript" src="Mocks.js"></script>
+
+<script type="text/javascript">
+
+class Assert
+{
+	static areEqual(expected, actual)
+	{
+		if (actual != expected)
+		{
+			throw new Error("Expected: '" + expected + "', but was: '" + actual + "'.");
+		}
+	}
+
+	static isNotNull(expressionToTest)
+	{
+		if (expressionToTest == null)
+		{
+			throw new Error("Expected: not null, but was: null.");
+		}
+	}
+
+	static isNull(expressionToTest)
+	{
+		if (expressionToTest != null)
+		{
+			throw new Error("Expected: null, but was: not null.");
+		}
+	}
+
+	static isTrue(expressionToTest)
+	{
+		if (expressionToTest == false)
+		{
+			throw new Error("Expected: true, but was: false.");
+		}
+	}
+}
+
+class TestSuite
+{
+	constructor(tests)
+	{
+		this.tests = tests;
+	}
+
+	run()
+	{
+		var testsCount = this.tests.length;
+		var testsPassedSoFarCount = 0;
+		var newline = "<br />";
+
+		for (var i = 0; i < testsCount; i++)
+		{
+			var test = this.tests[i];
+			try
+			{
+				test.run();
+				testsPassedSoFarCount++;
+			}
+			catch (ex)
+			{
+				document.write("Test '" + test.name + "' failed with error:");
+				document.write(newline);
+				document.write(ex.stack);
+				document.write(newline);
+				document.write(newline);
+
+				throw ex;
+			}
+		}
+
+		var testsFailedCount = testsCount - testsPassedSoFarCount;
+
+		if (testsFailedCount == 0)
+		{
+			document.write("All " + testsCount + " test(s) passed!");
+		}
+		else
+		{
+			document.write("Tests failed: " + testsFailedCount + "/" + testsCount);
+		}
+	}
+}
+
+class Test
+{
+	constructor(name, run)
+	{
+		this.name = name;
+		this._run = run;
+	}
+
+	run()
+	{
+		this._run();
+	}
+}
+
+// Run.
+
+var testSuite = new TestSuite
+([
+	new Test
+	(
+		"PlayDemoFromStart",
+		() =>
+		{
+			var display = new DisplayMock();
+			var inputHelper = new InputHelperMock();
+			var outputLog = new OutputLogMock();
+			var world = World.demo();
+			var universe = new Universe(display, inputHelper, outputLog, world);
+			universe.initialize();
+
+			// Make sure that owner 0 is selected at startup.
+			var owner = world.ownerCurrent();
+			Assert.isNotNull(owner);
+			Assert.areEqual(world.owners[0], owner);
+
+			// Make sure a settlers unit is selected at startup.
+			var unit = owner.unitSelected();
+			Assert.isNotNull(unit);
+			Assert.areEqual(UnitDefn.Instances().Settlers.name, unit.defnName);
+
+			// Make sure the unit has moves initially.
+			Assert.isTrue(unit.movesThisTurn > 0);
+
+			// Move the unit.
+			var unitPosBeforeMove = unit.pos.clone();
+			var directions = Direction.Instances();
+			var east = directions.East;
+			var directionToMove = east;
+			unit.moveInDirection(directionToMove, world);
+
+			// Make sure the unit has used up its moves.
+			Assert.isTrue(unit.movesThisTurn == 0);
+
+			// Make sure the unit's position has changed by the correct offset.
+			var unitPosAfterMove = unit.pos.clone();
+			var offsetMoved = unitPosAfterMove.clone().subtract(unitPosBeforeMove);
+			Assert.isTrue(offsetMoved.equals(directionToMove.offset));
+
+			// Attempt to advance to the next idle unit (but there isn't one).
+			owner.unitSelectNextIdle();
+			unit = owner.unitSelected();
+			Assert.isNull(unit);
+		}
+	)
+]);
+
+testSuite.run();
+
+</script>
+
+</body>
+</html>
