@@ -42,7 +42,7 @@ class Technology_Instances
 		var uds = UnitDefn.Instances();
 
 		//							name					cost		prereqs		 buildables
-		this._Default			= t("_Default", 			0, 			prereqsNone, [ uds.Settlers ] );
+		this._Basic				= t("_Basic", 				0, 			prereqsNone, [ uds.Settlers ] );
 
 		this.AdvancedFlight		= t("Advanced Flight", 		costTodo, 	prereqsNone, [ uds.Bomber, uds.Carrier ] );
 		this.Alphabet			= t("Alphabet", 			costTodo, 	prereqsNone, buildablesNone);
@@ -226,7 +226,7 @@ class Technology_Instances
 
 		this._All =
 		[
-			this._Default,
+			this._Basic,
 
 			this.AdvancedFlight,
 			this.Alphabet,

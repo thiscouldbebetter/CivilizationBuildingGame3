@@ -3,17 +3,21 @@
 
 <h3>Civilization-Building Game - Automated Test Suite</h3>
 
-<script type="text/javascript" src="../Source/_Other.js"></script>
 <script type="text/javascript" src="../Source/Base.js"></script>
+<script type="text/javascript" src="../Source/Color.js"></script>
 <script type="text/javascript" src="../Source/Command.js"></script>
 <script type="text/javascript" src="../Source/Coords.js"></script>
 <script type="text/javascript" src="../Source/Direction.js"></script>
 <script type="text/javascript" src="../Source/Display.js"></script>
+<script type="text/javascript" src="../Source/IdHelper.js"></script>
 <script type="text/javascript" src="../Source/InputHelper.js"></script>
 <script type="text/javascript" src="../Source/MapOfCells.js"></script>
 <script type="text/javascript" src="../Source/Owner.js"></script>
+<script type="text/javascript" src="../Source/ResourceProduction.js"></script>
+<script type="text/javascript" src="../Source/SelectableCategory.js"></script>
 <script type="text/javascript" src="../Source/Technology.js"></script>
 <script type="text/javascript" src="../Source/Unit.js"></script>
+<script type="text/javascript" src="../Source/Universe.js"></script>
 <script type="text/javascript" src="../Source/World.js"></script>
 
 <script type="text/javascript" src="Mocks.js"></script>
@@ -36,6 +40,11 @@ class Assert
 		{
 			throw new Error("Expected: not equal, but was: equal.");
 		}
+	}
+
+	static fail(message)
+	{
+		throw new Error(message);
 	}
 
 	static isFalse(expressionToTest)
@@ -91,6 +100,7 @@ class TestSuite
 			{
 				test.run();
 				testsPassedSoFarCount++;
+				document.write("Test passed: " + test.name + newline);
 			}
 			catch (ex)
 			{
@@ -98,11 +108,12 @@ class TestSuite
 				document.write(newline);
 				document.write(ex.stack);
 				document.write(newline);
-				document.write(newline);
 
 				throw ex;
 			}
 		}
+
+		document.write(newline);
 
 		var testsFailedCount = testsCount - testsPassedSoFarCount;
 
@@ -221,10 +232,79 @@ var testSuite = new TestSuite
 			Assert.areEqual(1, base.population);
 			Assert.areEqual(2, base.landUsage.offsetsInUse.length);
 			Assert.isTrue(base.isIdle() );
+			var resourcesThisTurn = base.resourcesProducedThisTurn();
+			var resourcesNone = ResourceProduction.create();
+			Assert.isTrue(resourcesThisTurn.equals(resourcesNone) );
+			var map = world.map;
+			var cell = map.cellAtPosInCells(base.pos);
+			Assert.isTrue(cell.hasIrrigation());
+			Assert.isTrue(cell.hasRoads());
+
+			// Advance the turn and make sure some resources were produced,
+			// but not any industry, because there's no project.
+			world.turnAdvance();
+			resourcesThisTurn = base.resourcesProducedThisTurn();
+			Assert.isFalse(resourcesThisTurn.equals(resourcesNone ) );
+			var industryStockpiled = base.industry.industryStockpiled;
+			Assert.areEqual(0, industryStockpiled);
 
 			// Start building a new settlers unit.
 			base.buildableBuildByDefnName(unitDefnSettlers.name, world, owner);
 			Assert.isFalse(base.isIdle() );
+
+			var industryPerTurn = resourcesThisTurn.industry;
+			var turnsToWaitExpected = Math.ceil
+			(
+				unitDefnSettlers.industryToBuild / industryPerTurn
+			);
+			var turnsWaitedSoFar = 0;
+			var turnsToWaitMax = 100;
+			while (base.isBuildingSomething())
+			{
+				// Advance the turn and make sure some industry has accrued.
+				world.turnAdvance();
+				var industryStockpiled = base.industry.industryStockpiled;
+				Assert.areNotEqual(0, industryStockpiled);
+
+				turnsWaitedSoFar++;
+				if (turnsWaitedSoFar > turnsToWaitMax)
+				{
+					Assert.fail("Waited too many turns!");
+				}
+			}
+
+			Assert.areEqual(turnsToWaitExpected, turnsWaitedSoFar);
+
+			// Make sure the settlers unit has been built as expected.
+			Assert.areEqual(1, owner.units.length);
+			unitSettlers = owner.units[0];
+			Assert.areEqual(unitSettlers.defnName, unitDefns.Settlers.name);
+			Assert.isTrue(unitSettlers.pos.equals(base.pos));
+			Assert.areEqual(unitSettlers, owner.unitSelected());
+			Assert.areNotEqual(0, unitSettlers.movesThisTurn);
+
+			// Move the settler one cell and irrigate
+			unitSettlers.moveInDirection(east, world);
+			world.turnAdvance();
+			cell = map.cellAtPosInCells(unitSettlers.pos);
+			var activityDefn = activityDefns.SettlersBuildIrrigation;
+			unitSettlers.activityStart(activityDefn, world);
+
+			// Make sure the irrigation doesn't show up instantly.
+			cell = map.cellAtPosInCells(unitSettlers.pos);
+			var cellHasIrrigation = cell.hasIrrigation();
+			Assert.isFalse(cellHasIrrigation);
+
+			// Wait for the irrigation task to complete.
+			turnsToWaitExpected =
+				activityDefn.movesToComplete / unitDefnSettlers.movesPerTurn();
+			Assert.isTrue(turnsToWaitExpected < turnsToWaitMax);
+			world.turnAdvanceMultiple(turnsToWaitExpected);
+
+			// Make sure the irrigation appeared.
+			cell = map.cellAtPosInCells(unitSettlers.pos);
+			cellHasIrrigation = cell.hasIrrigation();
+			Assert.isTrue(cellHasIrrigation);
 		}
 	)
 ]);

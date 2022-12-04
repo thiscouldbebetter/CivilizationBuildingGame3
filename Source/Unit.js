@@ -68,6 +68,11 @@ class Unit
 		return world.ownerByName(this.ownerName);
 	}
 
+	ownerSet(owner)
+	{
+		this.ownerName = owner.name;
+	}
+
 	toStringDetails(world)
 	{
 		var defn = this.defn(world);
@@ -317,42 +322,42 @@ class UnitActivityDefn_Instances
 	settlersBuildFort(universe, world, owner, unit)
 	{
 		var map = world.map;
-		var cell = map.cellAtPos(unit.pos);
-		cell.hasFort = true;
+		var cell = map.cellAtPosInCells(unit.pos);
+		cell.improvementAddFort();
 	}
 
 	settlersBuildIrrigation(universe, world, owner, unit)
 	{
 		var map = world.map;
-		var cell = map.cellAtPos(unit.pos);
-		cell.hasIrrigation = true;
+		var cell = map.cellAtPosInCells(unit.pos);
+		cell.improvementAddIrrigation();
 	}
 
 	settlersBuildMine(universe, world, owner, unit)
 	{
 		var map = world.map;
-		var cell = map.cellAtPos(unit.pos);
-		cell.hasMine = true;
+		var cell = map.cellAtPosInCells(unit.pos);
+		cell.improvementAddMines();
 	}
 
 	settlersBuildRoad(universe, world, owner, unit)
 	{
 		var map = world.map;
-		var cell = map.cellAtPos(unit.pos);
-		cell.hasRoads = true;
+		var cell = map.cellAtPosInCells(unit.pos);
+		cell.improvementAddRoads();
 	}
 
 	settlersClearForest(universe, world, owner, unit)
 	{
 		var map = world.map;
-		var cell = map.cellAtPos(unit.pos);
+		var cell = map.cellAtPosInCells(unit.pos);
 		// todo
 	}
 
 	settlersPlantForest(universe, world, owner, unit)
 	{
 		var map = world.map;
-		var cell = map.cellAtPos(unit.pos);
+		var cell = map.cellAtPosInCells(unit.pos);
 		// todo
 	}
 
@@ -437,9 +442,16 @@ class UnitDefn
 	build(world, base)
 	{
 		var unitPos = base.pos.clone();
-		var unit = new Unit(this.name, unitPos);
+		var baseOwner = base.owner(world);
+		var unit = new Unit(baseOwner.name, this.name, unitPos);
 		base.unitSupport(unit);
+		unit.pos = base.pos.clone();
 		world.unitAdd(unit);
+	}
+
+	movesPerTurn()
+	{
+		return this.movement.movesPerTurn;
 	}
 }
 

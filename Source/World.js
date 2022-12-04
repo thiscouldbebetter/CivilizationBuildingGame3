@@ -175,7 +175,7 @@ class World
 			this.ownerCurrentIndex = 0;
 
 			outputLog.writeLine("Turn " + world.turnsSoFar + " ends.");
-			this.turnUpdate();
+			this.turnAdvance();
 		}
 
 		ownerCurrent = this.ownerCurrent();
@@ -184,15 +184,27 @@ class World
 		return ownerCurrent;
 	}
 
-	turnUpdate()
+	turnAdvance()
 	{
 		this.owners.forEach(x => x.turnUpdate(this) );
 		this.turnsSoFar++;
 	}
 
+	turnAdvanceMultiple(turnsToAdvance)
+	{
+		for (var i = 0; i < turnsToAdvance; i++)
+		{
+			this.turnAdvance();
+		}
+	}
+
 	unitAdd(unit)
 	{
 		this.units.push(unit);
+
+		var unitOwner = unit.owner(this);
+		unitOwner.unitAdd(unit);
+
 		var cell = this.map.cellAtPosInCells(unit.pos);
 		cell.unitAdd(unit);
 	}

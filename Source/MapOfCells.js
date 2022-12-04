@@ -114,6 +114,60 @@ class MapOfCellsCell
 		return (this.basePresentId == null ? null : world.baseById(this.basePresentId));
 	}
 
+	hasImprovement(improvement)
+	{
+		return (this.improvementsPresentNames.indexOf(improvement.name) >= 0);
+	}
+
+	hasIrrigation()
+	{
+		return (this.hasImprovement(MapOfCellsCellImprovement.Instances().Irrigation) );
+	}
+
+	hasMines()
+	{
+		return (this.hasImprovement(MapOfCellsCellImprovement.Instances().Mines) );
+	}
+
+	hasRailroads()
+	{
+		return (this.hasImprovement(MapOfCellsCellImprovement.Instances().Railroads) );
+	}
+
+	hasRoads()
+	{
+		return (this.hasImprovement(MapOfCellsCellImprovement.Instances().Roads) );
+	}
+
+	improvementAdd(improvement)
+	{
+		var improvementName = improvement.name;
+		if (this.improvementsPresentNames.indexOf(improvementName) == -1)
+		{
+			this.improvementsPresentNames.push(improvementName);
+		}
+	}
+
+	improvementAddIrrigation()
+	{
+		this.improvementAdd(MapOfCellsCellImprovement.Instances().Irrigation);
+	}
+
+	improvementAddMines()
+	{
+		this.improvementAdd(MapOfCellsCellImprovement.Instances().Mines);
+	}
+
+	improvementAddRailroads()
+	{
+		this.improvementAdd(MapOfCellsCellImprovement.Instances().Railroads);
+	}
+
+	improvementAddRoads()
+	{
+		this.improvementAdd(MapOfCellsCellImprovement.Instances().Roads);
+	}
+
 	resourcesProduced(world, base)
 	{
 		var terrain = this.terrain(world);
@@ -179,7 +233,7 @@ class MapOfCellsCellImprovement_Instances
 		var effectTodo = "";
 
 		this.Irrigation = new MapOfCellsCellImprovement("Irrigation", "i", effectTodo);
-		this.Mine = new MapOfCellsCellImprovement("Mine", "m", effectTodo);
+		this.Mines = new MapOfCellsCellImprovement("Mines", "m", effectTodo);
 		this.Railroads = new MapOfCellsCellImprovement("Railroads", "R", effectTodo);
 		this.Roads = new MapOfCellsCellImprovement("Roads", "r", effectTodo);
 	}
@@ -232,22 +286,25 @@ class MapOfCellsCellTerrain_Instances
 			return new MapOfCellsCellTerrain(a, b, c, d, e, f, g);
 		};
 
+		var rp = (food, industry, trade) => new ResourceProduction(food, industry, trade);
+
 		var land = "Land";
 		var water = "Water";
 
 		// 					name,			cat,	code,	color,				symbol, moves, 	resourceProd
-		this.Desert 	= t("Desert",		land,	"/", 	"rgb(255,000,128)",	"/",	1,		null);
-		this.Forest		= t("Forest", 		land,	"@",	"rgb(000,255,000)",	"@",	2,		null);
-		this.Glacier	= t("Glacier", 		land,	"#",	"rgb(255,255,255)",	"#",	2,		null);
-		this.Grassland	= t("Grassland", 	land,	":",	"rgb(000,255,000)",	":",	1,		null);
-		this.Hills		= t("Hills",		land,	"*",	"rgb(000,255,000)",	"*",	2,		null);
-		this.Jungle		= t("Jungle",		land, 	"&",	"rgb(000,064,000)",	"&",	2,		null);
-		this.Mountains	= t("Mountains",	land, 	"^", 	"rgb(128,128,128)",	"^",	3, 		null);
-		this.Ocean 		= t("Ocean",		water,	"~",	"rgb(000,000,255)",	"~",	100,	null);
-		this.Plains 	= t("Plains",		land,	".",	"rgb(000,128,000)",	".",	1,		null);
-		this.River		= t("River",		land,	"S",	"rgb(000,255,032)",	"S",	1,		null);
-		this.Swamp		= t("Swamp",		land,	"=",	"rgb(064,192,000)",	"=",	2,		null);
-		this.Tundra		= t("Tundra",		land, 	"-",	"rgb(128,255,128)",	"-",	2,		null);
+		this.Desert 	= t("Desert",		land,	"/", 	"rgb(255,000,128)",	"/",	1,		rp(0, 1, 0) );
+		this.Forest		= t("Forest", 		land,	"@",	"rgb(000,255,000)",	"@",	2,		rp(1, 2, 0) );
+		this.Glacier	= t("Glacier", 		land,	"#",	"rgb(255,255,255)",	"#",	2,		rp(0, 0, 0) );
+		this.Grassland	= t("Grassland", 	land,	":",	"rgb(000,255,000)",	":",	1,		rp(2, 0, 0) );
+		this.Hills		= t("Hills",		land,	"*",	"rgb(000,255,000)",	"*",	2,		rp(1, 0, 0) );
+		this.Jungle		= t("Jungle",		land, 	"&",	"rgb(000,064,000)",	"&",	2,		rp(1, 0, 0) );
+		this.Mountains	= t("Mountains",	land, 	"^", 	"rgb(128,128,128)",	"^",	3, 		rp(0, 1, 0) );
+		this.Ocean 		= t("Ocean",		water,	"~",	"rgb(000,000,255)",	"~",	100,	rp(1, 0, 2) );
+		this.Plains 	= t("Plains",		land,	".",	"rgb(000,128,000)",	".",	1,		rp(1, 1, 0) );
+		this.Swamp		= t("Swamp",		land,	"=",	"rgb(064,192,000)",	"=",	2,		rp(1, 0, 0) );
+		this.Tundra		= t("Tundra",		land, 	"-",	"rgb(128,255,128)",	"-",	2,		rp(1, 0, 0) );
+
+		// todo - Rivers.
 
 		this._All =
 		[
@@ -260,7 +317,6 @@ class MapOfCellsCellTerrain_Instances
 			this.Mountains,
 			this.Ocean,
 			this.Plains,
-			this.River,
 			this.Swamp,
 			this.Tundra
 		];

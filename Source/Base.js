@@ -49,7 +49,15 @@ class Base
 
 	initialize(world)
 	{
+		var cellOccupied = world.map.cellAtPosInCells(this.pos);
+		cellOccupied.improvementAddIrrigation();
+		cellOccupied.improvementAddRoads();
 		this.landUsage.optimize(world, this);
+	}
+
+	isBuildingSomething()
+	{
+		return (this.isIdle() == false);
 	}
 
 	isIdle()
@@ -60,6 +68,11 @@ class Base
 	owner(world)
 	{
 		return world.owners.find(x => x.name == this.ownerName);
+	}
+
+	resourcesProducedThisTurn(world)
+	{
+		return this.landUsage.resourcesProducedThisTurn(world, this);
 	}
 
 	toStringDetails(world)
@@ -351,6 +364,11 @@ class BaseIndustry
 		return returnValue;
 	}
 
+	buildableInProgressClear()
+	{
+		this.buildableInProgressName = null;
+	}
+
 	toString()
 	{
 		var returnValue =
@@ -362,15 +380,20 @@ class BaseIndustry
 		return returnValue;
 	}
 
-	turnAdvance(world, base)
+	turnUpdate(world, base)
 	{
-		var industryThisTurn = 1; // hack
-		this.industryStockpiled += industryThisTurn;
-		var buildableInProgress = this.buildableInProgress(world);
-		var industryRequired = buildableInProgress.industryToBuild;
-		if (this.industryStockpiled >= industryRequired)
+		var buildableInProgress = this.buildableInProgress(world, base);
+		if (buildableInProgress != null)
 		{
-			buildable.build(world, base);
+			var resourcesThisTurn = base.resourcesProducedThisTurn(world);
+			var industryThisTurn = resourcesThisTurn.industry;
+			this.industryStockpiled += industryThisTurn;
+			var industryRequired = buildableInProgress.industryToBuild;
+			if (this.industryStockpiled >= industryRequired)
+			{
+				buildableInProgress.build(world, base);
+				this.buildableInProgressClear();
+			}
 		}
 	}
 }
@@ -380,6 +403,8 @@ class BaseLandUsage
 	constructor(offsetsInUse)
 	{
 		this.offsetsInUse = offsetsInUse || [];
+
+		this._resourcesProducedThisTurn = ResourceProduction.create();
 	}
 
 	static default()
@@ -442,6 +467,11 @@ class BaseLandUsage
 		return this;
 	}
 
+	resourcesProducedThisTurn()
+	{
+		return this._resourcesProducedThisTurn;
+	}
+
 	toString()
 	{
 		var returnValue =
@@ -456,14 +486,15 @@ class BaseLandUsage
 		var basePos = base.pos;
 		var cellsInUsePositions =
 			this.offsetsInUse.map(x => x.clone().add(basePos));
-		var map = world.map();
+		var map = world.map;
 		var cellsInUse =
 			cellsInUsePositions.map(x => map.cellAtPosInCells(x) );
 		var resourcesProducedByCells =
 			cellsInUse.map(x => x.resourcesProduced(world, base) );
-		var resourcesProducedByBase =
-			ResourceProduction.create();
-		resourcesProducedByCells.forEach(x => resourcesProducedByBase.add(x) );
-		// todo
+		this._resourcesProducedThisTurn.clear();
+		resourcesProducedByCells.forEach
+		(
+			x => this._resourcesProducedThisTurn.add(x)
+		);
 	}
 }

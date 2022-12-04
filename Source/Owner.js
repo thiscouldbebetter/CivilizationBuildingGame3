@@ -69,7 +69,10 @@ class Owner
 
 	unitAdd(unit)
 	{
-		this.units.push(unit);
+		if (this.units.indexOf(unit) == -1)
+		{
+			this.units.push(unit);
+		}
 	}
 
 	unitRemove(unit)
@@ -490,7 +493,7 @@ class OwnerResearch
 	)
 	{
 		this.technologiesKnownNames =
-			technologiesKnownNames || [ Technology.Instances()._Default.name];
+			technologiesKnownNames || [ Technology.Instances()._Basic.name];
 		this.technologyBeingResearchedName = technologyBeingResearchedName;
 		this.researchStockpiled = researchStockpiled || 0;
 	}
