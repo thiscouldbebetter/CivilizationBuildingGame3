@@ -145,6 +145,11 @@ class MapOfCellsCell
 		return (this.unitsPresentIds.map(x => world.unitById(x)));
 	}
 
+	value()
+	{
+		return 1; // todo
+	}
+
 }
 
 class MapOfCellsCellImprovement

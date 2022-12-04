@@ -14,12 +14,14 @@ class Unit
 		this._cellToPos = Coords.create();
 	}
 
-	activityStart(activityDefn)
+	activityStart(activityDefn, world)
 	{
 		this.activity = new UnitActivity
 		(
-			activityDefn.name, this.movesThisTurn
+			activityDefn.name, 0
 		);
+		var owner = this.owner(world);
+		this.activity.start(null, world, owner, this);
 	}
 
 	activityUpdate(universe, world)
@@ -166,6 +168,23 @@ class UnitActivity
 		this.movesInvestedSoFar = movesInvestedSoFar;
 	}
 
+	complete(universe, world, owner, unit)
+	{
+		var defn = this.defn();
+		defn.perform(universe, world, owner, unit)
+	}
+
+	defn()
+	{
+		return UnitActivityDefn.byName(this.defnName);
+	}
+
+	start(universe, world, owner, unit)
+	{
+		var defn = this.defn();
+		defn.start(universe, world, owner, unit);
+	}
+
 	turnUpdate(universe, world, owner, unit)
 	{
 		this.movesInvestedSoFar += unit.movesThisTurn;
@@ -176,24 +195,15 @@ class UnitActivity
 		}
 		unit.movesThisTurnClear();
 	}
-
-	complete(universe, world, owner, unit)
-	{
-		this.defn().perform(universe, world, owner, unit)
-	}
-
-	defn()
-	{
-		return UnitActivityDefn.byName(this.defnName);
-	}
 }
 
 class UnitActivityDefn
 {
-	constructor(name, movesToComplete, perform)
+	constructor(name, movesToComplete, start, perform)
 	{
 		this.name = name;
 		this.movesToComplete = movesToComplete;
+		this._start = start;
 		this._perform = perform;
 	}
 
@@ -216,33 +226,42 @@ class UnitActivityDefn
 	{
 		this._perform(universe, world, owner, unit);
 	}
+
+	start(universe, world, owner, unit)
+	{
+		if (this._start != null)
+		{
+			this._start(universe, world, owner, unit);
+		}
+	}
 }
 
 class UnitActivityDefn_Instances
 {
 	constructor()
 	{
+		var startNone = null;
 		var performNone = null;
 
-		this.Disband = new UnitActivityDefn("Disband", 1, this.disband);
-		this.Fortify = new UnitActivityDefn("Fortify", 1, this.fortify);
-		this.Pass = new UnitActivityDefn("Pass", 1, this.pass);
-		this.Sleep = new UnitActivityDefn("Sleep", 1, this.sleep);
+		this.Disband = new UnitActivityDefn("Disband", 1, startNone, this.disband);
+		this.Fortify = new UnitActivityDefn("Fortify", 1, startNone, this.fortify);
+		this.Pass = new UnitActivityDefn("Pass", 1, startNone, this.pass);
+		this.Sleep = new UnitActivityDefn("Sleep", 1, startNone, this.sleep);
 
 		this.SettlersBuildFort =
-			new UnitActivityDefn("Build Road", 3, this.settlersBuildFort);
+			new UnitActivityDefn("Build Road", 3, startNone, this.settlersBuildFort);
 		this.SettlersBuildIrrigation =
-			new UnitActivityDefn("Build Irrigation", 3, this.settlersBuildIrrigation);
+			new UnitActivityDefn("Build Irrigation", 3, startNone, this.settlersBuildIrrigation);
 		this.SettlersBuildMine =
-			new UnitActivityDefn("Build Mine", 3, this.settlersBuildMine);
+			new UnitActivityDefn("Build Mine", 3, startNone, this.settlersBuildMine);
 		this.SettlersBuildRoad =
-			new UnitActivityDefn("Build Road", 3, this.settlersBuildRoad);
+			new UnitActivityDefn("Build Road", 3, startNone, this.settlersBuildRoad);
 		this.SettlersClearForest =
-			new UnitActivityDefn("Clear Forest", 3, this.settlersClearForest);
+			new UnitActivityDefn("Clear Forest", 3, startNone, this.settlersClearForest);
 		this.SettlersPlantForest
-			= new UnitActivityDefn("Plant Forest", 3, this.settlersPlantForest);
+			= new UnitActivityDefn("Plant Forest", 3, startNone, this.settlersPlantForest);
 		this.SettlersStartCity =
-			new UnitActivityDefn("Start City", 1, this.settlersStartCity);
+			new UnitActivityDefn("Start City", 1, this.settlersStartCity, null);
 
 		this._All =
 		[
@@ -339,20 +358,17 @@ class UnitActivityDefn_Instances
 
 	settlersStartCity(universe, world, owner, unit)
 	{
-		var base = new Base
+		var base = Base.fromNamePosAndOwnerName
 		(
 			null, // name
 			unit.pos.clone(),
-			owner.name,
-			1, // population
-			null, // landUsage,
-			0, // foodStockpiled,
-			null, // industry
+			owner.name
 		);
+
+		owner.baseAdd(base);
 		world.baseAdd(base);
 		world.unitRemove(unit);
 
-		owner.baseAdd(base);
 		owner.unitRemove(unit);
 		owner.unitSelectNextIdle();
 	}
@@ -376,6 +392,11 @@ class UnitDefn
 		this.combat = combat;
 		this.actionsAvailableNames = actionsAvailableNames;
 		this.symbol = symbol;
+	}
+
+	static byName(name)
+	{
+		return UnitDefn.Instances().byName(name);
 	}
 
 	static construct
@@ -562,6 +583,13 @@ class UnitDefn_Instances
 			this.Trireme,
 			this.Warriors
 		];
+
+		this._AllByName = new Map(this._All.map(x => [x.name, x] ) );
+	}
+
+	byName(name)
+	{
+		return this._AllByName.get(name);
 	}
 }
 

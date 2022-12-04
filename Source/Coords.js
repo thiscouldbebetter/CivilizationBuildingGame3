@@ -27,6 +27,13 @@ class Coords
 		return new Coords(0, 0);
 	}
 
+	absolute()
+	{
+		this.x = Math.abs(this.x);
+		this.y = Math.abs(this.y);
+		return this;
+	}
+
 	add(other)
 	{
 		this.x += other.x;
@@ -109,6 +116,11 @@ class Coords
 		this.x -= other.x;
 		this.y -= other.y;
 		return this;
+	}
+
+	sumOfDimensions()
+	{
+		return this.x + this.y;
 	}
 
 	toString()

@@ -41,6 +41,16 @@ class Owner
 		this.bases.splice(this.bases.indexOf(base), 1);
 	}
 
+	buildablesKnownNames()
+	{
+		return this.research.buildablesKnownNames();
+	}
+
+	canBuildBuildableWithDefnName(name)
+	{
+		return this.research.canBuildBuildableWithDefnName(name, this);
+	}
+
 	initialize(world)
 	{
 		this.bases.forEach(x => x.initialize(world) );
@@ -479,7 +489,8 @@ class OwnerResearch
 		researchStockpiled
 	)
 	{
-		this.technologiesKnownNames = technologiesKnownNames || [];
+		this.technologiesKnownNames =
+			technologiesKnownNames || [ Technology.Instances()._Default.name];
 		this.technologyBeingResearchedName = technologyBeingResearchedName;
 		this.researchStockpiled = researchStockpiled || 0;
 	}
@@ -487,6 +498,35 @@ class OwnerResearch
 	static default()
 	{
 		return new OwnerResearch(null, null, null);
+	}
+
+	buildablesKnownNames()
+	{
+		var buildablesKnownNames = [];
+
+		var technologiesKnown = this.technologiesKnown();
+		technologiesKnown.forEach
+		(
+			x => buildablesKnownNames.push(...x.buildablesAllowedNames)
+		);
+
+		return buildablesKnownNames;
+	}
+
+	canBuildBuildableWithDefnName(name)
+	{
+		var technologiesKnown = this.technologiesKnown();
+		var canBuild = technologiesKnown.some
+		(
+			x => x.buildablesAllowedNames.indexOf(name) >= 0
+		);
+		return canBuild;
+	}
+
+	technologiesKnown()
+	{
+		var technologiesKnown = this.technologiesKnownNames.map(x => Technology.byName(x));
+		return technologiesKnown;
 	}
 }
 

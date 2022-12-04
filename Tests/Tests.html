@@ -30,6 +30,22 @@ class Assert
 		}
 	}
 
+	static areNotEqual(expected, actual)
+	{
+		if (actual == expected)
+		{
+			throw new Error("Expected: not equal, but was: equal.");
+		}
+	}
+
+	static isFalse(expressionToTest)
+	{
+		if (expressionToTest == true)
+		{
+			throw new Error("Expected: false, but was: true.");
+		}
+	}
+
 	static isNotNull(expressionToTest)
 	{
 		if (expressionToTest == null)
@@ -134,12 +150,15 @@ var testSuite = new TestSuite
 			// Make sure that owner 0 is selected at startup.
 			var owner = world.ownerCurrent();
 			Assert.isNotNull(owner);
-			Assert.areEqual(world.owners[0], owner);
+			var owner0 = world.owners[0];
+			Assert.areEqual(owner0, owner);
 
 			// Make sure a settlers unit is selected at startup.
 			var unit = owner.unitSelected();
 			Assert.isNotNull(unit);
-			Assert.areEqual(UnitDefn.Instances().Settlers.name, unit.defnName);
+			var unitDefns = UnitDefn.Instances();
+			var unitDefnSettlers = unitDefns.Settlers;
+			Assert.areEqual(unitDefnSettlers.name, unit.defnName);
 
 			// Make sure the unit has moves initially.
 			Assert.isTrue(unit.movesThisTurn > 0);
@@ -163,6 +182,49 @@ var testSuite = new TestSuite
 			owner.unitSelectNextIdle();
 			unit = owner.unitSelected();
 			Assert.isNull(unit);
+
+			// End the first owner's turn.
+			var ownerBeforeEndingTurn = owner;
+			world.ownerCurrentAdvance(universe);
+
+			// Make sure the current owner has changed.
+			var ownerAfterEndingTurn = world.ownerCurrent();
+			Assert.areNotEqual(ownerAfterEndingTurn, ownerBeforeEndingTurn);
+
+			// End the second owner's turn, which ends the round.
+			var turnsBeforeEndingRound = world.turnsSoFar;
+			Assert.areEqual(0, turnsBeforeEndingRound);
+			world.ownerCurrentAdvance(universe);
+			var turnsAfterEndingRound = world.turnsSoFar;
+			Assert.areEqual(1, turnsAfterEndingRound);
+
+			// Make sure owner 0 is the current one again.
+			var ownerAfterEndingRound = world.ownerCurrent();
+			Assert.areEqual(owner0, ownerAfterEndingRound);
+
+			// Found a city with the settlers.
+			owner = ownerAfterEndingRound;
+			var unitSettlers = owner.unitSelected();
+			var activityDefns = UnitActivityDefn.Instances();
+			var activityBefore = unitSettlers.activity;
+			Assert.isNull(activityBefore);
+			unitSettlers.activityStart(activityDefns.SettlersStartCity, world);
+
+			// Verify that the settlers have disappeared, and become a base.
+			Assert.areEqual(0, owner.units.length);
+			Assert.areEqual(1, owner.bases.length);
+
+			// Verify that the base is as expected.
+			var owner0Base0 = owner.bases[0];
+			var base = owner0Base0;
+			Assert.isTrue(base.pos.equals(unitSettlers.pos) );
+			Assert.areEqual(1, base.population);
+			Assert.areEqual(2, base.landUsage.offsetsInUse.length);
+			Assert.isTrue(base.isIdle() );
+
+			// Start building a new settlers unit.
+			base.buildableBuildByDefnName(unitDefnSettlers.name, world, owner);
+			Assert.isFalse(base.isIdle() );
 		}
 	)
 ]);

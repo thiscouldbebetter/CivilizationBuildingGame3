@@ -17,12 +17,29 @@ class Base
 		this.name = name || ("City" + this.id);
 		this.pos = pos;
 		this.ownerName = ownerName;
-		this.population = population;
-		this.landUsage = landUsage;
-		this.foodStockpiled = foodStockpiled;
-		this.industry = industry;
+		this.population = population || 1;
+		this.landUsage = landUsage || BaseLandUsage.default();
+		this.foodStockpiled = foodStockpiled || 0;
+		this.industry = industry || BaseIndustry.default();
 
 		this.unitsSupportedIds = [];
+	}
+
+	static fromNamePosAndOwnerName(name, pos, ownerName)
+	{
+		return new Base(name, pos, ownerName, null, null, null, null);
+	}
+
+	buildableBuildByDefnName(buildableToBuildDefnName, world, owner)
+	{
+		this.industry.buildableBuildByDefnName(buildableToBuildDefnName, world, owner, this);
+	}
+
+	buildablesAvailableNames(world, owner)
+	{
+		var buildablesKnownNames = owner.buildablesKnownNames(world);
+		var buildablesAvailableNames = buildablesKnownNames; // todo
+		return buildablesAvailableNames;
 	}
 
 	category()
@@ -32,7 +49,7 @@ class Base
 
 	initialize(world)
 	{
-		// todo
+		this.landUsage.optimize(world, this);
 	}
 
 	isIdle()
@@ -110,10 +127,60 @@ class BaseBuildable
 
 class BaseImprovementDefn
 {
-	constructor(name, effect)
+	constructor(name, industryToBuild, effect)
 	{
 		this.name = name;
+		this.industryToBuild = industryToBuild;
 		this.effect = effect;
+	}
+
+	static Instances()
+	{
+		if (BaseImprovementDefn._instances == null)
+		{
+			BaseImprovementDefn._instances = new BaseImprovementDefn_Instances();
+		}
+		return BaseImprovementDefn._instances;
+	}
+
+	static byName(name)
+	{
+		return BaseImprovementDefn.Instances().byName(name);
+	}
+}
+
+class BaseImprovementDefn_Instances
+{
+	constructor()
+	{
+		var effectTodo = "todo";
+		var bid = (n, i, e) => new BaseImprovementDefn(n, i, e);
+
+		this.Barracks 		= bid("Barracks", 10, effectTodo);
+		this.CityWalls 		= bid("City Walls", 10, effectTodo);
+		this.Courthouse 	= bid("Courthouse", 10, effectTodo);
+		this.Granary 		= bid("Granary", 10, effectTodo);
+		this.Library 		= bid("Library", 10, effectTodo);
+		this.Palace 		= bid("Palace", 10, effectTodo);
+		this.Temple 		= bid("Temple", 10, effectTodo);
+
+		this._All =
+		[
+			this.Barracks,
+			this.CityWalls,
+			this.Courthouse,
+			this.Granary,
+			this.Library,
+			this.Palace,
+			this.Temple
+		];
+
+		this._AllByName = new Map(this._All.map(x => [ x.name, x ] ) );
+	}
+
+	byName(name)
+	{
+		return this._AllByName.get(name);
 	}
 }
 
@@ -122,7 +189,30 @@ class BaseIndustry
 	constructor(buildableInProgressName, industryStockpiled)
 	{
 		this.buildableInProgressName = buildableInProgressName;
-		this.industryStockpiled = industryStockpiled;
+		this.industryStockpiled = industryStockpiled || 0;
+	}
+
+	static default()
+	{
+		return new BaseIndustry(null, 0);
+	}
+
+	buildableBuildByDefnName(buildableToBuildDefnName, world, owner, base)
+	{
+		var buildableToBuild = BaseBuildable.byName(buildableToBuildDefnName)
+		if (buildableToBuild == null)
+		{
+			throw new Error("Unrecognized buildable name: " + buildableToBuildDefnName);
+		}
+		else if (owner.canBuildBuildableWithDefnName(buildableToBuildDefnName) == false)
+		{
+			throw new Error("Cannot build buildable with name: " + buildableToBuildDefnName);
+		}
+		else
+		{
+			this.buildableInProgressName = buildableToBuildDefnName;
+			this.industryStockpiled = 0;
+		}
 	}
 
 	buildableInProgress(world, base)
@@ -177,23 +267,59 @@ class BaseLandUsage
 		return new BaseLandUsage(null);
 	}
 
-	optimize(base)
+	optimize(world, base)
 	{
+		// todo - This isn't very efficient.
+
+		var map = world.map;
+
 		this.offsetsInUse.length = 0;
 
-		var offset = Coords.create();
+		var offset = Coords.zeroes(); // The center is always in use.
+		this.offsetsInUse.push(offset.clone());
 
-		for (var y = -2; y <= 2; y++)
+		var cellPos = Coords.create();
+
+		for (var p = 0; p < base.population; p++)
 		{
-			offset.y = y;
+			var offsetValueMaxSoFar = 0;
+			var offsetWithValueMaxSoFar = null;
 
-			for (var x = -2; x <= 2; x++)
+			for (var y = -2; y <= 2; y++)
 			{
-				offset.x = x;
+				offset.y = y;
 
-				this.offsetsInUse.push(offset.clone());
+				for (var x = -2; x <= 2; x++)
+				{
+					offset.x = x;
+
+					var offsetAbsoluteSumOfDimensions =
+						offset.clone().absolute().sumOfDimensions();
+					var isAvailableOffset =
+					(
+						offsetAbsoluteSumOfDimensions > 0
+						&& offsetAbsoluteSumOfDimensions < 4
+					);
+
+					if (isAvailableOffset)
+					{
+						cellPos.overwriteWith(base.pos).add(offset);
+						var cellAtOffset = map.cellAtPosInCells(cellPos);
+						var offsetValue = cellAtOffset.value();
+
+						if (offsetValue > offsetValueMaxSoFar)
+						{
+							offsetValueMaxSoFar = offsetValue;
+							offsetWithValueMaxSoFar = offset.clone();
+						}
+					}
+				}
 			}
+
+			this.offsetsInUse.push(offsetWithValueMaxSoFar);
 		}
+
+		return this;
 	}
 
 	toString()

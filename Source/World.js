@@ -124,6 +124,7 @@ class World
 
 	baseAdd(base)
 	{
+		base.initialize(this);
 		this.bases.push(base);
 		var cell = this.map.cellAtPosInCells(base.pos);
 		cell.baseAdd(base);
