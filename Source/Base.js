@@ -156,23 +156,84 @@ class BaseImprovementDefn_Instances
 		var effectTodo = "todo";
 		var bid = (n, i, e) => new BaseImprovementDefn(n, i, e);
 
-		this.Barracks 		= bid("Barracks", 10, effectTodo);
-		this.CityWalls 		= bid("City Walls", 10, effectTodo);
-		this.Courthouse 	= bid("Courthouse", 10, effectTodo);
-		this.Granary 		= bid("Granary", 10, effectTodo);
-		this.Library 		= bid("Library", 10, effectTodo);
-		this.Palace 		= bid("Palace", 10, effectTodo);
-		this.Temple 		= bid("Temple", 10, effectTodo);
+		this.Airport 			= bid("Airport", 			160, 	effectTodo);
+		this.Aqueduct 			= bid("Aqueduct", 			80, 	effectTodo);
+		this.Bank 				= bid("Bank", 				120, 	effectTodo);
+		this.Barracks 			= bid("Barracks", 			40, 	effectTodo);
+		this.Capitalization 	= bid("Capitalization", 	null, 	effectTodo);
+		this.Cathedral 			= bid("Cathedral", 			120, 	effectTodo);
+		this.CityWalls 			= bid("City Walls", 		80, 	effectTodo);
+		this.CoastalFortress 	= bid("Coastal Fortress", 	80, 	effectTodo);
+		this.Colosseum			= bid("Colosseum", 			100, 	effectTodo);
+		this.Courthouse 		= bid("Courthouse", 		80, 	effectTodo);
+		this.Factory 			= bid("Factory", 			200, 	effectTodo);
+		this.Granary 			= bid("Granary", 			60, 	effectTodo);
+		this.Harbor 			= bid("Harbor",				60,		effectTodo);
+		this.HydroPlant 		= bid("HydroPlant", 		240,	effectTodo);
+		this.Library 			= bid("Library", 			80, 	effectTodo);
+		this.ManufacturingPlant = bid("Manufacturing Plant", 320, 	effectTodo);
+		this.Marketplace		= bid("Marketplace", 		80, 	effectTodo);
+		this.MassTransit		= bid("Mass Transit", 		160, 	effectTodo);
+		this.OffshorePlatform 	= bid("Offshore Platform", 	160,	effectTodo);
+		this.Palace 			= bid("Palace", 			10, 	effectTodo);
+		this.PoliceStation 		= bid("Police Station", 	60, 	effectTodo);
+		this.PortFacility 		= bid("Port Facility", 		80, 	effectTodo);
+		this.PowerPlant 		= bid("Power Plant", 		160,	effectTodo);
+		this.RecyclingCenter	= bid("Recycling Center", 	200, 	effectTodo);
+		this.ResearchLab		= bid("Research Lab", 		160,	effectTodo);
+		this.SamMissileBattery 	= bid("SAM Missile Battery", 100,	effectTodo);
+		this.SdiDefense 		= bid("SDI Defense", 		200, 	effectTodo);
+		this.SsComponent		= bid("SS Component",		160, 	effectTodo);
+		this.SsModule 			= bid("SS Module", 			320, 	effectTodo);
+		this.SsStructural		= bid("SS Structural",		80, 	effectTodo);
+		this.SewerSystem 		= bid("Sewer System", 		120, 	effectTodo);
+		this.SolarPlant			= bid("Solar Plant", 		320, 	effectTodo);
+		this.StockExchange 		= bid("Stock Exchange", 	160, 	effectTodo);
+		this.Superhighways		= bid("Superhighways",		200, 	effectTodo);
+		this.Supermarket		= bid("Supermarket",		80,		effectTodo);
+		this.Temple 			= bid("Temple", 			40, 	effectTodo);
+		this.University 		= bid("University",			160,	effectTodo);
 
 		this._All =
 		[
+			this.Airport,
+			this.Aqueduct,
+			this.Bank,
 			this.Barracks,
+			this.Capitalization,
+			this.Cathedral,
 			this.CityWalls,
+			this.CoastalFortress,
+			this.Colosseum,
 			this.Courthouse,
+			this.Factory,
 			this.Granary,
+			this.Harbor,
+			this.HydroPlant,
 			this.Library,
+			this.ManufacturingPlant,
+			this.Marketplace,
+			this.MassTransit,
+			this.NuclearPlant,
+			this.OffshorePlatform,
 			this.Palace,
-			this.Temple
+			this.PoliceStation,
+			this.PortFacility,
+			this.PowerPlant,
+			this.RecyclingCenter,
+			this.ResearchLab,
+			this.SamMissileBattery,
+			this.SdiDefense,
+			this.SsComponent,
+			this.SsModule,
+			this.SsStructural,
+			this.SewerSystem,
+			this.SolarPlant,
+			this.StockExchange,
+			this.Superhighways,
+			this.Supermarket,
+			this.Temple,
+			this.University
 		];
 
 		this._AllByName = new Map(this._All.map(x => [ x.name, x ] ) );
