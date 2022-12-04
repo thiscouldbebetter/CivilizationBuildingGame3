@@ -174,6 +174,7 @@ class BaseImprovementDefn_Instances
 		this.ManufacturingPlant = bid("Manufacturing Plant", 320, 	effectTodo);
 		this.Marketplace		= bid("Marketplace", 		80, 	effectTodo);
 		this.MassTransit		= bid("Mass Transit", 		160, 	effectTodo);
+		this.NuclearPlant		= bid("Nuclear Plant", 		160, 	effectTodo);
 		this.OffshorePlatform 	= bid("Offshore Platform", 	160,	effectTodo);
 		this.Palace 			= bid("Palace", 			10, 	effectTodo);
 		this.PoliceStation 		= bid("Police Station", 	60, 	effectTodo);
@@ -193,6 +194,35 @@ class BaseImprovementDefn_Instances
 		this.Supermarket		= bid("Supermarket",		80,		effectTodo);
 		this.Temple 			= bid("Temple", 			40, 	effectTodo);
 		this.University 		= bid("University",			160,	effectTodo);
+
+		this.AdamSmithsTradingCo 	= bid("Adam Smith's Trading Co",	400, effectTodo);
+		this.ApolloProgram 			= bid("Apollo Program",				600, effectTodo);
+		this.Colossus 				= bid("Colossus",					200, effectTodo);
+		this.CopernicusObservatory 	= bid("Copernicus' Observatory",	300, effectTodo);
+		this.CureForCancer 			= bid("Cure for Cancer",			600, effectTodo);
+		this.DarwinsVoyage 			= bid("Darwin's Voyage",			400, effectTodo);
+		this.EiffelTower 			= bid("Eiffel Tower",				300, effectTodo);
+		this.GreatLibrary 			= bid("Great Library",				300, effectTodo);
+		this.GreatWall 				= bid("GreatWall",					300, effectTodo);
+		this.HangingGardens 		= bid("HangingGardens",				200, effectTodo);
+		this.HooverDam 				= bid("Hoover Dam",					600, effectTodo);
+		this.IsaacNewtonsCollege 	= bid("Isaac Newton's College",		400, effectTodo);
+		this.JsBachsCathedral		= bid("J.S. Bach's Cathedral",		400, effectTodo);
+		this.KingRichardsCrusade 	= bid("King Richard's Crusade",		300, effectTodo);
+		this.LeonardosWorkshop 		= bid("Leonardo's Workshop",		400, effectTodo);
+		this.Lighthouse 			= bid("Lighthouse",					200, effectTodo);
+		this.MagellansExpedition 	= bid("Magellan's Expedition",		400, effectTodo);
+		this.ManhattanProject 		= bid("Manhattan Project",			600, effectTodo);
+		this.MarcoPolosEmbassy 		= bid("Marco's Polo's Embassy", 	200, effectTodo);
+		this.MichelangelosChapel 	= bid("Michelangelo's Chapel", 		400, effectTodo);
+		this.Oracle					= bid("Oracle",						300, effectTodo);
+		this.Pyramids 				= bid("Pyramids",					200, effectTodo);
+		this.SetiProgram 			= bid("SETI Program",				600, effectTodo);
+		this.ShakespearesTheatre 	= bid("Shakespeare's Theatre",		300, effectTodo);
+		this.StatueOfLiberty 		= bid("Statue of Liberty",			400, effectTodo);
+		this.SunTzusWarAcademy 		= bid("Sun Tzu's War Academy", 		300, effectTodo);
+		this.UnitedNations 			= bid("United Nations",				600, effectTodo);
+		this.WomensSuffrage 		= bid("Women's Suffrage",			600, effectTodo);
 
 		this._All =
 		[
@@ -233,7 +263,36 @@ class BaseImprovementDefn_Instances
 			this.Superhighways,
 			this.Supermarket,
 			this.Temple,
-			this.University
+			this.University,
+
+			this.AdamSmithsTradingCo,
+			this.ApolloProgram,
+			this.Colossus,
+			this.CopernicusObservatory,
+			this.CureForCancer,
+			this.DarwinsVoyage,
+			this.EiffelTower,
+			this.GreatLibrary,
+			this.GreatWall,
+			this.HangingGardens,
+			this.HooverDam,
+			this.IsaacNewtonsCollege,
+			this.JsBachsCathedral,
+			this.KingRichardsCrusade,
+			this.LeonardosWorkshop,
+			this.Lighthouse,
+			this.MagellansExpedition,
+			this.ManhattanProject,
+			this.MarcoPolosEmbassy,
+			this.MichelangelosChapel,
+			this.Oracle,
+			this.Pyramids,
+			this.SetiProgram,
+			this.ShakespearesTheatre,
+			this.StatueOfLiberty,
+			this.SunTzusWarAcademy,
+			this.UnitedNations,
+			this.WomensSuffrage
 		];
 
 		this._AllByName = new Map(this._All.map(x => [ x.name, x ] ) );

@@ -57,7 +57,7 @@ class Technology_Instances
 		this.Chemistry			= t("Chemistry", 			costTodo, 	prereqsNone, buildablesNone);
 		this.Chivalry			= t("Chivalry", 			costTodo, 	prereqsNone, [ uds.Knights ] );
 		this.CodeOfLaws			= t("Code of Laws", 		costTodo, 	prereqsNone, [ bids.Courthouse ] );
-		this.CombinedArms		= t("Combined Arms", 		costTodo, 	prereqsNone, [ uds.Paratrooper, uds.Helicopter ] );
+		this.CombinedArms		= t("Combined Arms", 		costTodo, 	prereqsNone, [ uds.Paratroopers, uds.Helicopter ] );
 		this.Combustion			= t("Combustion", 			costTodo, 	prereqsNone, [ uds.Submarine ] );
 		this.Communism			= t("Communism", 			costTodo, 	prereqsNone, [ bids.PoliceStation, bids.UnitedNations ] );
 		this.Computers			= t("Computers", 			costTodo, 	prereqsNone, [ bids.ResearchLab, bids.SetiProgram ] );
@@ -107,7 +107,7 @@ class Technology_Instances
 		this.Philosophy			= t("Philosophy", 			costTodo, 	prereqsNone, buildablesNone);
 		this.Physics			= t("Physics", 				costTodo, 	prereqsNone, buildablesNone);
 		this.Plastics			= t("Plastics", 			costTodo, 	prereqsNone, [ bids.SsComponent ] );
-		this.Polytheism			= t("Polytheism", 			costTodo, 	prereqsNone, [ uds.Elephant ] );
+		this.Polytheism			= t("Polytheism", 			costTodo, 	prereqsNone, [ uds.Elephants ] );
 		this.Pottery			= t("Pottery", 				costTodo, 	prereqsNone, [ bids.Granary, bids.HangingGardens ] );
 		this.Radio				= t("Radio", 				costTodo, 	prereqsNone, [ bids.Airport ] );
 		this.Railroad			= t("Railroad", 			costTodo, 	prereqsNone, [ bids.DarwinsVoyage ] );
