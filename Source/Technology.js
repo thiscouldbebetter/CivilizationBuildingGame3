@@ -222,7 +222,7 @@ class Technology_Instances
 		prereqsSet(this.University, 		[ this.Mathematics, this.Philosophy] );
 		prereqsSet(this.WarriorCode, 		[] );
 		prereqsSet(this.Wheel, 				[ this.HorsebackRiding ] );
-		prereqsSet(this.Writing 			[ this.Alphabet ] );
+		prereqsSet(this.Writing, 			[ this.Alphabet ] );
 
 		this._All =
 		[
