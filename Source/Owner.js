@@ -20,6 +20,7 @@ class Owner
 		this.bases = bases;
 		this.units = units;
 
+		this.governmentName = Government.Instances().Despotism.name; // todo
 		this.selection = new OwnerSelection();
 	}
 
@@ -58,12 +59,22 @@ class Owner
 
 	corruptionPerUnitDistanceFromCapital()
 	{
-		return 0; // todo
+		return this.government().corruptionPerUnitDistanceFromCapital;
 	}
 
 	foodConsumedPerSettler()
 	{
 		return 2; // todo
+	}
+
+	government()
+	{
+		return Government.byName(this.governmentName);
+	}
+
+	governmentsKnown()
+	{
+		return this.research.governmentsKnown();
 	}
 
 	industryConsumedByUnitCount(unitCount)
@@ -586,6 +597,24 @@ class OwnerResearch
 			x => x.buildablesAllowedNames.indexOf(buildableName) >= 0
 		);
 		return canBuild;
+	}
+
+	governmentsKnown()
+	{
+		var governmentsKnown = [];
+		var techsKnown = this.technologiesKnown();
+		techsKnown.forEach
+		(
+			x =>
+			{
+				if (x.governmentAllowedName != null)
+				{
+					var government = Government.byName(x.governmentAllowedName);
+					governmentsKnown.push(government);
+				}
+			}
+		);
+		return governmentsKnown;
 	}
 
 	technologiesKnown()
