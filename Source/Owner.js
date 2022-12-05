@@ -51,14 +51,33 @@ class Owner
 		return this.research.buildablesKnownNames();
 	}
 
-	canBuildBuildableWithDefnName(name)
+	canBuildBuildable(buildable)
 	{
-		return this.research.canBuildBuildableWithDefnName(name, this);
+		return this.research.canBuildBuildable(buildable, this);
 	}
 
 	corruptionPerUnitDistanceFromCapital()
 	{
 		return 0; // todo
+	}
+
+	foodConsumedPerSettler()
+	{
+		return 2; // todo
+	}
+
+	industryConsumedByUnitCount(unitCount)
+	{
+		var unitsFree = 2;
+		var unitsSupportedCount = unitCount - unitsFree;
+		if (unitsSupportedCount < 0)
+		{
+			unitsSupportedCount = 0;
+		}
+		var industryConsumedPerUnitSupported = 2;
+		var industryConsumed =
+			unitsSupportedCount * industryConsumedPerUnitSupported;
+		return industryConsumed;
 	}
 
 	initialize(world)
@@ -558,12 +577,13 @@ class OwnerResearch
 		return buildablesKnownNames;
 	}
 
-	canBuildBuildableWithDefnName(name)
+	canBuildBuildable(buildable)
 	{
+		var buildableName = buildable.name;
 		var technologiesKnown = this.technologiesKnown();
 		var canBuild = technologiesKnown.some
 		(
-			x => x.buildablesAllowedNames.indexOf(name) >= 0
+			x => x.buildablesAllowedNames.indexOf(buildableName) >= 0
 		);
 		return canBuild;
 	}

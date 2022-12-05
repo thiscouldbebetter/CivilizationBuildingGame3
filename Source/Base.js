@@ -22,6 +22,7 @@ class Base
 		this.foodStockpiled = foodStockpiled || 0;
 		this.industry = industry || BaseIndustry.default();
 
+		this.improvementsPresentNames = [];
 		this.unitsSupportedIds = [];
 	}
 
@@ -30,9 +31,13 @@ class Base
 		return new Base(name, pos, ownerName, null, null, null, null);
 	}
 
-	buildableBuildByDefnName(buildableToBuildDefnName, world, owner)
+	buildableStart(buildableToBuild, world)
 	{
-		this.industry.buildableBuildByDefnName(buildableToBuildDefnName, world, owner, this);
+		var owner = this.owner(world);
+		this.industry.buildableStart
+		(
+			buildableToBuild, world, owner, this
+		);
 	}
 
 	buildablesAvailableNames(world)
@@ -115,6 +120,52 @@ class Base
 	{
 		this.landUsage.turnUpdate(world, this);
 		this.industry.turnUpdate(world, this);
+
+		this.foodStockpiled += this.foodThisTurnNet(world);
+		var foodNeededToGrow = this.foodNeededToGrow();
+		if (this.foodStockpiled < 0)
+		{
+			this.population--;
+			if (this.population <= 0)
+			{
+				world.baseRemove(this);
+			}
+		}
+		else if (this.foodStockpiled >= foodNeededToGrow)
+		{
+			this.foodStockpiled = foodNeededToGrow;
+
+			this.population++;
+			var granary = BaseImprovementDefn.Instances().Granary;
+			var hasGranary = this.hasImprovement(granary);
+			if (hasGranary)
+			{
+				this.foodStockpiled = this.foodStockpiled / 2;
+			}
+			else
+			{
+				this.foodStockpiled = 0;
+			}
+
+			this.landUsageOptimize(world);
+		}
+	}
+
+	// Improvements.
+
+	hasImprovement(improvement)
+	{
+		return this.improvementsPresentNames.some(x => x == improvement.name);
+	}
+
+	improvementAdd(improvement)
+	{
+		this.improvementsPresentNames.push(improvement.name);
+	}
+
+	improvementsPresent()
+	{
+		return this.improvementsPresentNames.map(x => BaseImprovementDefn.byName(x));
 	}
 
 	// Resources.
@@ -137,14 +188,57 @@ class Base
 		return corruptionThisTurn;
 	}
 
-	foodThisTurn()
+	foodConsumedPerSettler(world)
 	{
-		return this.resourcesProducedThisTurn().food;
+		return this.owner(world).foodConsumedPerSettler();
 	}
 
-	industryThisTurn()
+	foodNeededToGrow()
 	{
-		return this.resourcesProducedThisTurn().industry;
+		return this.population * 10; // todo
+	}
+
+	foodThisTurnGross(world)
+	{
+		return this.resourcesProducedThisTurn(world).food;
+	}
+
+	foodThisTurnNet(world)
+	{
+		var gross = this.foodThisTurnGross(world);
+
+		var consumedByPopulation = this.population;
+
+		var unitsSupported = this.unitsSupported(world);
+		var settlersSupported = unitsSupported.filter
+		(
+			x => x.defnName == UnitDefn.Instances().Settlers.name
+		);
+		var settlerCount = settlersSupported.length;
+		var consumedBySettlers =
+			settlerCount * this.foodConsumedPerSettler(world);
+
+		var consumed =
+			consumedByPopulation + consumedBySettlers;
+
+		var net = gross - consumed;
+
+		return net;
+	}
+
+	industryThisTurnGross(world)
+	{
+		return this.resourcesProducedThisTurn(world).industry;
+	}
+
+	industryThisTurnNet(world)
+	{
+		var gross = this.industryThisTurnGross(world);
+		var owner = this.owner(world);
+		var unitsSupportedCount = this.unitsSupported(world).length;
+		var upkeep = owner.industryConsumedByUnitCount(unitsSupportedCount);
+		var net = gross - upkeep;
+		return net;
 	}
 
 	landUsageOptimize(world)
@@ -152,7 +246,7 @@ class Base
 		this.landUsage.optimize(world, this);
 	}
 
-	luxuriesThisTurn()
+	luxuriesThisTurn(world)
 	{
 		return 0; // todo
 	}
@@ -243,6 +337,11 @@ class BaseImprovementDefn
 	static byName(name)
 	{
 		return BaseImprovementDefn.Instances().byName(name);
+	}
+
+	build(world, base)
+	{
+		base.improvementAdd(this);
 	}
 }
 
@@ -414,20 +513,21 @@ class BaseIndustry
 		return new BaseIndustry(null, 0);
 	}
 
-	buildableBuildByDefnName(buildableToBuildDefnName, world, owner, base)
+	buildableStart(buildableToBuild, world, owner, base)
 	{
-		var buildableToBuild = BaseBuildable.byName(buildableToBuildDefnName)
+		var buildableName = buildableToBuild.name;
+
 		if (buildableToBuild == null)
 		{
-			throw new Error("Unrecognized buildable name: " + buildableToBuildDefnName);
+			throw new Error("Unrecognized buildable name: " + buildableName);
 		}
-		else if (owner.canBuildBuildableWithDefnName(buildableToBuildDefnName) == false)
+		else if (owner.canBuildBuildable(buildableToBuild) == false)
 		{
-			throw new Error("Cannot build buildable with name: " + buildableToBuildDefnName);
+			throw new Error("Cannot build buildable with name: " + buildableName);
 		}
 		else
 		{
-			this.buildableInProgressName = buildableToBuildDefnName;
+			this.buildableInProgressName = buildableName;
 			this.industryStockpiled = 0;
 		}
 	}

@@ -135,6 +135,13 @@ class World
 		return this.bases.find(x => x.id == id);
 	}
 
+	baseRemove(base)
+	{
+		this.bases.splice(this.bases.indexOf(base), 1);
+		var cell = this.map.cellAtPosInCells(base.pos);
+		cell.baseRemove(base);
+	}
+
 	draw(universe)
 	{
 		var display = universe.display;

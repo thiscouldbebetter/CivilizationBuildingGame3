@@ -229,7 +229,8 @@ var testSuite = new TestSuite
 			var owner0Base0 = owner.bases[0];
 			var base = owner0Base0;
 			Assert.isTrue(base.pos.equals(unit.pos) );
-			Assert.areEqual(1, base.population);
+			var basePopulationInitial = base.population;
+			Assert.areEqual(1, basePopulationInitial);
 			Assert.areEqual(2, base.landUsage.offsetsInUse.length);
 			Assert.isTrue(base.isIdle() );
 			var resourcesThisTurn = base.resourcesProducedThisTurn(world, base);
@@ -240,7 +241,7 @@ var testSuite = new TestSuite
 			Assert.isTrue(cell.hasIrrigation());
 			Assert.isTrue(cell.hasRoads());
 
-			// Advance the turn and make sure some resources were produced,
+			// Advance the turn and make sure some resources are being produced,
 			// but not any industry, because there's no project.
 			world.turnAdvance();
 			resourcesThisTurn = base.resourcesProducedThisTurn();
@@ -248,17 +249,27 @@ var testSuite = new TestSuite
 			var industryStockpiled = base.industry.industryStockpiled;
 			Assert.areEqual(0, industryStockpiled);
 
+			// Wait for the population to grow.
+			var turnsToWaitMax = 100;
+			var foodNeededToGrow = base.foodNeededToGrow();
+			var foodPerTurn = base.foodThisTurnNet(world);
+			var turnsToWait = Math.ceil(foodNeededToGrow / foodPerTurn);
+			Assert.isTrue(turnsToWait < turnsToWaitMax);
+			world.turnAdvanceMultiple(turnsToWait);
+			Assert.areNotEqual(basePopulationInitial, base.population);
+
 			// Start building a new settlers unit.
-			base.buildableBuildByDefnName(unitDefnSettlers.name, world, owner);
+			base.buildableStart(unitDefnSettlers, world);
 			Assert.isFalse(base.isIdle() );
 
 			var industryPerTurn = resourcesThisTurn.industry;
-			var turnsToWaitExpected = Math.ceil
+			turnsToWait = Math.ceil
 			(
 				unitDefnSettlers.industryToBuild / industryPerTurn
 			);
+			Assert.isFalse(turnsToWait > turnsToWaitMax);
+
 			var turnsWaitedSoFar = 0;
-			var turnsToWaitMax = 100;
 			while (base.isBuildingSomething())
 			{
 				// Advance the turn and make sure some industry has accrued.
@@ -272,8 +283,6 @@ var testSuite = new TestSuite
 					Assert.fail("Waited too many turns!");
 				}
 			}
-
-			Assert.areEqual(turnsToWaitExpected, turnsWaitedSoFar);
 
 			// Make sure the settlers unit has been built as expected.
 			Assert.areEqual(1, owner.units.length);
@@ -362,7 +371,7 @@ var testSuite = new TestSuite
 				techsResearchable.find(x => x == techsAll.Pottery);
 			owner0.technologyResearch(techToResearch);
 
-			// Make sure that the base can't build a granary yet.
+			// Make sure that the base can't build the improvement yet.
 			var buildablesAvailableNames =
 				base.buildablesAvailableNames(world);
 			Assert.areNotEqual(0, buildablesAvailableNames.length);
@@ -386,6 +395,24 @@ var testSuite = new TestSuite
 			Assert.isTrue(techsKnown.indexOf(techToResearch) >= 0);
 			techsResearchable = owner.technologiesResearchable();
 			Assert.isTrue(techsResearchable.indexOf(techToResearch) == -1);
+
+			// Make sure that the base can build the improvement now.
+			buildablesAvailableNames =
+				base.buildablesAvailableNames(world);
+			canBuildImprovement =
+				buildablesAvailableNames.indexOf(improvementToBuild.name) >= 0;
+			Assert.isTrue(canBuildImprovement);
+
+			// Start building the improvement.
+			base.buildableStart(improvementToBuild, world);
+			var industryPerTurn = base.industryThisTurnNet(world);
+			var turnsToWait = Math.ceil(improvementToBuild.industryToBuild / industryPerTurn);
+			Assert.isTrue(turnsToWait < turnsToWaitMax);
+			world.turnAdvanceMultiple(turnsToWait);
+
+			// Make sure that the base now contains the improvement.
+			Assert.isTrue(base.hasImprovement(improvementToBuild));
+
 		}
 	)
 ]);
