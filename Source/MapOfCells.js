@@ -175,7 +175,17 @@ class MapOfCellsCell
 		(
 			terrain.resourceProductionPerTurn
 		);
-		// todo - Apply improvements, bonuses, penalties.
+
+		if (this.hasIrrigation())
+		{
+			resources.food++; // todo - Depending on terrain.
+		}
+
+		if (this.hasRoads())
+		{
+			resources.trade++;
+		}
+
 		return resources;
 	}
 
@@ -199,9 +209,12 @@ class MapOfCellsCell
 		return (this.unitsPresentIds.map(x => world.unitById(x)));
 	}
 
-	value()
+	value(world, base)
 	{
-		return 1; // todo
+		var returnValue =
+			this.resourcesProduced(world, base).sumOfResourceQuantities();
+
+		return returnValue;
 	}
 
 }

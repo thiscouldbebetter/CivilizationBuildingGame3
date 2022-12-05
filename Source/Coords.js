@@ -76,6 +76,11 @@ class Coords
 		return this.divideScalar(2);
 	}
 
+	magnitude()
+	{
+		return Math.sqrt(this.x * this.x + this.y * this.y);
+	}
+
 	multiply(other)
 	{
 		this.x *= other.x;

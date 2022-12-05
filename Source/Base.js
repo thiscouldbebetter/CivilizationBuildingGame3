@@ -35,8 +35,9 @@ class Base
 		this.industry.buildableBuildByDefnName(buildableToBuildDefnName, world, owner, this);
 	}
 
-	buildablesAvailableNames(world, owner)
+	buildablesAvailableNames(world)
 	{
+		var owner = this.owner(world);
 		var buildablesKnownNames = owner.buildablesKnownNames(world);
 		var buildablesAvailableNames = buildablesKnownNames; // todo
 		return buildablesAvailableNames;
@@ -45,6 +46,16 @@ class Base
 	category()
 	{
 		return SelectableCategory.Instances().Bases;
+	}
+
+	distanceFromCapital(world)
+	{
+		var owner = this.owner(world);
+		var returnValue = Math.floor
+		(
+			owner.baseCapital().pos.clone().subtract(this.pos).absolute().magnitude()
+		);
+		return returnValue;
 	}
 
 	initialize(world)
@@ -105,6 +116,79 @@ class Base
 		this.landUsage.turnUpdate(world, this);
 		this.industry.turnUpdate(world, this);
 	}
+
+	// Resources.
+
+	corruptionPerUnitDistanceFromCapital()
+	{
+		return 0; // todo
+	}
+
+	corruptionThisTurn(world)
+	{
+		var distanceFromCapital = this.distanceFromCapital(world);
+		var owner = this.owner(world);
+		var corruptionPerUnitDistance =
+			owner.corruptionPerUnitDistanceFromCapital();
+		var corruptionThisTurn = Math.floor
+		(
+			corruptionPerUnitDistance * distanceFromCapital
+		);
+		return corruptionThisTurn;
+	}
+
+	foodThisTurn()
+	{
+		return this.resourcesProducedThisTurn().food;
+	}
+
+	industryThisTurn()
+	{
+		return this.resourcesProducedThisTurn().industry;
+	}
+
+	landUsageOptimize(world)
+	{
+		this.landUsage.optimize(world, this);
+	}
+
+	luxuriesThisTurn()
+	{
+		return 0; // todo
+	}
+
+	moneyThisTurn(world)
+	{
+		var tradeThisTurn = this.tradeThisTurnNet(world);
+		var owner = this.owner(world);
+		var taxRate = owner.taxRate();
+		var moneyThisTurn = Math.ceil(taxRate * tradeThisTurn);
+		return moneyThisTurn;
+	}
+
+	researchThisTurn(world)
+	{
+		var tradeThisTurnNet = this.tradeThisTurnNet(world);
+		var moneyThisTurn = this.moneyThisTurn(world);
+		var researchThisTurn = tradeThisTurnNet - moneyThisTurn;
+		return researchThisTurn;
+	}
+
+	tradeThisTurnGross(world)
+	{
+		var resources = this.resourcesProducedThisTurn(world);
+		return resources.trade;
+	}
+
+	tradeThisTurnNet(world)
+	{
+		var gross = this.tradeThisTurnGross(world);
+		var corruption = this.corruptionThisTurn(world);
+		var net = gross - corruption;
+		return net;
+	}
+
+	// Units.
 
 	unitSupport(unit)
 	{
@@ -416,6 +500,8 @@ class BaseLandUsage
 	{
 		// todo - This isn't very efficient.
 
+		this._resourcesProducedThisTurn = null;
+
 		var map = world.map;
 
 		this.offsetsInUse.length = 0;
@@ -450,7 +536,7 @@ class BaseLandUsage
 					{
 						cellPos.overwriteWith(base.pos).add(offset);
 						var cellAtOffset = map.cellAtPosInCells(cellPos);
-						var offsetValue = cellAtOffset.value();
+						var offsetValue = cellAtOffset.value(world, base);
 
 						if (offsetValue > offsetValueMaxSoFar)
 						{
@@ -467,8 +553,25 @@ class BaseLandUsage
 		return this;
 	}
 
-	resourcesProducedThisTurn()
+	resourcesProducedThisTurn(world, base)
 	{
+		if (this._resourcesProducedThisTurn == null)
+		{
+			this._resourcesProducedThisTurn = ResourceProduction.create();
+
+			var basePos = base.pos;
+			var cellsInUsePositions =
+				this.offsetsInUse.map(x => x.clone().add(basePos));
+			var map = world.map;
+			var cellsInUse =
+				cellsInUsePositions.map(x => map.cellAtPosInCells(x) );
+			var resourcesProducedByCells =
+				cellsInUse.map(x => x.resourcesProduced(world, base) );
+			resourcesProducedByCells.forEach
+			(
+				x => this._resourcesProducedThisTurn.add(x)
+			);
+		}
 		return this._resourcesProducedThisTurn;
 	}
 
@@ -483,18 +586,6 @@ class BaseLandUsage
 
 	turnUpdate(world, base)
 	{
-		var basePos = base.pos;
-		var cellsInUsePositions =
-			this.offsetsInUse.map(x => x.clone().add(basePos));
-		var map = world.map;
-		var cellsInUse =
-			cellsInUsePositions.map(x => map.cellAtPosInCells(x) );
-		var resourcesProducedByCells =
-			cellsInUse.map(x => x.resourcesProduced(world, base) );
-		this._resourcesProducedThisTurn.clear();
-		resourcesProducedByCells.forEach
-		(
-			x => this._resourcesProducedThisTurn.add(x)
-		);
+		// todo
 	}
 }

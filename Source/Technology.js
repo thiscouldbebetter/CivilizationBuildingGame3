@@ -28,6 +28,20 @@ class Technology
 	{
 		return Technology.Instances().byName(name);
 	}
+
+	prerequisitesAreSatisfiedByTechnologies(technologiesKnown)
+	{
+		var areAnyPrereqsMissing = this.prerequisiteNames.some
+		(
+			prereqName =>
+				technologiesKnown.some
+				(
+					tech => tech.name == prereqName
+				) == false
+		);
+		var areAllPrereqsSatisfied = !areAnyPrereqsMissing;
+		return areAllPrereqsSatisfied;
+	}
 }
 
 class Technology_Instances

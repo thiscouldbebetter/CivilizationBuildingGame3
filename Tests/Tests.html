@@ -172,7 +172,7 @@ var testSuite = new TestSuite
 			Assert.areEqual(unitDefnSettlers.name, unit.defnName);
 
 			// Make sure the unit has moves initially.
-			Assert.isTrue(unit.movesThisTurn > 0);
+			Assert.isTrue(unit.movesThisTurn() > 0);
 
 			// Move the unit.
 			var unitPosBeforeMove = unit.pos.clone();
@@ -182,7 +182,7 @@ var testSuite = new TestSuite
 			unit.moveInDirection(directionToMove, world);
 
 			// Make sure the unit has used up its moves.
-			Assert.isTrue(unit.movesThisTurn == 0);
+			Assert.isFalse(unit.hasMovesThisTurn());
 
 			// Make sure the unit's position has changed by the correct offset.
 			var unitPosAfterMove = unit.pos.clone();
@@ -215,11 +215,11 @@ var testSuite = new TestSuite
 
 			// Found a city with the settlers.
 			owner = ownerAfterEndingRound;
-			var unitSettlers = owner.unitSelected();
+			var unit = owner.unitSelected();
 			var activityDefns = UnitActivityDefn.Instances();
-			var activityBefore = unitSettlers.activity;
+			var activityBefore = unit.activity;
 			Assert.isNull(activityBefore);
-			unitSettlers.activityStart(activityDefns.SettlersStartCity, world);
+			unit.activityStart(activityDefns.SettlersStartCity, world);
 
 			// Verify that the settlers have disappeared, and become a base.
 			Assert.areEqual(0, owner.units.length);
@@ -228,13 +228,13 @@ var testSuite = new TestSuite
 			// Verify that the base is as expected.
 			var owner0Base0 = owner.bases[0];
 			var base = owner0Base0;
-			Assert.isTrue(base.pos.equals(unitSettlers.pos) );
+			Assert.isTrue(base.pos.equals(unit.pos) );
 			Assert.areEqual(1, base.population);
 			Assert.areEqual(2, base.landUsage.offsetsInUse.length);
 			Assert.isTrue(base.isIdle() );
-			var resourcesThisTurn = base.resourcesProducedThisTurn();
+			var resourcesThisTurn = base.resourcesProducedThisTurn(world, base);
 			var resourcesNone = ResourceProduction.create();
-			Assert.isTrue(resourcesThisTurn.equals(resourcesNone) );
+			Assert.isFalse(resourcesThisTurn.equals(resourcesNone) );
 			var map = world.map;
 			var cell = map.cellAtPosInCells(base.pos);
 			Assert.isTrue(cell.hasIrrigation());
@@ -277,21 +277,20 @@ var testSuite = new TestSuite
 
 			// Make sure the settlers unit has been built as expected.
 			Assert.areEqual(1, owner.units.length);
-			unitSettlers = owner.units[0];
-			Assert.areEqual(unitSettlers.defnName, unitDefns.Settlers.name);
-			Assert.isTrue(unitSettlers.pos.equals(base.pos));
-			Assert.areEqual(unitSettlers, owner.unitSelected());
-			Assert.areNotEqual(0, unitSettlers.movesThisTurn);
+			unit = owner.units[0];
+			Assert.areEqual(unit.defnName, unitDefns.Settlers.name);
+			Assert.isTrue(unit.pos.equals(base.pos));
+			Assert.areEqual(unit, owner.unitSelected());
+			Assert.areNotEqual(0, unit.movesThisTurn());
 
-			// Move the settler one cell and irrigate
-			unitSettlers.moveInDirection(east, world);
+			// Move the settler one cell and irrigate.
+			unit.moveInDirection(east, world);
 			world.turnAdvance();
-			cell = map.cellAtPosInCells(unitSettlers.pos);
 			var activityDefn = activityDefns.SettlersBuildIrrigation;
-			unitSettlers.activityStart(activityDefn, world);
+			unit.activityStart(activityDefn, world);
 
 			// Make sure the irrigation doesn't show up instantly.
-			cell = map.cellAtPosInCells(unitSettlers.pos);
+			cell = map.cellAtPosInCells(unit.pos);
 			var cellHasIrrigation = cell.hasIrrigation();
 			Assert.isFalse(cellHasIrrigation);
 
@@ -302,9 +301,91 @@ var testSuite = new TestSuite
 			world.turnAdvanceMultiple(turnsToWaitExpected);
 
 			// Make sure the irrigation appeared.
-			cell = map.cellAtPosInCells(unitSettlers.pos);
+			cell = map.cellAtPosInCells(unit.pos);
 			cellHasIrrigation = cell.hasIrrigation();
 			Assert.isTrue(cellHasIrrigation);
+
+			// Build some roads.
+			var activityDefn = activityDefns.SettlersBuildRoads;
+			unit.activityStart(activityDefn, world);
+
+			// Make sure the roads don't show up instantly.
+			cell = map.cellAtPosInCells(unit.pos);
+			var cellHasRoads = cell.hasRoads();
+			Assert.isFalse(cellHasRoads);
+
+			// Wait for the road-building task to complete.
+			turnsToWaitExpected =
+				activityDefn.movesToComplete / unitDefnSettlers.movesPerTurn();
+			Assert.isTrue(turnsToWaitExpected < turnsToWaitMax);
+			world.turnAdvanceMultiple(turnsToWaitExpected);
+
+			// Make sure the roads appeared.
+			cell = map.cellAtPosInCells(unit.pos);
+			cellHasRoads = cell.hasRoads();
+			Assert.isTrue(cellHasRoads);
+
+			// Re-optimize the base's land usage.
+			var resourcesBeforeOptimize = base.resourcesProducedThisTurn().clone();
+			base.landUsageOptimize(world);
+			var resourcesAfterOptimize =
+				base.resourcesProducedThisTurn(world);
+			Assert.isFalse(resourcesAfterOptimize.equals(resourcesBeforeOptimize) );
+
+			world.turnAdvance(); // hack - Should this be necessary?
+
+			// Move the settlers back into the city and out again,
+			// then make sure a third of a move remains.
+			var west = directions.West;
+			unit.moveInDirection(west, world);
+			unit.moveInDirection(east, world);
+			Assert.isTrue(unit.hasMovesThisTurn());
+			Assert.areEqual(1, unit.moveThirdsThisTurn);
+
+			// Try to move the unit off the road,
+			// but it can't, because it only has 1/3 move left. 
+			var unitPosBeforeMoveAttempt = unit.pos.clone();
+			unit.moveInDirection(east, world);
+			Assert.isTrue(unit.pos.equals(unitPosBeforeMoveAttempt) );
+
+			// End the turn and try again, it should work now.
+			world.turnAdvance();
+			unitPosBeforeMoveAttempt = unit.pos.clone();
+			unit.moveInDirection(east, world);
+			Assert.isFalse(unit.pos.equals(unitPosBeforeMoveAttempt) );
+
+			// Select a tech to research.
+			var techsAll = Technology.Instances();
+			var techsResearchable = owner0.technologiesResearchable();
+			Assert.areNotEqual(0, techsResearchable.length);
+			var techToResearch =
+				techsResearchable.find(x => x == techsAll.Pottery);
+			owner0.technologyResearch(techToResearch);
+
+			// Make sure that the base can't build a granary yet.
+			var buildablesAvailableNames =
+				base.buildablesAvailableNames(world);
+			Assert.areNotEqual(0, buildablesAvailableNames.length);
+			var baseImprovementDefns = BaseImprovementDefn.Instances();
+			var improvementToBuild = baseImprovementDefns.Granary;
+			var canBuildImprovement =
+				buildablesAvailableNames.indexOf(improvementToBuild.name) >= 0;
+			Assert.isFalse(canBuildImprovement);
+
+			// Wait for the research to complete.
+			var researchPerTurn = owner.researchThisTurn(world);
+			var turnsExpectedToResearch = Math.ceil
+			(
+				techToResearch.researchToLearn / researchPerTurn
+			);
+			Assert.isTrue(turnsExpectedToResearch < turnsToWaitMax);
+			world.turnAdvanceMultiple(turnsExpectedToResearch);
+
+			// Make sure the researched tech is now known, and no longer researchable.
+			var techsKnown = owner.technologiesKnown();
+			Assert.isTrue(techsKnown.indexOf(techToResearch) >= 0);
+			techsResearchable = owner.technologiesResearchable();
+			Assert.isTrue(techsResearchable.indexOf(techToResearch) == -1);
 		}
 	)
 ]);

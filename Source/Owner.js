@@ -36,6 +36,11 @@ class Owner
 		this.bases.push(base);
 	}
 
+	baseCapital()
+	{
+		return this.bases[0]; // todo
+	}
+
 	baseRemove(base)
 	{
 		this.bases.splice(this.bases.indexOf(base), 1);
@@ -51,6 +56,11 @@ class Owner
 		return this.research.canBuildBuildableWithDefnName(name, this);
 	}
 
+	corruptionPerUnitDistanceFromCapital()
+	{
+		return 0; // todo
+	}
+
 	initialize(world)
 	{
 		this.bases.forEach(x => x.initialize(world) );
@@ -59,10 +69,42 @@ class Owner
 		this.unitSelectNextIdle();
 	}
 
+	researchThisTurn(world)
+	{
+		var researchSoFar = 0;
+		this.bases.forEach
+		(
+			x => researchSoFar += x.researchThisTurn(world)
+		);
+		return researchSoFar;
+	}
+
+	taxRate()
+	{
+		return this.incomeAllocation.upkeepFraction;
+	}
+
+	technologiesKnown()
+	{
+		return this.research.technologiesKnown();
+	}
+
+	technologiesResearchable()
+	{
+		return this.research.technologiesResearchable();
+	}
+
+	technologyResearch(technology)
+	{
+		this.research.technologyResearch(technology);
+	}
+
 	turnUpdate(world)
 	{
 		this.bases.forEach(x => x.turnUpdate(world) );
 		this.units.forEach(x => x.turnUpdate(world) );
+
+		this.research.turnUpdate(world, this);
 
 		this.unitSelectNextIdle();
 	}
@@ -493,7 +535,7 @@ class OwnerResearch
 	)
 	{
 		this.technologiesKnownNames =
-			technologiesKnownNames || [ Technology.Instances()._Basic.name];
+			technologiesKnownNames || [ Technology.Instances()._Basic.name ];
 		this.technologyBeingResearchedName = technologyBeingResearchedName;
 		this.researchStockpiled = researchStockpiled || 0;
 	}
@@ -528,8 +570,53 @@ class OwnerResearch
 
 	technologiesKnown()
 	{
-		var technologiesKnown = this.technologiesKnownNames.map(x => Technology.byName(x));
+		var technologiesKnown =
+			this.technologiesKnownNames.map(x => Technology.byName(x));
 		return technologiesKnown;
+	}
+
+	technologiesResearchable()
+	{
+		var techsAll = Technology.Instances()._All;
+		var techsKnown = this.technologiesKnown();
+		var techsResearchable = techsAll.filter
+		(
+			x =>
+				techsKnown.indexOf(x) == -1
+				&& x.prerequisitesAreSatisfiedByTechnologies(techsKnown)
+		);
+		return techsResearchable;
+	}
+
+	technologyBeingResearched()
+	{
+		return Technology.byName(this.technologyBeingResearchedName);
+	}
+
+	technologyResearch(technology)
+	{
+		this.technologyBeingResearchedName = technology.name;
+		this.researchStockpiled = 0;
+	}
+
+	turnUpdate(world, owner)
+	{
+		var technologyBeingResearched =
+			this.technologyBeingResearched();
+
+		if (technologyBeingResearched != null)
+		{
+			var researchThisTurn = owner.researchThisTurn(world);
+			this.researchStockpiled += researchThisTurn;
+			if (this.researchStockpiled >= technologyBeingResearched.researchToLearn)
+			{
+				this.technologiesKnownNames.push
+				(
+					technologyBeingResearched.name
+				);
+				this.researchStockpiled = 0;
+			}
+		}
 	}
 }
 

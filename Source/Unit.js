@@ -8,7 +8,7 @@ class Unit
 		this.pos = pos;
 
 		this.id = IdHelper.idNext();
-		this.movesThisTurn = 0;
+		this.moveThirdsThisTurn = 0;
 		this.isSleeping = false;
 
 		this._cellToPos = Coords.create();
@@ -45,7 +45,7 @@ class Unit
 
 	hasMovesThisTurn()
 	{
-		return (this.movesThisTurn > 0);
+		return (this.moveThirdsThisTurn > 0);
 	}
 
 	isIdle()
@@ -60,7 +60,7 @@ class Unit
 
 	movesThisTurnClear()
 	{
-		this.movesThisTurn = 0;
+		this.moveThirdsThisTurn = 0;
 	}
 
 	owner(world)
@@ -82,7 +82,7 @@ class Unit
 			"ID: " + this.id,
 			"Type: " + this.defnName,
 			"Position: " + this.pos.toString(),
-			"Moves: " + this.movesThisTurn + "/" + defn.movement.movesPerTurn,
+			"Moves: " + this.movesThisTurn() + "/" + defn.movement.movesPerTurn(),
 			defn.combat.toString()
 		];
 		var linesJoined = lines.join("<br />");
@@ -97,7 +97,7 @@ class Unit
 	turnUpdate(world)
 	{
 		var defn = this.defn(world);
-		this.movesThisTurn = defn.movement.movesPerTurn;
+		this.moveThirdsThisTurn = defn.movement.moveThirdsPerTurn;
 		var owner = this.owner(world);
 		if (this.activity != null)
 		{
@@ -109,9 +109,9 @@ class Unit
 
 	canMoveInDirection(directionToMove, world)
 	{
-		var costToMove =
+		var costToMoveInThirds =
 			this.costToMoveInDirection(directionToMove, world);
-		var canMove = (costToMove <= this.movesThisTurn);
+		var canMove = (costToMoveInThirds <= this.movesThisTurn());
 		return canMove;
 	}
 
@@ -131,6 +131,11 @@ class Unit
 
 	costToMoveInDirection(directionToMove, world)
 	{
+		return this.costToMoveInDirectionInThirds(directionToMove, world) / 3;
+	}
+
+	costToMoveInDirectionInThirds(directionToMove, world)
+	{
 		var cellsFromAndTo = this.cellsFromAndTo(directionToMove, world);
 		var cellFrom = cellsFromAndTo[0];
 		var cellTo = cellsFromAndTo[1];
@@ -138,30 +143,35 @@ class Unit
 		var cellToTerrain = cellTo.terrain(world);
 		var defn = this.defn(world);
 
-		var costToMove = defn.movement.costToMoveFromCellToCell
+		var costToMoveInThirds = defn.movement.costToMoveFromCellToCellInThirds
 		(
 			world, cellFrom, cellTo
 		);
 
-		return costToMove;
+		return costToMoveInThirds;
 	}
 
 	moveInDirection(directionToMove, world)
 	{
-		var costToMove =
-			this.costToMoveInDirection(directionToMove, world);
+		var costToMoveInThirds =
+			this.costToMoveInDirectionInThirds(directionToMove, world);
 
-		if (costToMove <= this.movesThisTurn)
+		if (costToMoveInThirds <= this.moveThirdsThisTurn)
 		{
 			var cellsFromAndTo = this.cellsFromAndTo(directionToMove, world);
 			var cellFrom = cellsFromAndTo[0];
 			var cellTo = cellsFromAndTo[1];
 
-			this.movesThisTurn -= costToMove;
+			this.moveThirdsThisTurn -= costToMoveInThirds;
 			this.pos.overwriteWith(cellTo.pos);
 			cellFrom.unitRemove(this);
 			cellTo.unitAdd(this);
 		}
+	}
+
+	movesThisTurn()
+	{
+		return this.moveThirdsThisTurn / 3;
 	}
 }
 
@@ -176,7 +186,7 @@ class UnitActivity
 	complete(universe, world, owner, unit)
 	{
 		var defn = this.defn();
-		defn.perform(universe, world, owner, unit)
+		defn.perform(universe, world, owner, unit);
 	}
 
 	defn()
@@ -192,11 +202,12 @@ class UnitActivity
 
 	turnUpdate(universe, world, owner, unit)
 	{
-		this.movesInvestedSoFar += unit.movesThisTurn;
+		this.movesInvestedSoFar += unit.movesThisTurn();
 		var defn = this.defn();
 		if (this.movesInvestedSoFar >= defn.movesToComplete)
 		{
 			this.complete(universe, world, owner, unit);
+			unit.activity = null;
 		}
 		unit.movesThisTurnClear();
 	}
@@ -245,28 +256,22 @@ class UnitActivityDefn_Instances
 {
 	constructor()
 	{
-		var startNone = null;
-		var performNone = null;
+		var startNone = () => {};
+		var uad = (a, b, c, d) => new UnitActivityDefn(a, b, c, d);
 
-		this.Disband = new UnitActivityDefn("Disband", 1, startNone, this.disband);
-		this.Fortify = new UnitActivityDefn("Fortify", 1, startNone, this.fortify);
-		this.Pass = new UnitActivityDefn("Pass", 1, startNone, this.pass);
-		this.Sleep = new UnitActivityDefn("Sleep", 1, startNone, this.sleep);
+		// 									  name					mv start	  complete
+		this.Disband 					= uad("Disband", 			1, startNone, this.disband);
+		this.Fortify 					= uad("Fortify", 			1, startNone, this.fortify);
+		this.Pass 						= uad("Pass", 				1, startNone, this.pass);
+		this.Sleep 						= uad("Sleep", 				1, startNone, this.sleep);
 
-		this.SettlersBuildFort =
-			new UnitActivityDefn("Build Road", 3, startNone, this.settlersBuildFort);
-		this.SettlersBuildIrrigation =
-			new UnitActivityDefn("Build Irrigation", 3, startNone, this.settlersBuildIrrigation);
-		this.SettlersBuildMine =
-			new UnitActivityDefn("Build Mine", 3, startNone, this.settlersBuildMine);
-		this.SettlersBuildRoad =
-			new UnitActivityDefn("Build Road", 3, startNone, this.settlersBuildRoad);
-		this.SettlersClearForest =
-			new UnitActivityDefn("Clear Forest", 3, startNone, this.settlersClearForest);
-		this.SettlersPlantForest
-			= new UnitActivityDefn("Plant Forest", 3, startNone, this.settlersPlantForest);
-		this.SettlersStartCity =
-			new UnitActivityDefn("Start City", 1, this.settlersStartCity, null);
+		this.SettlersBuildFort 			= uad("Build Fort", 		3, startNone, this.settlersBuildFort);
+		this.SettlersBuildIrrigation 	= uad("Build Irrigation", 	3, startNone, this.settlersBuildIrrigation);
+		this.SettlersBuildMines 		= uad("Build Mines", 		3, startNone, this.settlersBuildMines);
+		this.SettlersBuildRoads 		= uad("Build Roads", 		3, startNone, this.settlersBuildRoads);
+		this.SettlersClearForest 		= uad("Clear Forest", 		3, startNone, this.settlersClearForest);
+		this.SettlersPlantForest 		= uad("Plant Forest", 		3, startNone, this.settlersPlantForest);
+		this.SettlersStartCity 			= uad("Start City", 		1, this.settlersStartCity, null);
 
 		this._All =
 		[
@@ -277,8 +282,8 @@ class UnitActivityDefn_Instances
 
 			this.SettlersBuildFort,
 			this.SettlersBuildIrrigation,
-			this.SettlersBuildMine,
-			this.SettlersBuildRoad,
+			this.SettlersBuildMines,
+			this.SettlersBuildRoads,
 			this.SettlersClearForest,
 			this.SettlersPlantForest,
 			this.SettlersStartCity
@@ -307,7 +312,7 @@ class UnitActivityDefn_Instances
 
 	pass(universe, world, owner, unit)
 	{
-		unit.movesThisTurn = 0;
+		unit.movesThisTurnClear();
 		owner.unitSelectNextIdle();
 	}
 
@@ -333,14 +338,14 @@ class UnitActivityDefn_Instances
 		cell.improvementAddIrrigation();
 	}
 
-	settlersBuildMine(universe, world, owner, unit)
+	settlersBuildMines(universe, world, owner, unit)
 	{
 		var map = world.map;
 		var cell = map.cellAtPosInCells(unit.pos);
 		cell.improvementAddMines();
 	}
 
-	settlersBuildRoad(universe, world, owner, unit)
+	settlersBuildRoads(universe, world, owner, unit)
 	{
 		var map = world.map;
 		var cell = map.cellAtPosInCells(unit.pos);
@@ -451,7 +456,7 @@ class UnitDefn
 
 	movesPerTurn()
 	{
-		return this.movement.movesPerTurn;
+		return this.movement.movesPerTurn();
 	}
 }
 
@@ -479,8 +484,8 @@ class UnitDefn_Instances
 			ads.Pass,
 			ads.SettlersBuildFort,
 			ads.SettlersBuildIrrigation,
-			ads.SettlersBuildMine,
-			ads.SettlersBuildRoad,
+			ads.SettlersBuildMines,
+			ads.SettlersBuildRoads,
 			ads.SettlersClearForest,
 			ads.SettlersPlantForest,
 			ads.SettlersStartCity,
@@ -633,10 +638,15 @@ class UnitDefnCombat
 
 class UnitDefnMovement
 {
-	constructor(movesPerTurn, costToMoveFromCellToCell)
+	constructor(movesPerTurn, costToMoveFromCellToCellInThirds)
 	{
-		this.movesPerTurn = movesPerTurn;
-		this.costToMoveFromCellToCell = costToMoveFromCellToCell;
+		this.moveThirdsPerTurn = movesPerTurn * 3;
+		this.costToMoveFromCellToCellInThirds = costToMoveFromCellToCellInThirds;
+	}
+
+	movesPerTurn()
+	{
+		return this.moveThirdsPerTurn / 3;
 	}
 
 	static air(movesPerTurn)
@@ -646,7 +656,7 @@ class UnitDefnMovement
 			movesPerTurn,
 			(world, cellFrom, cellTo) => // cost
 			{
-				return 1;
+				return 3;
 			}
 		);
 	}
@@ -660,13 +670,19 @@ class UnitDefnMovement
 			{
 				var cellToTerrain = cellTo.terrain(world);
 				var cellToTerrainIsLand = cellToTerrain.isLand();
-				var costToMove =
+				var cellToHasRoads = cellTo.hasRoads();
+				var costToMoveInThirds =
 				(
 					cellToTerrainIsLand
-					? cellToTerrain.movesToTraverse
+					?
+					(
+						cellTo.hasRoads()
+						? 1
+						: cellToTerrain.movesToTraverse * 3
+					)
 					: Number.POSITIVE_INFINITY
 				);
-				return costToMove;
+				return costToMoveInThirds;
 			}
 		);
 	}
@@ -681,7 +697,8 @@ class UnitDefnMovement
 				var cellToTerrain = cellTo.terrain(world);
 				var cellToTerrainIsOcean = (cellToTerrain.name == "Ocean");
 				var costToMove = (cellToTerrainIsOcean ? 1 : Number.POSITIVE_INFINITY);
-				return costToMove;
+				var costToMoveInThirds = costToMove *= 3;
+				return costToMoveInThirds;
 			}
 		);
 	}
