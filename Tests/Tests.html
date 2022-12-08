@@ -8,7 +8,8 @@
 <script type="text/javascript" src="../Source/Command.js"></script>
 <script type="text/javascript" src="../Source/Coords.js"></script>
 <script type="text/javascript" src="../Source/Direction.js"></script>
-<script type="text/javascript" src="../Source/Display.js"></script>
+<script type="text/javascript" src="../Source/DisplayCanvas.js"></script>
+<script type="text/javascript" src="../Source/DisplayText.js"></script>
 <script type="text/javascript" src="../Source/Government.js"></script>
 <script type="text/javascript" src="../Source/IdHelper.js"></script>
 <script type="text/javascript" src="../Source/InputHelper.js"></script>
@@ -175,6 +176,11 @@ var testSuite = new TestSuite
 			// Make sure the unit has moves initially.
 			Assert.isTrue(unit.movesThisTurn() > 0);
 
+			// Count the number of known cells before the move.
+			var owner0MapKnowledge = owner0.mapKnowledge;
+			var cellsKnownIndices = owner0MapKnowledge.cellsKnownIndicesByIndex;
+			var cellsKnownCountBeforeMove = cellsKnownIndices.size;
+
 			// Move the unit.
 			var unitPosBeforeMove = unit.pos.clone();
 			var directions = Direction.Instances();
@@ -189,6 +195,10 @@ var testSuite = new TestSuite
 			var unitPosAfterMove = unit.pos.clone();
 			var offsetMoved = unitPosAfterMove.clone().subtract(unitPosBeforeMove);
 			Assert.isTrue(offsetMoved.equals(directionToMove.offset));
+
+			// Make sure that more cells are known.
+			var cellsKnownCountAfterMove = cellsKnownIndices.size;
+			Assert.isTrue(cellsKnownCountAfterMove > cellsKnownCountBeforeMove);
 
 			// Attempt to advance to the next idle unit (but there isn't one).
 			owner.unitSelectNextIdle();

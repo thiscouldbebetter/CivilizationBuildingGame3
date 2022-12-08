@@ -199,6 +199,14 @@ class MapOfCellsCell
 		this.unitsPresentIds.push(unit.id);
 	}
 
+	unitNotAlliedWithOwnerIsPresent(owner, world)
+	{
+		var unitsPresent = this.unitsPresent(world);
+		var unitNotAlliedWithOwnerIsPresent =
+			unitsPresent.some(x => x.ownerName != owner.ownerName);
+		return unitNotAlliedWithOwnerIsPresent;
+	}
+
 	unitRemove(unit)
 	{
 		this.unitsPresentIds.splice(this.unitsPresentIds.indexOf(unit.id), 1);
@@ -207,6 +215,14 @@ class MapOfCellsCell
 	unitsPresent(world)
 	{
 		return (this.unitsPresentIds.map(x => world.unitById(x)));
+	}
+
+	unitsPresentNotAlliedWithOwner(owner, world)
+	{
+		var unitsPresent = this.unitsPresent(world);
+		var unitsNotAlliedWithOwnerPresent =
+			unitsPresent.filter(x => x.ownerName != owner.ownerName);
+		return unitsNotAlliedWithOwnerPresent;
 	}
 
 	value(world, base)

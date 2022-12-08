@@ -36,6 +36,16 @@ class World
 
 		var map = MapOfCells.fromCellsAsStrings
 		([
+			"~~~~~~~~~~~~~~~~",
+			"~..............~",
+			"~..............~",
+			"~..............~",
+			"~..............~",
+			"~..............~",
+			"~..............~",
+			"~~~~~~~~~~~~~~~~"
+
+			/*
 			//       10        20        30        40        5         60
 			//234567890123456789012345678901234567890123456789012345678901234
 			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
@@ -70,6 +80,7 @@ class World
 			"~~............................~~..............................~~", // 30
 			"~~............................~~..............................~~",
 			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+			*/
 		]);
 
 		var owners = [];
@@ -77,8 +88,8 @@ class World
 		var ownerColorNames = [ "Blue", "Orange" ];
 		var ownerStartingPositions =
 		[
-			new Coords(8, 8),
-			new Coords(56, 8),
+			map.sizeInCells.clone().multiply(new Coords(.25, .5)).round(),
+			map.sizeInCells.clone().multiply(new Coords(.75, .5)).round()
 		];
 
 		for (var i = 0; i < ownerCount; i++)
@@ -147,7 +158,6 @@ class World
 		var display = universe.display;
 		var ownerCurrent = this.ownerCurrent();
 		var ownerCurrentMapKnowledge = ownerCurrent.mapKnowledge;
-		ownerCurrentMapKnowledge.update(universe, this, ownerCurrent);
 		ownerCurrentMapKnowledge.draw(universe, this, ownerCurrent);
 	}
 
@@ -214,6 +224,8 @@ class World
 
 		var cell = this.map.cellAtPosInCells(unit.pos);
 		cell.unitAdd(unit);
+
+		unit.ownerMapKnowledgeUpdate(this);
 	}
 
 	unitById(id)

@@ -107,6 +107,12 @@ class Unit
 
 	// Movement.
 
+	attackDefender(defender, world)
+	{
+		var defn = this.defn(world);
+		defn.unitAttackDefender(this, defender);
+	}
+
 	canMoveInDirection(directionToMove, world)
 	{
 		var costToMoveInThirds =
@@ -145,7 +151,7 @@ class Unit
 
 		var costToMoveInThirds = defn.movement.costToMoveFromCellToCellInThirds
 		(
-			world, cellFrom, cellTo
+			world, this, cellFrom, cellTo
 		);
 
 		return costToMoveInThirds;
@@ -163,15 +169,38 @@ class Unit
 			var cellTo = cellsFromAndTo[1];
 
 			this.moveThirdsThisTurn -= costToMoveInThirds;
-			this.pos.overwriteWith(cellTo.pos);
-			cellFrom.unitRemove(this);
-			cellTo.unitAdd(this);
+
+			var unitMovingOwner = this.owner(world);
+			var isEnemyUnitPresent =
+				cellTo.unitNotAlliedWithOwnerIsPresent(unitMovingOwner);
+			
+			if (isEnemyUnitPresent)
+			{
+				// todo - Log to output.
+				var defender =
+					cellTo.unitsNotAlliedWithOwner(unitMovingOwner)[0];
+				this.attackDefender(defender, world);
+			}
+			else
+			{
+				this.pos.overwriteWith(cellTo.pos);
+				cellFrom.unitRemove(this);
+				cellTo.unitAdd(this);
+				this.ownerMapKnowledgeUpdate(world);
+			}
 		}
 	}
 
 	movesThisTurn()
 	{
 		return this.moveThirdsThisTurn / 3;
+	}
+
+	ownerMapKnowledgeUpdate(world)
+	{
+		var owner = this.owner(world);
+		var ownerMapKnowledge = owner.mapKnowledge;
+		ownerMapKnowledge.update(null, world, owner);
 	}
 }
 
@@ -263,6 +292,7 @@ class UnitActivityDefn_Instances
 		this.Disband 					= uad("Disband", 			1, startNone, this.disband);
 		this.Fortify 					= uad("Fortify", 			1, startNone, this.fortify);
 		this.Pass 						= uad("Pass", 				1, startNone, this.pass);
+		this.RestAfterMove 				= uad("RestAfterMove", 		1, startNone, this.restAfterMove);
 		this.Sleep 						= uad("Sleep", 				1, startNone, this.sleep);
 
 		this.SettlersBuildFort 			= uad("Build Fort", 		3, startNone, this.settlersBuildFort);
@@ -278,6 +308,7 @@ class UnitActivityDefn_Instances
 			this.Disband,
 			this.Fortify,
 			this.Pass,
+			this.RestAfterMove,
 			this.Sleep,
 
 			this.SettlersBuildFort,
@@ -630,6 +661,35 @@ class UnitDefnCombat
 		return new UnitDefnCombat(attack, defense, integrityMax);
 	}
 
+	unitAttackDefender(attacker, defender)
+	{
+		var attackerDefn = this.defn(world);
+		var defenderDefn = defender.defn(world);
+		var attackOfAttacker = attackerDefn.combat.attack;
+		var defenseOfDefender = defenderDefn.combat.defense;
+		var attackOfAttackerPlusDefenseOfDefender =
+			attackOfAttacker + defenseOfDefender;
+		var attackerAttackRoll =
+			Math.random() * attackOfAttackerPlusDefenseOfDefender;
+		if (attackerAttackRoll > defenseOfDefender)
+		{
+			defender.combat.integritySubtract1();
+		}
+		else
+		{
+			this.integritySubtract1();
+		}
+	}
+
+	integritySubtract1(unit)
+	{
+		unit.integrity--;
+		if (unit.integrity <= 0)
+		{
+			// todo
+		}
+	}
+
 	toString()
 	{
 		return "Attack/Defense: " + this.attack + "/" + this.defense;
@@ -641,7 +701,16 @@ class UnitDefnMovement
 	constructor(movesPerTurn, costToMoveFromCellToCellInThirds)
 	{
 		this.moveThirdsPerTurn = movesPerTurn * 3;
-		this.costToMoveFromCellToCellInThirds = costToMoveFromCellToCellInThirds;
+		this._costToMoveFromCellToCellInThirds =
+			costToMoveFromCellToCellInThirds;
+	}
+
+	costToMoveFromCellToCellInThirds(world, unitMoving, cellFrom, cellTo)
+	{
+		return this._costToMoveFromCellToCellInThirds
+		(
+			world, unitMoving, cellFrom, cellTo
+		);
 	}
 
 	movesPerTurn()
@@ -654,7 +723,7 @@ class UnitDefnMovement
 		return new UnitDefnMovement
 		(
 			movesPerTurn,
-			(world, cellFrom, cellTo) => // cost
+			(world, unitMoving, cellFrom, cellTo) => // cost
 			{
 				return 3;
 			}
@@ -666,22 +735,50 @@ class UnitDefnMovement
 		return new UnitDefnMovement
 		(
 			movesPerTurn,
-			(world, cellFrom, cellTo) => // cost
+			(world, unitMoving, cellFrom, cellTo) => // cost
 			{
+				var costToMoveInThirds;
+
 				var cellToTerrain = cellTo.terrain(world);
 				var cellToTerrainIsLand = cellToTerrain.isLand();
-				var cellToHasRoads = cellTo.hasRoads();
-				var costToMoveInThirds =
-				(
-					cellToTerrainIsLand
-					?
-					(
-						cellTo.hasRoads()
-						? 1
-						: cellToTerrain.movesToTraverse * 3
-					)
-					: Number.POSITIVE_INFINITY
-				);
+				if (cellToTerrainIsLand == false)
+				{
+					costToMoveInThirds = Number.POSITIVE_INFINITY;
+				}
+				else
+				{
+					var unitMovingOwner = unitMoving.owner;
+					var isNonAlliedUnitPresent =
+						cellTo.unitNotAlliedWithOwnerIsPresent(unitMovingOwner, world);
+					if (isNonAlliedUnitPresent)
+					{
+						var unitsPresentNonAllied =
+							cellTo.unitsPresentNotAlliedWithOwner(owner, world);
+						var unitNonAlliedFirst = unitsPresentNonAllied[0];
+						var unitNonAlliedOwner = unitNonAlliedFirst.owner(world);
+						var isUnitNonAlliedAnEnemy =
+							unitMovingOwner.isAtWarWith(unitNonAlliedOwner);
+						if (isUnitNonAlliedAnEnemy)
+						{
+							costToMoveInThirds = 3;
+						}
+						else
+						{
+							// At peace: neither allied nor at war.
+							costToMoveInThirds = Number.POSITIVE_INFINITY;
+						}
+					}
+					else
+					{
+						var cellToHasRoads = cellTo.hasRoads();
+						costToMoveInThirds =
+						(
+							cellTo.hasRoads()
+							? 1
+							: cellToTerrain.movesToTraverse * 3
+						);
+					}
+				}
 				return costToMoveInThirds;
 			}
 		);
@@ -692,7 +789,7 @@ class UnitDefnMovement
 		return new UnitDefnMovement
 		(
 			movesPerTurn,
-			(world, cellFrom, cellTo) => // cost
+			(world, unitMoving, cellFrom, cellTo) => // cost
 			{
 				var cellToTerrain = cellTo.terrain(world);
 				var cellToTerrainIsOcean = (cellToTerrain.name == "Ocean");

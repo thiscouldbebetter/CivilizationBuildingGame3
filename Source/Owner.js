@@ -192,6 +192,67 @@ class Owner
 
 }
 
+class OwnerDiplomacy
+{
+	constructor()
+	{
+		this.relationshipNamesByOwnerName = new Map([]);
+	}
+
+	relationshipByOwner(ownerOther)
+	{
+		return this.relationshipNamesByOwnerName.get(ownerOther.name);
+	}
+
+	ownerIsEnemy(ownerOther)
+	{
+		var isOwnerOtherKnown = this.ownerIsKnown(ownerOther);
+		if (isOwnerOtherKnown == false)
+		{
+			isEnemy = false;
+		}
+		else
+		{
+			var relationship = this.relationshipByOwner(ownerOther.name);
+			isEnemy = (relationship == OwnerDiplomacyRelationship.Instances().War);
+		}
+		return isEnemy;
+	}
+
+	ownerIsKnown(ownerOther)
+	{
+		return this.relationshipNamesByOwnerName.has(ownerOther.name);
+	}
+}
+
+class OwnerDiplomacyRelationship
+{
+	constructor(name)
+	{
+		this.name = name;
+	}
+
+	static Instances()
+	{
+		if (OwnerDiplomacyRelationship._instances == null)
+		{
+			OwnerDiplomacyRelationship._instances =
+				new OwnerDiplomacyRelationship_Instances();
+		}
+		return OwnerDiplomacyRelationship._instances;
+	}
+}
+
+class OwnerDiplomacyRelationship_Instances
+{
+	constructor()
+	{
+		this.Alliance = new OwnerDiplomacyRelationship("Alliance");
+		this.Peace = new OwnerDiplomacyRelationship("Peace");
+		this.War = new OwnerDiplomacyRelationship("War");
+	}
+}
+
 class OwnerIncomeAllocation
 {
 	constructor(upkeepFraction, researchFraction, luxuriesFraction)
