@@ -27,14 +27,14 @@ class Direction_Instances
 {
 	constructor()
 	{
-		this.East = new Direction("East", "e", new Coords(1, 0) );
-		this.North = new Direction("North", "n", new Coords(0, -1) );
-		this.Northeast = new Direction("Northeast", "ne", new Coords(1, -1) );
-		this.Northwest = new Direction("Northwest", "nw", new Coords(-1, -1) );
-		this.South = new Direction("South", "s", new Coords(0, 1) );
-		this.Southeast = new Direction("Southeast", "se", new Coords(1, 1) );
-		this.Southwest = new Direction("Southwest", "sw", new Coords(-1, 1) );
-		this.West = new Direction("West", "w", new Coords(-1, 0) );
+		this.East = new Direction("East", "e", Coords.fromXY(1, 0) );
+		this.North = new Direction("North", "n", Coords.fromXY(0, -1) );
+		this.Northeast = new Direction("Northeast", "ne", Coords.fromXY(1, -1) );
+		this.Northwest = new Direction("Northwest", "nw", Coords.fromXY(-1, -1) );
+		this.South = new Direction("South", "s", Coords.fromXY(0, 1) );
+		this.Southeast = new Direction("Southeast", "se", Coords.fromXY(1, 1) );
+		this.Southwest = new Direction("Southwest", "sw", Coords.fromXY(-1, 1) );
+		this.West = new Direction("West", "w", Coords.fromXY(-1, 0) );
 
 		this._All =
 		[

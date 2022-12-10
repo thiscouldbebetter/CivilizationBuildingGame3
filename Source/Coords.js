@@ -1,20 +1,26 @@
 
 class Coords
 {
-	constructor(x, y)
+	constructor(x, y, z)
 	{
 		this.x = x;
 		this.y = y;
+		this.z = z;
 	}
 
 	static create()
 	{
-		return new Coords(0, 0);
+		return new Coords(0, 0, 0);
+	}
+
+	static fromXY(x, y)
+	{
+		return new Coords(x, y, 0);
 	}
 
 	static ones()
 	{
-		return new Coords(1, 1);
+		return new Coords(1, 1, 1);
 	}
 
 	static random()
@@ -24,13 +30,14 @@ class Coords
 
 	static zeroes()
 	{
-		return new Coords(0, 0);
+		return new Coords(0, 0, 0);
 	}
 
 	absolute()
 	{
 		this.x = Math.abs(this.x);
 		this.y = Math.abs(this.y);
+		this.z = Math.abs(this.z);
 		return this;
 	}
 
@@ -43,13 +50,30 @@ class Coords
 
 	clone()
 	{
-		return new Coords(this.x, this.y);
+		return new Coords(this.x, this.y, this.z);
+	}
+
+	crossProduct(other)
+	{
+		this.overwriteWithDimensions
+		(
+			this.y * other.z - this.z * other.y,
+			this.z * other.x - this.x * other.z,
+			this.x * other.y - this.y * other.x
+		);
+		return this;
+	}
+
+	dotProduct(other)
+	{
+		return this.x * other.x + this.y * other.y + this.z * other.z;
 	}
 
 	divideScalar(scalar)
 	{
 		this.x /= scalar;
 		this.y /= scalar;
+		this.z /= scalar;
 		return this;
 	}
 
@@ -59,6 +83,7 @@ class Coords
 		(
 			this.x == other.x
 			&& this.y == other.y
+			&& this.z == other.z
 		);
 
 		return areDimensionsEqual;
@@ -68,6 +93,7 @@ class Coords
 	{
 		this.x = Math.floor(this.x);
 		this.y = Math.floor(this.y);
+		this.z = Math.floor(this.z);
 		return this;
 	}
 
@@ -78,13 +104,17 @@ class Coords
 
 	magnitude()
 	{
-		return Math.sqrt(this.x * this.x + this.y * this.y);
+		return Math.sqrt
+		(
+			this.x * this.x + this.y * this.y + this.z * this.z
+		);
 	}
 
 	multiply(other)
 	{
 		this.x *= other.x;
 		this.y *= other.y;
+		this.z *= other.z;
 		return this;
 	}
 
@@ -92,6 +122,7 @@ class Coords
 	{
 		this.x *= scalar;
 		this.y *= scalar;
+		this.z *= scalar;
 		return this;
 	}
 
@@ -99,13 +130,15 @@ class Coords
 	{
 		this.x = other.x;
 		this.y = other.y;
+		this.z = other.z;
 		return this;
 	}
 
-	overwriteWithXY(x, y)
+	overwriteWithDimensions(x, y, z)
 	{
 		this.x = x;
 		this.y = y;
+		this.z = z;
 		return this;
 	}
 
@@ -113,6 +146,7 @@ class Coords
 	{
 		this.x = Math.random();
 		this.y = Math.random();
+		this.z = Math.random();
 		return this;
 	}
 
@@ -120,6 +154,7 @@ class Coords
 	{
 		this.x = Math.round(this.x);
 		this.y = Math.round(this.y);
+		this.z = Math.round(this.z);
 		return this;
 	}
 
@@ -127,17 +162,18 @@ class Coords
 	{
 		this.x -= other.x;
 		this.y -= other.y;
+		this.z -= other.z;
 		return this;
 	}
 
 	sumOfDimensions()
 	{
-		return this.x + this.y;
+		return this.x + this.y + this.z;
 	}
 
 	toString()
 	{
-		return this.x + "," + this.y;
+		return this.x + "," + this.y + "," + this.z;
 	}
 
 	wrapXTrimYToMax(max)

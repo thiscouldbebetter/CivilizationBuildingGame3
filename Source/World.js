@@ -88,9 +88,10 @@ class World
 		var ownerColorNames = [ "Blue", "Orange" ];
 		var ownerStartingPositions =
 		[
-			map.sizeInCells.clone().multiply(new Coords(.25, .5)).round(),
-			map.sizeInCells.clone().multiply(new Coords(.75, .5)).round()
+			map.sizeInCells.clone().multiply(Coords.fromXY(.25, .5)).round(),
+			map.sizeInCells.clone().multiply(Coords.fromXY(.75, .5)).round()
 		];
+		var unitDefns = UnitDefn.Instances();
 
 		for (var i = 0; i < ownerCount; i++)
 		{
@@ -101,7 +102,7 @@ class World
 			var unitInitial = new Unit
 			(
 				ownerName,
-				"Settlers",
+				unitDefns.Settlers.name,
 				startingPos
 			);
 

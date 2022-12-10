@@ -30,17 +30,20 @@
 </div>
 
 <script type="text/javascript" src="Base.js"></script>
+<script type="text/javascript" src="Camera.js"></script>
 <script type="text/javascript" src="Color.js"></script>
 <script type="text/javascript" src="Command.js"></script>
 <script type="text/javascript" src="Coords.js"></script>
 <script type="text/javascript" src="Direction.js"></script>
 <script type="text/javascript" src="DisplayCanvas.js"></script>
 <script type="text/javascript" src="DisplayText.js"></script>
+<script type="text/javascript" src="Disposition.js"></script>
 <script type="text/javascript" src="Government.js"></script>
 <script type="text/javascript" src="IdHelper.js"></script>
 <script type="text/javascript" src="InputHelper.js"></script>
 <script type="text/javascript" src="MapOfCells.js"></script>
 <script type="text/javascript" src="Owner.js"></script>
+<script type="text/javascript" src="Orientation.js"></script>
 <script type="text/javascript" src="ResourceProduction.js"></script>
 <script type="text/javascript" src="SelectableCategory.js"></script>
 <script type="text/javascript" src="Technology.js"></script>
@@ -56,7 +59,7 @@ class Game
 	{
 		var display = new DisplayCanvas
 		(
-			"divDisplay", new Coords(1024, 512)
+			"divDisplay", Coords.fromXY(1024, 512)
 		);
 		var inputHelper = new InputHelper();
 		var outputLog = new DisplayText("textareaOutputLog");

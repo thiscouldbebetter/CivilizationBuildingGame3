@@ -22,6 +22,8 @@ class Owner
 
 		this.governmentName = Government.Instances().Despotism.name; // todo
 		this.selection = new OwnerSelection();
+
+		this.camera = Camera.default();
 	}
 
 	areAnyBasesOrUnitsIdle(world)
@@ -314,6 +316,7 @@ class OwnerMapKnowledge
 			cellPosInPixels,
 			cellSizeInPixels,
 			world,
+			owner,
 			display
 		);
 
@@ -366,25 +369,33 @@ class OwnerMapKnowledge
 		cellPosInPixels,
 		cellSizeInPixels,
 		world,
+		owner,
 		display
 	)
 	{
+		var camera = owner.camera;
+
 		var cellsKnownIndices = Array.from(this.cellsKnownIndicesByIndex.keys());
 		for (var c = 0; c < cellsKnownIndices.length; c++)
 		{
 			var cellIndex = cellsKnownIndices[c];
-			cellPosInCells.overwriteWithXY
+			mapComplete.cellIndexToPosInCells
 			(
-				cellIndex % mapSizeInCells.x,
-				Math.floor(cellIndex / mapSizeInCells.x)
+				cellIndex, cellPosInCells
 			);
 			var cell = mapComplete.cellAtPosInCells(cellPosInCells);
+
 			cellPosInPixels.overwriteWith
 			(
 				cellPosInCells
 			).multiply
 			(
 				cellSizeInPixels
+			);
+
+			camera.coordsTransformFromWorldToView
+			(
+				cellPosInPixels
 			);
 
 			var terrain = cell.terrain(world);
@@ -399,7 +410,10 @@ class OwnerMapKnowledge
 				this.cellsVisibleIndicesByIndex.has(cellIndex);
 			if (isCellCurrentlyVisible == false)
 			{
-				display.drawRectangle(cellPosInPixels, cellSizeInPixels, "rgba(0, 0, 0, 0.5)", null);
+				display.drawRectangle
+				(
+					cellPosInPixels, cellSizeInPixels, "rgba(0, 0, 0, 0.5)", null
+				);
 			}
 		}
 	}
@@ -422,10 +436,11 @@ class OwnerMapKnowledge
 		for (var c = 0; c < cellsVisibleIndices.length; c++)
 		{
 			var cellIndex = cellsVisibleIndices[c];
-			cellPosInCells.overwriteWithXY
+			cellPosInCells.overwriteWithDimensions
 			(
 				cellIndex % mapSizeInCells.x,
-				Math.floor(cellIndex / mapSizeInCells.x)
+				Math.floor(cellIndex / mapSizeInCells.x),
+				0
 			);
 			var cell = mapComplete.cellAtPosInCells(cellPosInCells);
 			cellPosInPixels.overwriteWith

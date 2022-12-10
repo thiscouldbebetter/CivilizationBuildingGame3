@@ -11,7 +11,7 @@ class MapOfCells
 	{
 		var sizeInCells = new Coords
 		(
-			cellsAsStrings[0].length, cellsAsStrings.length
+			cellsAsStrings[0].length, cellsAsStrings.length, 1
 		);
 		var cells = [];
 
@@ -53,22 +53,50 @@ class MapOfCells
 		return posInCells.y * this.sizeInCells.x + posInCells.x;
 	}
 
+	cellIndexToPosInCells(cellIndex, cellPosInCells)
+	{
+		cellPosInCells.overwriteWithDimensions
+		(
+			cellIndex % this.sizeInCells.x,
+			Math.floor(cellIndex / this.sizeInCells.x),
+			0
+		);
+	}
+
 	draw(universe, world)
 	{
 		var display = universe.display;
+		var owner = world.ownerCurrent();
+		var camera = owner.camera;
+
 		var cellPosInCells = Coords.create();
 		var cellSizeInPixels = Coords.ones().multiplyScalar(16); // hack
 		var cellPosInPixels = Coords.create();
 
-		for (var y = 0; y < this.sizeInCells.y; y++)
+		var cameraCornerPositions =
+			camera.cornerPositionsClockwiseFromLowerRight();
+		var cellPosBounds = Coords.create().boundsOf(cameraCornerPositions);
+		var cellPosMin = cellPosBounds.min;
+		var cellPosMax = cellPosBounds.max;
+
+		for (var y = cellPosMin.x; y <= cellPosMax.y; y++)
 		{
 			cellPosInCells.y = y;
 
-			for (var x = 0; x < this.sizeInCells.x; x++)
+			for (var x = cellPosMin.x; x <= cellPosMax.x; x++)
 			{
 				cellPosInCells.x = x;
 
-				cellPosInPixels.overwriteWith(cellPosInCells).multiply(cellSizeInPixels);
+				camera.coordsTransformWorldToView
+				(
+					cellPosInPixels.overwriteWith
+					(
+						cellPosInCells
+					).multiply
+					(
+						cellSizeInPixels
+					)
+				);
 
 				var cell = this.cellAtPosInCells(cellPosInCells);
 				var cellTerrain = cell.terrain(world);
