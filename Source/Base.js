@@ -76,14 +76,84 @@ class Base
 		return (this.isIdle() == false);
 	}
 
+	isExperiencingUnrest(world)
+	{
+		var owner = this.owner(world);
+		var ownerGovernment = owner.government;
+		var populationMaxBeforeUnhappiness =
+			ownerGovernment.basePopulationMaxBeforeUnhappiness;
+		var unhappyPopulationCount =
+			this.population - populationMaxBeforeUnhappiness;
+		if (unhappyPopulationCount > 0)
+		{
+			var unhappinessMitigatedByImprovements = 0;
+			var improvementsPresent = this.improvementsPresent();
+			improve
+
+			var unitsPresentMilitary = this.unitsPresentMilitary();
+			var unhappinessMitigatedByMartialLaw =
+				unitsPresentMilitary.length;
+			var martialLawMax =
+				ownerGovernment.unhappyPopulationMitigatedByMartialLaw;
+			if (unhappinessMitigatedByMartialLaw > martialLawMax)
+			{
+				unhappinessMitigatedByMartialLaw = martialLawMax;
+			}
+
+			var unhappinessMitigatedTotal =
+				unhappinessMitigatedByImprovements
+				+ unhappinessMitigatedByMartialLaw;
+
+			unhappyPopulationCount -= unhappinessMitigatedTotal;
+		}
+
+		var returnValue = (unhappyPopulationCount > 0);
+		return isExperiencingUnrest;
+	}
+
 	isIdle()
 	{
 		return (this.industry.buildableInProgressName == null);
 	}
 
+	mapCellOccupied(world)
+	{
+		return world.map.cellAtPosInCells(this.pos);
+	}
+
 	owner(world)
 	{
 		return world.owners.find(x => x.name == this.ownerName);
+	}
+
+	populationCanGrow()
+	{
+		var canGrow;
+
+		var improvements = BaseImprovementDefn.Instances();
+
+		if (this.population < 8)
+		{
+			canGrow = true;
+		}
+		else if
+		(
+			this.population < 12
+			&& this.hasImprovement(improvements.Aqueduct)
+		)
+		{
+			canGrow = true;
+		}
+		else if (this.hasImprovement(improvements.Supermarkets))
+		{
+			canGrow = true;
+		}
+		else
+		{
+			canGrow = false;
+		}
+
+		return canGrow;
 	}
 
 	resourcesProducedThisTurn(world)
@@ -133,21 +203,24 @@ class Base
 		}
 		else if (this.foodStockpiled >= foodNeededToGrow)
 		{
-			this.foodStockpiled = foodNeededToGrow;
-
-			this.population++;
-			var granary = BaseImprovementDefn.Instances().Granary;
-			var hasGranary = this.hasImprovement(granary);
-			if (hasGranary)
+			if (this.populationCanGrow())
 			{
-				this.foodStockpiled = this.foodStockpiled / 2;
-			}
-			else
-			{
-				this.foodStockpiled = 0;
-			}
+				this.foodStockpiled = foodNeededToGrow;
 
-			this.landUsageOptimize(world);
+				this.population++;
+				var granary = BaseImprovementDefn.Instances().Granary;
+				var hasGranary = this.hasImprovement(granary);
+				if (hasGranary)
+				{
+					this.foodStockpiled = this.foodNeededToGrow() / 2;
+				}
+				else
+				{
+					this.foodStockpiled = 0;
+				}
+
+				this.landUsageOptimize(world);
+			}
 		}
 	}
 
@@ -170,9 +243,10 @@ class Base
 
 	// Resources.
 
-	corruptionPerUnitDistanceFromCapital()
+	corruptionPerUnitDistanceFromCapital(world)
 	{
-		return 0; // todo
+		var owner = this.owner(world);
+		return owner.government.corruptionPerUnitDistanceFromCapital;
 	}
 
 	corruptionThisTurn(world)
@@ -234,6 +308,15 @@ class Base
 	industryThisTurnNet(world)
 	{
 		var gross = this.industryThisTurnGross(world);
+		var unitsSupportedCount = this.unitsSupportedCount();
+		var costToSupportUnits = 0; // todo
+		var upkeep = gross - costToSupportUnits;
+		return upkeep;
+	}
+
+	industryThisTurnNet(world)
+	{
+		var gross = this.industryThisTurnGross(world);
 		var owner = this.owner(world);
 		var unitsSupportedCount = this.unitsSupported(world).length;
 		var upkeep = owner.industryConsumedByUnitCount(unitsSupportedCount);
@@ -248,23 +331,49 @@ class Base
 
 	luxuriesThisTurn(world)
 	{
-		return 0; // todo
+		var tradeThisTurn = this.tradeThisTurnNet(world);
+		var moneyThisTurn = this.moneyThisTurnGross(world);
+		var researchThisTurn = this.researchThisTurn(world);
+		var luxuriesThisTurn = tradeThisTurn - moneyThisTurn - researchThisTurn;
+		return luxuriesThisTurn;
 	}
 
-	moneyThisTurn(world)
+	moneyThisTurnGross(world)
 	{
 		var tradeThisTurn = this.tradeThisTurnNet(world);
 		var owner = this.owner(world);
 		var taxRate = owner.taxRate();
-		var moneyThisTurn = Math.ceil(taxRate * tradeThisTurn);
+		var moneyThisTurn = Math.round(taxRate * tradeThisTurn);
 		return moneyThisTurn;
+	}
+
+	moneyThisTurnNet(world)
+	{
+		var gross = this.moneyThisTurnGross(world);
+		var upkeep = this.improvementsUpkeepCost();
+		var net = gross - upkeep;
+		return net; // todo - What if this is negative?
+	}
+
+	moneyThisTurnNetIsNegative()
+	{
+		return (this.moneyThisTurnNet() < 0);
 	}
 
 	researchThisTurn(world)
 	{
-		var tradeThisTurnNet = this.tradeThisTurnNet(world);
-		var moneyThisTurn = this.moneyThisTurn(world);
-		var researchThisTurn = tradeThisTurnNet - moneyThisTurn;
+		var tradeThisTurn = this.tradeThisTurnNet(world);
+		var moneyThisTurn = this.moneyThisTurnGross(world)
+		var researchPlusLuxuriesThisTurn = tradeThisTurn - moneyThisTurn;
+		var owner = this.owner(world);
+		var researchPlusLuxuriesRate = 1 - owner.taxRate();
+		var researchRate = owner.researchRate();
+		var researchThisTurn = Math.round
+		(
+			researchPlusLuxuriesThisTurn
+			* researchRate
+			/ researchPlusLuxuriesRate
+		);
 		return researchThisTurn;
 	}
 
@@ -289,9 +398,37 @@ class Base
 		this.unitsSupportedIds.push(unit.id);
 	}
 
+	unitsPresent(world)
+	{
+		var mapCell = this.mapCellOccupied(world);
+		var returnValues = mapCell.unitsPresent(world);
+		return returnValues;
+	}
+
+	unitsPresentMilitary(world)
+	{
+		var unitsPresent = this.unitsPresent(world);
+		var returnValues = unitsPresent.filter
+		(
+			x =>
+			{
+				var defn = x.defn(world);
+				var isGroundMilitary =
+					(defn.isMilitary() && defn.isGroundUnit());
+				return isGroundMilitary
+			}
+		);
+		return returnValues;
+	}
+
 	unitsSupported(world)
 	{
 		return this.unitsSupportedIds.map(x => world.unitById(x));
+	}
+
+	unitsSupportedCount()
+	{
+		return this.unitsSupportedIds.length;
 	}
 }
 

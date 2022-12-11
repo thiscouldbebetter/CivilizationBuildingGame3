@@ -111,11 +111,6 @@ class Owner
 		return researchSoFar;
 	}
 
-	taxRate()
-	{
-		return this.incomeAllocation.upkeepFraction;
-	}
-
 	technologiesKnown()
 	{
 		return this.research.technologiesKnown();
@@ -152,6 +147,23 @@ class Owner
 	unitRemove(unit)
 	{
 		this.units.splice(this.units.indexOf(unit), 1);
+	}
+
+	// Income allocation.
+
+	luxuriesRate()
+	{
+		return this.incomeAllocation.luxuriesFraction;
+	}
+
+	researchRate()
+	{
+		return this.incomeAllocation.researchFraction;
+	}
+
+	taxRate()
+	{
+		return this.incomeAllocation.moneyFraction;
 	}
 
 	// Selection.
@@ -257,9 +269,9 @@ class OwnerDiplomacyRelationship_Instances
 
 class OwnerIncomeAllocation
 {
-	constructor(upkeepFraction, researchFraction, luxuriesFraction)
+	constructor(moneyFraction, researchFraction, luxuriesFraction)
 	{
-		this.upkeepFraction = upkeepFraction;
+		this.moneyFraction = moneyFraction;
 		this.researchFraction = researchFraction;
 		this.luxuriesFraction = luxuriesFraction;
 	}
@@ -272,7 +284,7 @@ class OwnerIncomeAllocation
 	isValid()
 	{
 		var sumOfFractions =
-			this.upkeepFraction
+			this.moneyFraction
 			+ this.researchFraction
 			+ this.luxuriesFraction;
 

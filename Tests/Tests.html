@@ -427,6 +427,20 @@ var testSuite = new TestSuite
 			// Make sure that the base now contains the improvement.
 			Assert.isTrue(base.hasImprovement(improvementToBuild));
 
+			// Wait for the population to grow again,
+			// and make sure the granary saves half the food.
+			var basePopulationBefore = base.population;
+			var foodNeededToGrow = base.foodNeededToGrow();
+			var foodAdditionalNeededToGrow =
+				foodNeededToGrow - base.foodStockpiled;
+			foodPerTurn = base.foodThisTurnNet(world);
+			turnsToWait = Math.ceil(foodAdditionalNeededToGrow / foodPerTurn);
+			Assert.isTrue(turnsToWait < turnsToWaitMax);
+			world.turnAdvanceMultiple(turnsToWait);
+			var basePopulationAfter = base.population;
+			Assert.isTrue(basePopulationAfter == basePopulationBefore + 1);
+			foodNeededToGrow = base.foodNeededToGrow();
+			Assert.isTrue(base.foodStockpiled >= (foodNeededToGrow / 2) );
 		}
 	)
 ]);

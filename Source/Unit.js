@@ -485,6 +485,11 @@ class UnitDefn
 		world.unitAdd(unit);
 	}
 
+	isGroundUnit()
+	{
+		return this.movement.isGround();
+	}
+
 	movesPerTurn()
 	{
 		return this.movement.movesPerTurn();
@@ -705,12 +710,35 @@ class UnitDefnMovement
 			costToMoveFromCellToCellInThirds;
 	}
 
+	static mapCellGround()
+	{
+		if (UnitDefnMovement._mapCellGround == null)
+		{
+			UnitDefnMovement._mapCellGround = MapOfCellsCell.fromTerrainCode
+			(
+				MapOfCellsCellTerrain.Instances().Plain.code
+			);
+		}
+		return UnitDefnMovement._mapCellGround;
+	}
+
 	costToMoveFromCellToCellInThirds(world, unitMoving, cellFrom, cellTo)
 	{
 		return this._costToMoveFromCellToCellInThirds
 		(
 			world, unitMoving, cellFrom, cellTo
 		);
+	}
+
+	isGround()
+	{
+		var mapCell = UnitDefnMovement.mapCellGround();
+		var costToMove = this._costToMoveFromCellToCellInThirds
+		(
+			mapCell, mapCell
+		);
+		var returnValue = (costToMove < Number.POSITIVE_INFINITY);
+		return returnValue;
 	}
 
 	movesPerTurn()
