@@ -132,7 +132,7 @@ class Technology_Instances
 		this.Railroad			= t("Railroad", 			costTodo, 	prereqsNone, govNone, 				[ bids.DarwinsVoyage ] );
 		this.Recycling			= t("Recycling", 			costTodo, 	prereqsNone, govNone, 				[ bids.RecyclingCenter ] );
 		this.Refining			= t("Refining", 			costTodo, 	prereqsNone, govNone, 				[ bids.PowerPlant ] );
-		this.Refrigeration		= t("Refrigeration", 		costTodo, 	prereqsNone, govNone, 				[ bids.Supermarket ] );
+		this.Refrigeration		= t("Refrigeration", 		costTodo, 	prereqsNone, govNone, 				[ bids.Supermarkets ] );
 		this.Republic			= t("Republic", 			costTodo, 	prereqsNone, govs.Republic, 		buildablesNone);
 		this.Robotics			= t("Robotics", 			costTodo, 	prereqsNone, govNone, 				[ uds.Howitzer, bids.ManufacturingPlant ] );
 		this.Rocketry			= t("Rocketry", 			costTodo, 	prereqsNone, govNone, 				[ uds.AegisCruiser, uds.CruiseMissile, uds.NuclearMissile, bids.SamMissileBattery] );
@@ -201,7 +201,7 @@ class Technology_Instances
 		prereqsSet(this.MachineTools, 		[ this.Steel, this.Tactics ] );
 		prereqsSet(this.Magnetism, 			[ this.IronWorking, this.Physics ] );
 		prereqsSet(this.MapMaking, 			[ this.Alphabet ] );
-		prereqsSet(this.Masonry, 			[ this.Construction, this.Mathematics ] );
+		prereqsSet(this.Masonry, 			[] );
 		prereqsSet(this.MassProduction, 	[ this.Automobile, this.Corporation ] );
 		prereqsSet(this.Mathematics, 		[ this.Alphabet, this.Masonry ] );
 		prereqsSet(this.Medicine, 			[ this.Philosophy, this.Trade ] );

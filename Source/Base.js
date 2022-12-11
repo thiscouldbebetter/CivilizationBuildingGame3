@@ -144,7 +144,7 @@ class Base
 		{
 			canGrow = true;
 		}
-		else if (this.hasImprovement(improvements.Supermarkets))
+		else if (this.hasImprovement(improvements.SewerSystem))
 		{
 			canGrow = true;
 		}
@@ -524,7 +524,7 @@ class BaseImprovementDefn_Instances
 		this.SolarPlant			= bid("Solar Plant", 		320, 	effectTodo);
 		this.StockExchange 		= bid("Stock Exchange", 	160, 	effectTodo);
 		this.Superhighways		= bid("Superhighways",		200, 	effectTodo);
-		this.Supermarket		= bid("Supermarket",		80,		effectTodo);
+		this.Supermarkets		= bid("Supermarkets",		80,		effectTodo);
 		this.Temple 			= bid("Temple", 			40, 	effectTodo);
 		this.University 		= bid("University",			160,	effectTodo);
 
@@ -594,7 +594,7 @@ class BaseImprovementDefn_Instances
 			this.SolarPlant,
 			this.StockExchange,
 			this.Superhighways,
-			this.Supermarket,
+			this.Supermarkets,
 			this.Temple,
 			this.University,
 
@@ -683,6 +683,13 @@ class BaseIndustry
 		}
 
 		return returnValue;
+	}
+
+	canBuildBuildable(buildable, world)
+	{
+		var canBuild = this.owner(world).canBuildBuildable(buildable);
+		// todo - Some cities can't build some things, for instance, boats.
+		return canBuild;
 	}
 
 	buildableInProgressClear()

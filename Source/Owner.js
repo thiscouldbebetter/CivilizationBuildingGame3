@@ -121,6 +121,16 @@ class Owner
 		return this.research.technologiesResearchable();
 	}
 
+	technologyBeingResearched()
+	{
+		return this.research.technologyBeingResearched();
+	}
+
+	technologyCanBeResearched(technology)
+	{
+		return (this.technologiesResearchable().indexOf(technology) >= 0);
+	}
+
 	technologyResearch(technology)
 	{
 		this.research.technologyResearch(technology);
@@ -730,6 +740,11 @@ class OwnerResearch
 		return Technology.byName(this.technologyBeingResearchedName);
 	}
 
+	technologyBeingResearchedClear()
+	{
+		this.technologyBeingResearchedName = null;
+	}
+
 	technologyResearch(technology)
 	{
 		this.technologyBeingResearchedName = technology.name;
@@ -752,6 +767,7 @@ class OwnerResearch
 					technologyBeingResearched.name
 				);
 				this.researchStockpiled = 0;
+				this.technologyBeingResearchedClear();
 			}
 		}
 	}
