@@ -22,6 +22,7 @@ class Owner
 
 		this.governmentName = Government.Instances().Despotism.name; // todo
 		this.selection = new OwnerSelection();
+		this.starshipStatus = OwnerStarshipStatus.create();
 
 		this.camera = Camera.default();
 	}
@@ -79,8 +80,32 @@ class Owner
 		return this.research.governmentsKnown();
 	}
 
+	hasWon(world)
+	{
+		var hasConqueredWorld =
+		(
+			world.owners.length == 1
+			&& world.owners[0] == this
+		);
+
+		var hasAchievedWorldPeace = false; // todo
+
+		var hasReachedNeighboringStarsystem =
+			this.starshipStatus.hasReachedDestination(world);
+
+		var hasWon =
+		(
+			hasConqueredWorld
+			|| hasAchievedWorldPeace
+			|| hasReachedNeighboringStarsystem
+		);
+
+		return hasWon;
+	}
+
 	industryConsumedByUnitCount(unitCount)
 	{
+		// todo
 		var unitsFree = 2;
 		var unitsSupportedCount = unitCount - unitsFree;
 		if (unitsSupportedCount < 0)
@@ -100,6 +125,35 @@ class Owner
 
 		this.unitSelectNextIdle();
 	}
+
+	turnUpdate(world)
+	{
+		this.bases.forEach(x => x.turnUpdate(world) );
+		this.units.forEach(x => x.turnUpdate(world) );
+
+		this.research.turnUpdate(world, this);
+
+		this.unitSelectNextIdle();
+	}
+
+	// Income allocation.
+
+	luxuriesRate()
+	{
+		return this.incomeAllocation.luxuriesFraction;
+	}
+
+	researchRate()
+	{
+		return this.incomeAllocation.researchFraction;
+	}
+
+	taxRate()
+	{
+		return this.incomeAllocation.moneyFraction;
+	}
+
+	// Research.
 
 	researchThisTurn(world)
 	{
@@ -134,46 +188,6 @@ class Owner
 	technologyResearch(technology)
 	{
 		this.research.technologyResearch(technology);
-	}
-
-	turnUpdate(world)
-	{
-		this.bases.forEach(x => x.turnUpdate(world) );
-		this.units.forEach(x => x.turnUpdate(world) );
-
-		this.research.turnUpdate(world, this);
-
-		this.unitSelectNextIdle();
-	}
-
-	unitAdd(unit)
-	{
-		if (this.units.indexOf(unit) == -1)
-		{
-			this.units.push(unit);
-		}
-	}
-
-	unitRemove(unit)
-	{
-		this.units.splice(this.units.indexOf(unit), 1);
-	}
-
-	// Income allocation.
-
-	luxuriesRate()
-	{
-		return this.incomeAllocation.luxuriesFraction;
-	}
-
-	researchRate()
-	{
-		return this.incomeAllocation.researchFraction;
-	}
-
-	taxRate()
-	{
-		return this.incomeAllocation.moneyFraction;
 	}
 
 	// Selection.
@@ -214,6 +228,27 @@ class Owner
 		return this;
 	}
 
+	// Starship.
+
+	starshipPartAdd(part)
+	{
+		this.starshipStatus.partAdd(part);
+	}
+
+	// Units.
+
+	unitAdd(unit)
+	{
+		if (this.units.indexOf(unit) == -1)
+		{
+			this.units.push(unit);
+		}
+	}
+
+	unitRemove(unit)
+	{
+		this.units.splice(this.units.indexOf(unit), 1);
+	}
 }
 
 class OwnerDiplomacy
@@ -942,3 +977,263 @@ class OwnerSelection
 	}
 
 }
+
+class OwnerStarshipStatus
+{
+	constructor()
+	{
+		this.fuelTanks = 0;
+		this.habitats = 0;
+		this.lifeSupports = 0;
+		this.powerplants = 0;
+		this.structurals = 0;
+		this.thrusters = 0;
+
+		this.turnLaunched = null;
+	}
+
+	static create()
+	{
+		return new OwnerStarshipStatus();
+	}
+
+	static distanceToDestinationInLightSeconds()
+	{
+		// The actual distance to Alpha Centauri.
+		return 4.2465 * 365 * 24 * 60 * 60;
+	}
+
+	static speedInLightSecondsPerTurnPerThruster()
+	{
+		return 1; // todo
+	}
+
+	canLaunch()
+	{
+		var returnValue;
+
+		var hasAlreadyLaunched = this.hasLaunched();
+		if (hasAlreadyLaunched)
+		{
+			returnValue = false;
+		}
+		else if (this.hasPartsNeededToLaunch() == false)
+		{
+			returnValue = false;
+		}
+		else
+		{
+			returnValue = true;
+		}
+
+		return returnValue;
+	}
+
+	hasLaunched()
+	{
+		return (this.turnLaunched != null);
+	}
+
+	hasPartsNeededToLaunch()
+	{
+		var nonStructuralComponentCount =
+			this.fuelTanks
+			+ this.habitats
+			+ this.lifeSupports
+			+ this.powerplants
+			+ this.thrusters;
+
+		var hasPartsNeeded =
+		(
+			this.fuelTanks >= 1
+			&& this.habitats >= 1
+			&& this.lifeSupport >= 1
+			&& this.powerplants >= 1
+			&& this.thrusters >= 1
+			&& this.structurals >= nonStructuralComponentCount
+		);
+
+		return hasPartsNeeded;
+	}
+
+	hasReachedDestination(world)
+	{
+		var turnsNeeded = this.turnsToReachDestinationTotal();
+		var turnsSinceLaunch = this.turnsSinceLaunch(world);
+		var returnValue = (turnsSinceLaunch - turnsNeeded);
+		return returnValue;
+	}
+
+	launch(world)
+	{
+		if (this.canLaunch())
+		{
+			this.turnLaunched = world.turnsSoFar;
+		}
+	}
+
+	lossChancePerTurnOfFlight()
+	{
+		return 0; // todo
+	}
+
+	partAdd(part)
+	{
+		if (this.hasLaunched() == false)
+		{
+			var parts = StarshipPart.Instances();
+			if (part == parts.FuelTank)
+			{
+				this.fuelTanks++;
+			}
+			else if (part == parts.Habitat)
+			{
+				this.habitats++;
+			}
+			else if (part == parts.LifeSupport)
+			{
+				this.lifeSupports++;
+			}
+			else if (part == parts.Powerplant)
+			{
+				this.powerplants++;
+			}
+			else if (part == parts.Structural)
+			{
+				this.structurals++;
+			}
+			else if (part == parts.Thruster)
+			{
+				this.thrusters++;
+			}
+			else
+			{
+				throw new Error("Unrecognized starship part: " + part.name);
+			}
+		}
+	}
+
+	speedInLightSecondsPerTurn()
+	{
+		var fuelTankCount = this.fuelTanks;
+		var speedPerThrusterMax =
+			OwnerStarshipStatus.speedInLightSecondsPerTurnPerThruster();
+		var speedPerThrusterAdjusted =
+			speedPerThrusterMax * fuelTankCount / thrusterCount;
+		var speed = this.thrusters * speedPerThrusterAdjusted;
+		return speed;
+	}
+
+	turnsSinceLaunch(world)
+	{
+		return world.turnsSoFar - this.turnLaunched;
+	}
+
+	turnsToReachDestinationTotal()
+	{
+		var speedInLightSecondsPerTurn = this.speedInLightSecondsPerTurn();
+		var turnsToReachDestinationTotal = Math.ceil
+		(
+			OwnerStarshipStatus.distanceToDestinationInLightSeconds()
+			/ speedInLightSecondsPerTurn
+		);
+		return turnsToReachDestinationTotal();
+	}
+
+	// Clonable.
+
+	clone()
+	{
+		return OwnerStarshipStatus.create().overwriteWith(this);
+	}
+
+	equals(other)
+	{
+		var areEqual =
+		(
+			this.fuelTanks == other.fuelTanks
+			&& this.habitats == other.habitats
+			&& this.lifeSupports == other.lifeSupports
+			&& this.powerplants == other.powerplants
+			&& this.structurals == other.structurals
+			&& this.thrusters == other.thrusters
+			&& this.turnLaunched == other.turnLaunched
+		);
+
+		return areEqual;
+	}
+
+	overwriteWith(other)
+	{
+		this.fuelTanks = other.fuelTanks;
+		this.habitats = other.habitats;
+		this.lifeSupports = other.lifeSupports;
+		this.powerplants = other.powerplants;
+		this.structurals = other.structurals;
+		this.thrusters = other.thrusters;
+		this.turnLaunched = other.turnLaunched;
+		return this;
+	}
+}
+
+class StarshipPart
+{
+	constructor(name, industryToBuild)
+	{
+		this.name = name;
+		this.industryToBuild = industryToBuild;
+	}
+
+	static Instances()
+	{
+		if (StarshipPart._instances == null)
+		{
+			StarshipPart._instances = new StarshipPart_Instances();
+		}
+		return StarshipPart._instances;
+	}
+
+	static byName(name)
+	{
+		return StarshipPart.Instances().byName(name);
+	}
+
+	build(world, base)
+	{
+		var owner = base.owner(world);
+		owner.starshipPartAdd(this);
+	}
+}
+
+class StarshipPart_Instances
+{
+	constructor()
+	{
+		var ssps = (name, industryToBuild) => new StarshipPart(name, industryToBuild);
+
+		this.FuelTank	= ssps("Starship Fuel Tank",	160);
+		this.Habitat 	= ssps("Starship Habitat", 		320);
+		this.LifeSupport= ssps("Starship Life Support", 320);
+		this.Powerplant	= ssps("Starship Powerplant",	320);
+		this.Structural	= ssps("Starship Structural", 	80);
+		this.Thruster	= ssps("Starship Thruster", 	160);
+
+		this._All =
+		[
+			this.FuelTank,
+			this.Habitat,
+			this.LifeSupport,
+			this.Powerplant,
+			this.Structural,
+			this.Thruster
+		];
+
+		this._AllByName = new Map(this._All.map(x => [x.name, x] ) );
+	}
+
+	byName(name)
+	{
+		return this._AllByName.get(name);
+	}
+}
+

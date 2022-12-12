@@ -497,6 +497,25 @@ class TestFixtureMain
 			turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
 		);
 
+		// Research everything.
+		var techsResearchable = owner.technologiesResearchable();
+		while (techsResearchable.length > 0)
+		{
+			this.waitNTurnsForOwnerInWorldToResearchTechs
+			(
+				turnsToWaitMax, owner, world, techsResearchable
+			);
+			techsResearchable = owner.technologiesResearchable();
+		}
+
+		var techsKnown = owner.technologiesKnown();
+		Assert.areEqual(technologies._All.length, techsKnown.length);
+
+		// Build a starship, launch it, and wait for it to reach destination.
+		this.waitNTurnsForBaseInWorldToBuildStarshipParts
+		(
+			turnsToWaitMax, base, world
+		);
 	}
 
 	waitNTurnsForBaseInWorldToBuildImprovement
@@ -544,6 +563,50 @@ class TestFixtureMain
 		Assert.isNull(owner.technologyBeingResearched());
 		techsResearchable = owner.technologiesResearchable();
 		Assert.isTrue(techsResearchable.indexOf(techToResearch) == -1);
+	}
+
+	waitNTurnsForBaseInWorldToBuildStarshipParts
+	(
+		turnsToWaitMax, base, world
+	)
+	{
+		var starshipParts = StarshipPart.Instances();
+
+		var buildablesToBuild =
+		[
+			starshipParts.FuelTank,
+			starshipParts.Habitat,
+			starshipParts.LifeSupport,
+			starshipParts.Powerplant,
+			starshipParts.Thruster,
+
+			starshipParts.Structural,
+			starshipParts.Structural,
+			starshipParts.Structural,
+			starshipParts.Structural,
+			starshipParts.Structural
+		];
+
+		var owner = base.owner(world);
+		var starshipStatus = owner.starshipStatus;
+		var starshipStatusPrev = starshipStatus.clone();
+
+		for (var i = 0; i < buildablesToBuild.length; i++)
+		{
+			var buildableToBuild = buildablesToBuild[i];
+			base.buildableStart(buildableToBuild, world);
+			var industryPerTurn = base.industryThisTurnNet(world);
+			var turnsToWait = Math.ceil
+			(
+				buildableToBuild.industryToBuild / industryPerTurn
+			);
+			Assert.isTrue(turnsToWait < turnsToWaitMax);
+			world.turnAdvanceMultiple(turnsToWait);
+
+			Assert.isFalse(starshipStatus.equals(starshipStatusPrev));
+
+			starshipStatusPrev.overwriteWith(starshipStatus);
+		}
 	}
 
 	waitNTurnsForOwnerInWorldToResearchTechs

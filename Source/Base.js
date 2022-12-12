@@ -446,7 +446,15 @@ class BaseBuildable
 		else
 		{
 			var improvementDefn = BaseImprovementDefn.byName(name);
-			returnValue = improvementDefn;
+			if (improvementDefn != null)
+			{
+				returnValue = improvementDefn;
+			}
+			else
+			{
+				var starshipPart = StarshipPart.byName(name);
+				returnValue = starshipPart;
+			}
 		}
 
 		return returnValue;
@@ -517,9 +525,6 @@ class BaseImprovementDefn_Instances
 		this.ResearchLab		= bid("Research Lab", 		160,	effectTodo);
 		this.SamMissileBattery 	= bid("SAM Missile Battery", 100,	effectTodo);
 		this.SdiDefense 		= bid("SDI Defense", 		200, 	effectTodo);
-		this.SsComponent		= bid("SS Component",		160, 	effectTodo);
-		this.SsModule 			= bid("SS Module", 			320, 	effectTodo);
-		this.SsStructural		= bid("SS Structural",		80, 	effectTodo);
 		this.SewerSystem 		= bid("Sewer System", 		120, 	effectTodo);
 		this.SolarPlant			= bid("Solar Plant", 		320, 	effectTodo);
 		this.StockExchange 		= bid("Stock Exchange", 	160, 	effectTodo);
@@ -559,6 +564,8 @@ class BaseImprovementDefn_Instances
 
 		this._All =
 		[
+			// City improvements.
+
 			this.Airport,
 			this.Aqueduct,
 			this.Bank,
@@ -587,9 +594,6 @@ class BaseImprovementDefn_Instances
 			this.ResearchLab,
 			this.SamMissileBattery,
 			this.SdiDefense,
-			this.SsComponent,
-			this.SsModule,
-			this.SsStructural,
 			this.SewerSystem,
 			this.SolarPlant,
 			this.StockExchange,
@@ -597,6 +601,8 @@ class BaseImprovementDefn_Instances
 			this.Supermarkets,
 			this.Temple,
 			this.University,
+
+			// Wonders.
 
 			this.AdamSmithsTradingCo,
 			this.ApolloProgram,
@@ -625,7 +631,7 @@ class BaseImprovementDefn_Instances
 			this.StatueOfLiberty,
 			this.SunTzusWarAcademy,
 			this.UnitedNations,
-			this.WomensSuffrage
+			this.WomensSuffrage,
 		];
 
 		this._AllByName = new Map(this._All.map(x => [ x.name, x ] ) );
@@ -688,7 +694,7 @@ class BaseIndustry
 	canBuildBuildable(buildable, world)
 	{
 		var canBuild = this.owner(world).canBuildBuildable(buildable);
-		// todo - Some cities can't build some things, for instance, boats.
+		// todo - Some bases can't build some things, for instance, boats.
 		return canBuild;
 	}
 

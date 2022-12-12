@@ -59,6 +59,7 @@ class Technology_Instances
 		var govs = Government.Instances();
 		var bids = BaseImprovementDefn.Instances();
 		var uds = UnitDefn.Instances();
+		var ssps = StarshipPart.Instances();
 
 		//							name					cost		prereqs		 governmt 				buildables
 		this._Basic				= t("_Basic", 				0, 			prereqsNone, govs.Despotism, 		[ uds.Settlers ], );
@@ -125,7 +126,7 @@ class Technology_Instances
 		this.NuclearPower		= t("Nuclear Power", 		costTodo, 	prereqsNone, govNone, 				[ bids.NuclearPlant ] );
 		this.Philosophy			= t("Philosophy", 			costTodo, 	prereqsNone, govNone, 				buildablesNone);
 		this.Physics			= t("Physics", 				costTodo, 	prereqsNone, govNone, 				buildablesNone);
-		this.Plastics			= t("Plastics", 			costTodo, 	prereqsNone, govNone, 				[ bids.SsComponent ] );
+		this.Plastics			= t("Plastics", 			costTodo, 	prereqsNone, govNone, 				[ ssps.FuelTank, ssps.Thruster ] );
 		this.Polytheism			= t("Polytheism", 			costTodo, 	prereqsNone, govNone, 				[ uds.Elephants ] );
 		this.Pottery			= t("Pottery", 				costTodo, 	prereqsNone, govNone, 				[ bids.Granary, bids.HangingGardens ] );
 		this.Radio				= t("Radio", 				costTodo, 	prereqsNone, govNone, 				[ bids.Airport ] );
@@ -138,11 +139,11 @@ class Technology_Instances
 		this.Rocketry			= t("Rocketry", 			costTodo, 	prereqsNone, govNone, 				[ uds.AegisCruiser, uds.CruiseMissile, uds.NuclearMissile, bids.SamMissileBattery] );
 		this.Sanitation			= t("Sanitation", 			costTodo, 	prereqsNone, govNone, 				[ bids.SewerSystem ] );
 		this.Seafaring			= t("Seafaring", 			costTodo, 	prereqsNone, govNone, 				[ uds.Explorer, bids.Harbor ] );
-		this.SpaceFlight		= t("Space Flight", 		costTodo, 	prereqsNone, govNone, 				[ bids.SsStructural, bids.ApolloProgram ] );
+		this.SpaceFlight		= t("Space Flight", 		costTodo, 	prereqsNone, govNone, 				[ ssps.Structural, bids.ApolloProgram ] );
 		this.Stealth			= t("Stealth", 				costTodo, 	prereqsNone, govNone, 				[ uds.StealthFighter, uds.StealthBomber ] );
 		this.SteamEngine		= t("Steam Engine", 		costTodo, 	prereqsNone, govNone, 				[ uds.Ironclad, bids.EiffelTower ]);
 		this.Steel				= t("Steel", 				costTodo, 	prereqsNone, govNone, 				[ uds.Cruiser ] );
-		this.Superconductor 	= t("Superconductor", 		costTodo, 	prereqsNone, govNone, 				[ bids.SsModule ] );
+		this.Superconductor 	= t("Superconductor", 		costTodo, 	prereqsNone, govNone, 				[ ssps.Habitat, ssps.LifeSupport, ssps.Powerplant ] );
 		this.Tactics			= t("Tactics", 				costTodo, 	prereqsNone, govNone, 				[ uds.AlpineTroops, uds.Cavalry ] );
 		this.Theology			= t("Theology", 			costTodo, 	prereqsNone, govNone, 				[ bids.JsBachsCathedral ] );
 		this.TheoryOfGravity	= t("TheoryOfGravity", 		costTodo, 	prereqsNone, govNone, 				[ bids.IsaacNewtonsCollege ] );
