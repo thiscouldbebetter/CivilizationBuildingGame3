@@ -5,6 +5,7 @@ class Government
 	(
 		name,
 		taxRateMax,
+		foodConsumedPerSettler,
 		unhappyPopulationMitigatedByMartialLaw,
 		corruptionPerUnitDistanceFromCapital,
 		industryConsumedByUnitsSupportedByBase,
@@ -12,6 +13,7 @@ class Government
 	{
 		this.name = name;
 		this.taxRateMax = taxRateMax;
+		this.foodConsumedPerSettler	= foodConsumedPerSettler;
 		this.unhappyPopulationMitigatedByMartialLaw =
 			unhappyPopulationMitigatedByMartialLaw;
 		this.corruptionPerUnitDistanceFromCapital =
@@ -82,14 +84,17 @@ class Government_Instances
 
 		var unhappyPopulationMitigatedByMartialLaw = 3;
 
-		// 									 name				tax 	martial law,	corruption		support
-		this.Anarchy 		= new Government("Anarchy", 		.6, 	0,				cpudfcTodo, 	supportPastBaseSize(1) )
-		this.Communism 		= new Government("Communism",		.8, 	3,				cpudfcTodo, 	supportPastUnitCount(3, 1) );
-		this.Democracy 		= new Government("Democracy", 		1, 		0,				cpudfcTodo, 	supportPastUnitCount(0, 1) );
-		this.Despotism 		= new Government("Despotism", 		.6, 	2,				cpudfcTodo, 	supportPastBaseSize(1) );
-		this.Fundamentalism = new Government("Fundamentalism", 	.8, 	3,				cpudfcTodo, 	supportPastUnitCount(10, 1) );
-		this.Monarchy 		= new Government("Monarchy", 		.7, 	3,				cpudfcTodo, 	supportPastUnitCount(3, 1) );
-		this.Republic 		= new Government("Republic", 		.8, 	1,				cpudfcTodo, 	supportPastUnitCount(0, 1) );
+		var g = (n, t, fps, ml, cor, sup) =>
+			new Government(n, t, fps, ml, cor, sup);
+			
+		// 						name				tax 	fps, 	mart'l law,	corruption		support
+		this.Anarchy 		= g("Anarchy", 			.6, 	1,		0,			cpudfcTodo, 	supportPastBaseSize(1) )
+		this.Communism 		= g("Communism",		.8, 	2,		3,			cpudfcTodo, 	supportPastUnitCount(3, 1) );
+		this.Democracy 		= g("Democracy", 		1, 		2,		0,			cpudfcTodo, 	supportPastUnitCount(0, 1) );
+		this.Despotism 		= g("Despotism", 		.6, 	1, 		2,			cpudfcTodo, 	supportPastBaseSize(1) );
+		this.Fundamentalism = g("Fundamentalism", 	.8, 	2, 		3,			cpudfcTodo, 	supportPastUnitCount(10, 1) );
+		this.Monarchy 		= g("Monarchy", 		.7, 	1, 		3,			cpudfcTodo, 	supportPastUnitCount(3, 1) );
+		this.Republic 		= g("Republic", 		.8, 	2, 		1,			cpudfcTodo, 	supportPastUnitCount(0, 1) );
 
 		this._All =
 		[

@@ -1,11 +1,20 @@
 
 class World
 {
-	constructor(name, defns, turnsSoFar, map, owners)
+	constructor
+	(
+		name,
+		defns,
+		difficultyLevelName,
+		turnsSoFar,
+		map,
+		owners
+	)
 	{
 		this.name = name;
 		this.defns = defns;
 		this.turnsSoFar = turnsSoFar;
+		this.difficultyLevelName = difficultyLevelName;
 		this.map = map;
 		this.owners = owners;
 
@@ -86,10 +95,11 @@ class World
 		var owners = [];
 		var ownerCount = 2;
 		var ownerColorNames = [ "Blue", "Orange" ];
+		var mapSizeInCells = map.sizeInCells;
 		var ownerStartingPositions =
 		[
-			map.sizeInCells.clone().multiply(Coords.fromXY(.25, .5)).round(),
-			map.sizeInCells.clone().multiply(Coords.fromXY(.75, .5)).round()
+			mapSizeInCells.clone().multiply(Coords.fromXY(.25, .5)).round(),
+			mapSizeInCells.clone().multiply(Coords.fromXY(.75, .5)).round()
 		];
 		var unitDefns = UnitDefn.Instances();
 
@@ -126,6 +136,7 @@ class World
 		(
 			"Demo World:",
 			defns,
+			DifficultyLevel.Instances()._All[0].name,
 			0, // turnsSoFar
 			map,
 			owners
@@ -152,6 +163,11 @@ class World
 		this.bases.splice(this.bases.indexOf(base), 1);
 		var cell = this.map.cellAtPosInCells(base.pos);
 		cell.baseRemove(base);
+	}
+
+	difficultyLevel()
+	{
+		return DifficultyLevel.byName(this.difficultyLevelName);
 	}
 
 	draw(universe)

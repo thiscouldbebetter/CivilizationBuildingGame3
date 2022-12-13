@@ -67,12 +67,17 @@ class Owner
 
 	foodConsumedPerSettler()
 	{
-		return 2; // todo
+		return this.government().foodConsumedPerSettler;
 	}
 
 	government()
 	{
 		return Government.byName(this.governmentName);
+	}
+
+	governmentIs(governmentToCheck)
+	{
+		return (this.governmentName == governmentToCheck.name);
 	}
 
 	governmentsKnown()

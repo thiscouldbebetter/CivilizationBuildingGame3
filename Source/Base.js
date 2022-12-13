@@ -78,18 +78,62 @@ class Base
 
 	isExperiencingUnrest(world)
 	{
-		var owner = this.owner(world);
-		var ownerGovernment = owner.government;
+		var difficultyLevel = world.difficultyLevel();
 		var populationMaxBeforeUnhappiness =
-			ownerGovernment.basePopulationMaxBeforeUnhappiness;
-		var unhappyPopulationCount =
+			difficulty.basePopulationBeforeUnhappiness;
+
+		var unhappinessDueToOverpopulation =
 			this.population - populationMaxBeforeUnhappiness;
+		if (unhappinessDueToOverpopulation < 0)
+		{
+			unhappinessDueToOverpopulation = 0;
+		}
+
+		var unhappinessDueToMilitaryDeployment = 0;
+		var unitsSupported = this.unitsSupported();
+		var unitsMilitary = unitsSupported.filter(x => x.isMilitary())
+		var unitsMilitaryDeployed =
+			unitsMilitary.filter(x => x.isInHomeBase() == false);
+		var unitsMilitaryDeployedCount = unitsMilitaryDeployed.length;
+		if (unitsMilitaryDeployedCount > 0)
+		{
+			var governments = Government.Instances();
+
+			if (owner.governmentIs(governments.Republic))
+			{
+				unhappinessDueToMilitaryDeployment +=
+					unitsMilitaryDeployedCount;
+			}
+			else if (owner.governmentIs(governments.Democracy))
+			{
+				unhappinessDueToMilitaryDeployment +=
+					unitsMilitaryDeployedCount * 2;
+			}
+
+			var hasPoliceStation = this.hasImprovementPoliceStation();
+			if (hasPoliceStation)
+			{
+				unhappinessDueToMilitaryDeployment--;
+			}
+
+			if (unhappinessDueToMilitaryDeployment < 0)
+			{
+				unhappinessDueToMilitaryDeployment = 0;
+			}
+		}
+
+		var improvementsPresent = this.improvementsPresent();
+
 		if (unhappyPopulationCount > 0)
 		{
 			var unhappinessMitigatedByImprovements = 0;
-			var improvementsPresent = this.improvementsPresent();
-			improve
+			improvementsPresent.forEach
+			(
+				x => unhappinessMitigatedByImprovements += x.unhappyPopulationMitigated()
+			);
 
+			var owner = this.owner(world);
+			var ownerGovernment = owner.government;
 			var unitsPresentMilitary = this.unitsPresentMilitary();
 			var unhappinessMitigatedByMartialLaw =
 				unitsPresentMilitary.length;
@@ -463,11 +507,10 @@ class BaseBuildable
 
 class BaseImprovementDefn
 {
-	constructor(name, industryToBuild, effect)
+	constructor(name, industryToBuild)
 	{
 		this.name = name;
 		this.industryToBuild = industryToBuild;
-		this.effect = effect;
 	}
 
 	static Instances()
@@ -488,79 +531,121 @@ class BaseImprovementDefn
 	{
 		base.improvementAdd(this);
 	}
+
+	unhappyPopluationMitigated(owner)
+	{
+		var returnValue = 0;
+ 
+		var improvements = BaseImprovementDefn.Instances();
+		var techs = Technology.Instances();
+
+		if (this == improvements.Temple)
+		{
+			returnValue += 1;
+
+			if (owner.technologyIsKnown(techs.Mysticism))
+			{
+				returnValue += 1;
+			}
+		}
+		else if (this == improvements.Colosseum)
+		{
+			returnValue += 3;
+
+			if (owner.technologyIsKnown(techs.Electronics))
+			{
+				returnValue += 1;
+			}
+		}
+		else if (this == improvements.Cathedral)
+		{
+			returnValue += 3;
+
+			if (owner.technologyIsKnown(techs.Theology))
+			{
+				returnValue += 1;
+			}
+			
+			if (owner.technologyIsKnown(techs.Communism))
+			{
+				returnValue -= 1;
+			}
+		}
+
+		return returnValue;
+	}
 }
 
 class BaseImprovementDefn_Instances
 {
 	constructor()
 	{
-		var effectTodo = "todo";
-		var bid = (n, i, e) => new BaseImprovementDefn(n, i, e);
+		var bid = (n, i) => new BaseImprovementDefn(n, i);
 
-		this.Airport 			= bid("Airport", 			160, 	effectTodo);
-		this.Aqueduct 			= bid("Aqueduct", 			80, 	effectTodo);
-		this.Bank 				= bid("Bank", 				120, 	effectTodo);
-		this.Barracks 			= bid("Barracks", 			40, 	effectTodo);
-		this.Capitalization 	= bid("Capitalization", 	null, 	effectTodo);
-		this.Cathedral 			= bid("Cathedral", 			120, 	effectTodo);
-		this.CityWalls 			= bid("City Walls", 		80, 	effectTodo);
-		this.CoastalFortress 	= bid("Coastal Fortress", 	80, 	effectTodo);
-		this.Colosseum			= bid("Colosseum", 			100, 	effectTodo);
-		this.Courthouse 		= bid("Courthouse", 		80, 	effectTodo);
-		this.Factory 			= bid("Factory", 			200, 	effectTodo);
-		this.Granary 			= bid("Granary", 			60, 	effectTodo);
-		this.Harbor 			= bid("Harbor",				60,		effectTodo);
-		this.HydroPlant 		= bid("HydroPlant", 		240,	effectTodo);
-		this.Library 			= bid("Library", 			80, 	effectTodo);
-		this.ManufacturingPlant = bid("Manufacturing Plant", 320, 	effectTodo);
-		this.Marketplace		= bid("Marketplace", 		80, 	effectTodo);
-		this.MassTransit		= bid("Mass Transit", 		160, 	effectTodo);
-		this.NuclearPlant		= bid("Nuclear Plant", 		160, 	effectTodo);
-		this.OffshorePlatform 	= bid("Offshore Platform", 	160,	effectTodo);
-		this.Palace 			= bid("Palace", 			10, 	effectTodo);
-		this.PoliceStation 		= bid("Police Station", 	60, 	effectTodo);
-		this.PortFacility 		= bid("Port Facility", 		80, 	effectTodo);
-		this.PowerPlant 		= bid("Power Plant", 		160,	effectTodo);
-		this.RecyclingCenter	= bid("Recycling Center", 	200, 	effectTodo);
-		this.ResearchLab		= bid("Research Lab", 		160,	effectTodo);
-		this.SamMissileBattery 	= bid("SAM Missile Battery", 100,	effectTodo);
-		this.SdiDefense 		= bid("SDI Defense", 		200, 	effectTodo);
-		this.SewerSystem 		= bid("Sewer System", 		120, 	effectTodo);
-		this.SolarPlant			= bid("Solar Plant", 		320, 	effectTodo);
-		this.StockExchange 		= bid("Stock Exchange", 	160, 	effectTodo);
-		this.Superhighways		= bid("Superhighways",		200, 	effectTodo);
-		this.Supermarkets		= bid("Supermarkets",		80,		effectTodo);
-		this.Temple 			= bid("Temple", 			40, 	effectTodo);
-		this.University 		= bid("University",			160,	effectTodo);
+		this.Airport 				= bid("Airport", 				160);
+		this.Aqueduct 				= bid("Aqueduct", 				80);
+		this.Bank 					= bid("Bank", 					120);
+		this.Barracks 				= bid("Barracks", 				40);
+		this.Capitalization 		= bid("Capitalization", 		null);
+		this.Cathedral 				= bid("Cathedral", 				120);
+		this.CityWalls 				= bid("City Walls", 			80);
+		this.CoastalFortress 		= bid("Coastal Fortress", 		80);
+		this.Colosseum				= bid("Colosseum", 				100);
+		this.Courthouse 			= bid("Courthouse", 			80);
+		this.Factory 				= bid("Factory", 				200);
+		this.Granary 				= bid("Granary", 				60);
+		this.Harbor 				= bid("Harbor",					60);
+		this.HydroPlant 			= bid("HydroPlant", 			240);
+		this.Library 				= bid("Library", 				80);
+		this.ManufacturingPlant 	= bid("Manufacturing Plant", 	320);
+		this.Marketplace			= bid("Marketplace", 			80);
+		this.MassTransit			= bid("Mass Transit", 			160);
+		this.NuclearPlant			= bid("Nuclear Plant", 			160);
+		this.OffshorePlatform 		= bid("Offshore Platform", 		160);
+		this.Palace 				= bid("Palace", 				10);
+		this.PoliceStation 			= bid("Police Station", 		60);
+		this.PortFacility 			= bid("Port Facility", 			80);
+		this.PowerPlant 			= bid("Power Plant", 			160);
+		this.RecyclingCenter		= bid("Recycling Center", 		200);
+		this.ResearchLab			= bid("Research Lab", 			160);
+		this.SamMissileBattery 		= bid("SAM Missile Battery", 	100);
+		this.SdiDefense 			= bid("SDI Defense", 			200);
+		this.SewerSystem 			= bid("Sewer System", 			120);
+		this.SolarPlant				= bid("Solar Plant", 			320);
+		this.StockExchange 			= bid("Stock Exchange", 		160);
+		this.Superhighways			= bid("Superhighways",			200);
+		this.Supermarkets			= bid("Supermarkets",			80);
+		this.Temple 				= bid("Temple", 				40);
+		this.University 			= bid("University",				160);
 
-		this.AdamSmithsTradingCo 	= bid("Adam Smith's Trading Co",	400, effectTodo);
-		this.ApolloProgram 			= bid("Apollo Program",				600, effectTodo);
-		this.Colossus 				= bid("Colossus",					200, effectTodo);
-		this.CopernicusObservatory 	= bid("Copernicus' Observatory",	300, effectTodo);
-		this.CureForCancer 			= bid("Cure for Cancer",			600, effectTodo);
-		this.DarwinsVoyage 			= bid("Darwin's Voyage",			400, effectTodo);
-		this.EiffelTower 			= bid("Eiffel Tower",				300, effectTodo);
-		this.GreatLibrary 			= bid("Great Library",				300, effectTodo);
-		this.GreatWall 				= bid("GreatWall",					300, effectTodo);
-		this.HangingGardens 		= bid("HangingGardens",				200, effectTodo);
-		this.HooverDam 				= bid("Hoover Dam",					600, effectTodo);
-		this.IsaacNewtonsCollege 	= bid("Isaac Newton's College",		400, effectTodo);
-		this.JsBachsCathedral		= bid("J.S. Bach's Cathedral",		400, effectTodo);
-		this.KingRichardsCrusade 	= bid("King Richard's Crusade",		300, effectTodo);
-		this.LeonardosWorkshop 		= bid("Leonardo's Workshop",		400, effectTodo);
-		this.Lighthouse 			= bid("Lighthouse",					200, effectTodo);
-		this.MagellansExpedition 	= bid("Magellan's Expedition",		400, effectTodo);
-		this.ManhattanProject 		= bid("Manhattan Project",			600, effectTodo);
-		this.MarcoPolosEmbassy 		= bid("Marco's Polo's Embassy", 	200, effectTodo);
-		this.MichelangelosChapel 	= bid("Michelangelo's Chapel", 		400, effectTodo);
-		this.Oracle					= bid("Oracle",						300, effectTodo);
-		this.Pyramids 				= bid("Pyramids",					200, effectTodo);
-		this.SetiProgram 			= bid("SETI Program",				600, effectTodo);
-		this.ShakespearesTheatre 	= bid("Shakespeare's Theatre",		300, effectTodo);
-		this.StatueOfLiberty 		= bid("Statue of Liberty",			400, effectTodo);
-		this.SunTzusWarAcademy 		= bid("Sun Tzu's War Academy", 		300, effectTodo);
-		this.UnitedNations 			= bid("United Nations",				600, effectTodo);
-		this.WomensSuffrage 		= bid("Women's Suffrage",			600, effectTodo);
+		this.AdamSmithsTradingCo 	= bid("Adam Smith's Trading Co",400);
+		this.ApolloProgram 			= bid("Apollo Program",			600);
+		this.Colossus 				= bid("Colossus",				200);
+		this.CopernicusObservatory 	= bid("Copernicus' Observatory",300);
+		this.CureForCancer 			= bid("Cure for Cancer",		600);
+		this.DarwinsVoyage 			= bid("Darwin's Voyage",		400);
+		this.EiffelTower 			= bid("Eiffel Tower",			300);
+		this.GreatLibrary 			= bid("Great Library",			300);
+		this.GreatWall 				= bid("GreatWall",				300);
+		this.HangingGardens 		= bid("HangingGardens",			200);
+		this.HooverDam 				= bid("Hoover Dam",				600);
+		this.IsaacNewtonsCollege 	= bid("Isaac Newton's College",	400);
+		this.JsBachsCathedral		= bid("J.S. Bach's Cathedral",	400);
+		this.KingRichardsCrusade 	= bid("King Richard's Crusade",	300);
+		this.LeonardosWorkshop 		= bid("Leonardo's Workshop",	400);
+		this.Lighthouse 			= bid("Lighthouse",				200);
+		this.MagellansExpedition 	= bid("Magellan's Expedition",	400);
+		this.ManhattanProject 		= bid("Manhattan Project",		600);
+		this.MarcoPolosEmbassy 		= bid("Marco's Polo's Embassy", 200);
+		this.MichelangelosChapel 	= bid("Michelangelo's Chapel", 	400);
+		this.Oracle					= bid("Oracle",					300);
+		this.Pyramids 				= bid("Pyramids",				200);
+		this.SetiProgram 			= bid("SETI Program",			600);
+		this.ShakespearesTheatre 	= bid("Shakespeare's Theatre",	300);
+		this.StatueOfLiberty 		= bid("Statue of Liberty",		400);
+		this.SunTzusWarAcademy 		= bid("Sun Tzu's War Academy", 	300);
+		this.UnitedNations 			= bid("United Nations",			600);
+		this.WomensSuffrage 		= bid("Women's Suffrage",		600);
 
 		this._All =
 		[
