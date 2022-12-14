@@ -170,6 +170,11 @@ class Base
 		return world.owners.find(x => x.name == this.ownerName);
 	}
 
+	populationAdd(populationChange)
+	{
+		this.population += populationChange;
+	}
+
 	populationCanGrow()
 	{
 		var canGrow;
@@ -235,15 +240,17 @@ class Base
 		this.landUsage.turnUpdate(world, this);
 		this.industry.turnUpdate(world, this);
 
-		this.foodStockpiled += this.foodThisTurnNet(world);
+		var foodThisTurnNet = this.foodThisTurnNet(world);
+		this.foodStockpiled += foodThisTurnNet;
 		var foodNeededToGrow = this.foodNeededToGrow();
 		if (this.foodStockpiled < 0)
 		{
-			this.population--;
+			this.populationAdd(-1);
 			if (this.population <= 0)
 			{
 				world.baseRemove(this);
 			}
+			this.landUsage.offsetRemoveWorst(world, this);
 		}
 		else if (this.foodStockpiled >= foodNeededToGrow)
 		{
@@ -251,7 +258,8 @@ class Base
 			{
 				this.foodStockpiled = foodNeededToGrow;
 
-				this.population++;
+				this.populationAdd(1);
+
 				var granary = BaseImprovementDefn.Instances().Granary;
 				var hasGranary = this.hasImprovement(granary);
 				if (hasGranary)
@@ -263,7 +271,10 @@ class Base
 					this.foodStockpiled = 0;
 				}
 
-				this.landUsageOptimize(world);
+				this.landUsage.offsetChooseOptimumFromAvailable
+				(
+					world, this
+				);
 			}
 		}
 	}
@@ -306,6 +317,11 @@ class Base
 		return corruptionThisTurn;
 	}
 
+	foodConsumedPerPopulation()
+	{
+		return 2;
+	}
+
 	foodConsumedPerSettler(world)
 	{
 		return this.owner(world).foodConsumedPerSettler();
@@ -313,7 +329,12 @@ class Base
 
 	foodNeededToGrow()
 	{
-		return this.population * 10; // todo
+		return this.population * this.foodNeededToGrowPerPopulation();
+	}
+
+	foodNeededToGrowPerPopulation()
+	{
+		return 16; // ?
 	}
 
 	foodThisTurnGross(world)
@@ -325,7 +346,8 @@ class Base
 	{
 		var gross = this.foodThisTurnGross(world);
 
-		var consumedByPopulation = this.population;
+		var consumedByPopulation =
+			this.population * this.foodConsumedPerPopulation();
 
 		var unitsSupported = this.unitsSupported(world);
 		var settlersSupported = unitsSupported.filter
@@ -823,6 +845,8 @@ class BaseLandUsage
 	{
 		this.offsetsInUse = offsetsInUse || [];
 
+		this._cellPos = Coords.create();
+		this._offset = Coords.create();
 		this._resourcesProducedThisTurn = ResourceProduction.create();
 	}
 
@@ -831,58 +855,100 @@ class BaseLandUsage
 		return new BaseLandUsage(null);
 	}
 
+	offsetChooseOptimumFromAvailable(world, base)
+	{
+		var map = world.map;
+
+		var offsetValueMaxSoFar = 0;
+		var offsetWithValueMaxSoFar = null;
+
+		var offset = this._offset;
+		var cellPos = this._cellPos;
+
+		for (var y = -2; y <= 2; y++)
+		{
+			offset.y = y;
+
+			for (var x = -2; x <= 2; x++)
+			{
+				offset.x = x;
+
+				var offsetAbsoluteSumOfDimensions =
+					offset.clone().absolute().sumOfDimensions();
+				var offsetIsInRange =
+				(
+					offsetAbsoluteSumOfDimensions > 0
+					&& offsetAbsoluteSumOfDimensions < 4
+				);
+
+				var offsetIsInUse =
+					this.offsetsInUse.some(x => x.equals(offset));
+
+				var offsetIsAvailable =
+					offsetIsInRange && (offsetIsInUse == false);
+
+				if (offsetIsAvailable)
+				{
+					cellPos.overwriteWith(base.pos).add(offset);
+					var cellAtOffset = map.cellAtPosInCells(cellPos);
+					var offsetValue = cellAtOffset.value(world, base);
+
+					if (offsetValue > offsetValueMaxSoFar)
+					{
+						offsetValueMaxSoFar = offsetValue;
+						offsetWithValueMaxSoFar = offset.clone();
+					}
+				}
+			}
+		}
+
+		this.offsetsInUse.push(offsetWithValueMaxSoFar);
+	}
+
+	offsetRemoveWorst(world, base)
+	{
+		var map = world.map;
+
+		var offset = this._offset;
+		var cellPos = this._cellPos;
+
+		var offsetWithValueMinSoFar = this.offsetsInUse[1]; // Can't remove offset 0.
+		cellPos.overwriteWith(base.pos).add(offsetWithValueMinSoFar);
+		var cellAtOffset = map.cellAtPosInCells(cellPos);
+		var offsetValueMinSoFar = cellAtOffset.value(world, base);
+
+		for (var i = 2; i < this.offsetsInUse.length; i++)
+		{
+			cellPos.overwriteWith(base.pos).add(offset);
+			var cellAtOffset = map.cellAtPosInCells(cellPos);
+			var offsetValue = cellAtOffset.value(world, base);
+
+			if (offsetValue < offsetValueMinSoFar)
+			{
+				offsetValueMinSoFar = offsetValue;
+				offsetWithValueMinSoFar = offset;
+			}
+		}
+
+		this.offsetsInUse.splice
+		(
+			this.offsetsInUse.indexOf(offsetWithValueMinSoFar),
+			1 // numberToRemove
+		)
+	}
+
 	optimize(world, base)
 	{
 		// todo - This isn't very efficient.
 
-		this._resourcesProducedThisTurn = null;
-
-		var map = world.map;
-
 		this.offsetsInUse.length = 0;
 
-		var offset = Coords.zeroes(); // The center is always in use.
+		var offset = this._offset.clear(); // The center is always in use.
 		this.offsetsInUse.push(offset.clone());
-
-		var cellPos = Coords.create();
 
 		for (var p = 0; p < base.population; p++)
 		{
-			var offsetValueMaxSoFar = 0;
-			var offsetWithValueMaxSoFar = null;
-
-			for (var y = -2; y <= 2; y++)
-			{
-				offset.y = y;
-
-				for (var x = -2; x <= 2; x++)
-				{
-					offset.x = x;
-
-					var offsetAbsoluteSumOfDimensions =
-						offset.clone().absolute().sumOfDimensions();
-					var isAvailableOffset =
-					(
-						offsetAbsoluteSumOfDimensions > 0
-						&& offsetAbsoluteSumOfDimensions < 4
-					);
-
-					if (isAvailableOffset)
-					{
-						cellPos.overwriteWith(base.pos).add(offset);
-						var cellAtOffset = map.cellAtPosInCells(cellPos);
-						var offsetValue = cellAtOffset.value(world, base);
-
-						if (offsetValue > offsetValueMaxSoFar)
-						{
-							offsetValueMaxSoFar = offsetValue;
-							offsetWithValueMaxSoFar = offset.clone();
-						}
-					}
-				}
-			}
-
-			this.offsetsInUse.push(offsetWithValueMaxSoFar);
+			this.offsetChooseOptimumFromAvailable(world, base);
 		}
 
 		return this;
@@ -890,24 +956,23 @@ class BaseLandUsage
 
 	resourcesProducedThisTurn(world, base)
 	{
-		if (this._resourcesProducedThisTurn == null)
-		{
-			this._resourcesProducedThisTurn = ResourceProduction.create();
+		var resourcesProducedThisTurn =
+			this._resourcesProducedThisTurn.clear();
 
-			var basePos = base.pos;
-			var cellsInUsePositions =
-				this.offsetsInUse.map(x => x.clone().add(basePos));
-			var map = world.map;
-			var cellsInUse =
-				cellsInUsePositions.map(x => map.cellAtPosInCells(x) );
-			var resourcesProducedByCells =
-				cellsInUse.map(x => x.resourcesProduced(world, base) );
-			resourcesProducedByCells.forEach
-			(
-				x => this._resourcesProducedThisTurn.add(x)
-			);
-		}
-		return this._resourcesProducedThisTurn;
+		var basePos = base.pos;
+		var cellsInUsePositions =
+			this.offsetsInUse.map(x => x.clone().add(basePos));
+		var map = world.map;
+		var cellsInUse =
+			cellsInUsePositions.map(x => map.cellAtPosInCells(x) );
+		var resourcesProducedByCells =
+			cellsInUse.map(x => x.resourcesProduced(world, base) );
+		resourcesProducedByCells.forEach
+		(
+			x => resourcesProducedThisTurn.add(x)
+		);
+
+		return resourcesProducedThisTurn;
 	}
 
 	toString()

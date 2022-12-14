@@ -801,7 +801,7 @@ class UnitDefnMovement
 						var cellToHasRoads = cellTo.hasRoads();
 						costToMoveInThirds =
 						(
-							cellTo.hasRoads()
+							cellToHasRoads
 							? 1
 							: cellToTerrain.movesToTraverse * 3
 						);

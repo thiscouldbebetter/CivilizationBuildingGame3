@@ -8,7 +8,7 @@ class Government
 		foodConsumedPerSettler,
 		unhappyPopulationMitigatedByMartialLaw,
 		corruptionPerUnitDistanceFromCapital,
-		industryConsumedByUnitsSupportedByBase,
+		industryConsumedByUnitsSupportedByBase
 	)
 	{
 		this.name = name;
