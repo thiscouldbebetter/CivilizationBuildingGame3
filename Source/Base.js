@@ -6,7 +6,7 @@ class Base
 		name,
 		pos,
 		ownerName,
-		population,
+		demographics,
 		landUsage,
 		foodStockpiled,
 		industry
@@ -17,7 +17,7 @@ class Base
 		this.name = name || ("City" + this.id);
 		this.pos = pos;
 		this.ownerName = ownerName;
-		this.population = population || 1;
+		this.demographics = demographics || BaseDemographics.fromPopulation(1);
 		this.landUsage = landUsage || BaseLandUsage.default();
 		this.foodStockpiled = foodStockpiled || 0;
 		this.industry = industry || BaseIndustry.default();
@@ -68,7 +68,7 @@ class Base
 		var cellOccupied = world.map.cellAtPosInCells(this.pos);
 		cellOccupied.improvementAddIrrigation();
 		cellOccupied.improvementAddRoads();
-		this.landUsage.optimize(world, this);
+		this.laborOptimize(world);
 	}
 
 	isBuildingSomething()
@@ -78,81 +78,15 @@ class Base
 
 	isExperiencingUnrest(world)
 	{
-		var difficultyLevel = world.difficultyLevel();
-		var populationMaxBeforeUnhappiness =
-			difficulty.basePopulationBeforeUnhappiness;
+		var unhappyPopulationCount =
+			this.demographics.populationUnhappy(world, this);
 
-		var unhappinessDueToOverpopulation =
-			this.population - populationMaxBeforeUnhappiness;
-		if (unhappinessDueToOverpopulation < 0)
-		{
-			unhappinessDueToOverpopulation = 0;
-		}
+		var happyPopulationCount =
+			this.demographics.populationHappy(world, this);
 
-		var unhappinessDueToMilitaryDeployment = 0;
-		var unitsSupported = this.unitsSupported();
-		var unitsMilitary = unitsSupported.filter(x => x.isMilitary())
-		var unitsMilitaryDeployed =
-			unitsMilitary.filter(x => x.isInHomeBase() == false);
-		var unitsMilitaryDeployedCount = unitsMilitaryDeployed.length;
-		if (unitsMilitaryDeployedCount > 0)
-		{
-			var governments = Government.Instances();
+		var returnValue = (unhappyPopulationCount > happyPopulationCount);
 
-			if (owner.governmentIs(governments.Republic))
-			{
-				unhappinessDueToMilitaryDeployment +=
-					unitsMilitaryDeployedCount;
-			}
-			else if (owner.governmentIs(governments.Democracy))
-			{
-				unhappinessDueToMilitaryDeployment +=
-					unitsMilitaryDeployedCount * 2;
-			}
-
-			var hasPoliceStation = this.hasImprovementPoliceStation();
-			if (hasPoliceStation)
-			{
-				unhappinessDueToMilitaryDeployment--;
-			}
-
-			if (unhappinessDueToMilitaryDeployment < 0)
-			{
-				unhappinessDueToMilitaryDeployment = 0;
-			}
-		}
-
-		var improvementsPresent = this.improvementsPresent();
-
-		if (unhappyPopulationCount > 0)
-		{
-			var unhappinessMitigatedByImprovements = 0;
-			improvementsPresent.forEach
-			(
-				x => unhappinessMitigatedByImprovements += x.unhappyPopulationMitigated()
-			);
-
-			var owner = this.owner(world);
-			var ownerGovernment = owner.government;
-			var unitsPresentMilitary = this.unitsPresentMilitary();
-			var unhappinessMitigatedByMartialLaw =
-				unitsPresentMilitary.length;
-			var martialLawMax =
-				ownerGovernment.unhappyPopulationMitigatedByMartialLaw;
-			if (unhappinessMitigatedByMartialLaw > martialLawMax)
-			{
-				unhappinessMitigatedByMartialLaw = martialLawMax;
-			}
-
-			var unhappinessMitigatedTotal =
-				unhappinessMitigatedByImprovements
-				+ unhappinessMitigatedByMartialLaw;
-
-			unhappyPopulationCount -= unhappinessMitigatedTotal;
-		}
-
-		var returnValue = (unhappyPopulationCount > 0);
-		return isExperiencingUnrest;
+		return returnValue;
 	}
 
 	isIdle()
@@ -170,41 +104,6 @@ class Base
 		return world.owners.find(x => x.name == this.ownerName);
 	}
 
-	populationAdd(populationChange)
-	{
-		this.population += populationChange;
-	}
-
-	populationCanGrow()
-	{
-		var canGrow;
-
-		var improvements = BaseImprovementDefn.Instances();
-
-		if (this.population < 8)
-		{
-			canGrow = true;
-		}
-		else if
-		(
-			this.population < 12
-			&& this.hasImprovement(improvements.Aqueduct)
-		)
-		{
-			canGrow = true;
-		}
-		else if (this.hasImprovement(improvements.SewerSystem))
-		{
-			canGrow = true;
-		}
-		else
-		{
-			canGrow = false;
-		}
-
-		return canGrow;
-	}
-
 	resourcesProducedThisTurn(world)
 	{
 		return this.landUsage.resourcesProducedThisTurn(world, this);
@@ -219,7 +118,7 @@ class Base
 			"Name: " + this.id,
 			"Onwer:" + this.ownerName,
 			"Position: " + this.pos.toString(),
-			"Population: " + this.population,
+			"Population: " + this.population(),
 			"Food: " + this.foodStockpiled,
 			this.landUsage.toString(),
 			this.industry.toString()
@@ -246,7 +145,7 @@ class Base
 		if (this.foodStockpiled < 0)
 		{
 			this.populationAdd(-1);
-			if (this.population <= 0)
+			if (this.population() <= 0)
 			{
 				world.baseRemove(this);
 			}
@@ -277,6 +176,29 @@ class Base
 				);
 			}
 		}
+	}
+
+	workerWorstReassignAsEntertainer(world)
+	{
+		this.landUsage.offsetRemoveWorst(world, this);
+		this.demographics.entertainerAdd();
+	}
+
+	// Demographics.
+
+	population()
+	{
+		return this.demographics.population;
+	}
+
+	populationAdd(populationChange)
+	{
+		this.demographics.populationAdd(populationChange);
+	}
+
+	populationCanGrow()
+	{
+		return this.demographics.populationCanGrow(this);
 	}
 
 	// Improvements.
@@ -329,7 +251,7 @@ class Base
 
 	foodNeededToGrow()
 	{
-		return this.population * this.foodNeededToGrowPerPopulation();
+		return this.population() * this.foodNeededToGrowPerPopulation();
 	}
 
 	foodNeededToGrowPerPopulation()
@@ -347,7 +269,7 @@ class Base
 		var gross = this.foodThisTurnGross(world);
 
 		var consumedByPopulation =
-			this.population * this.foodConsumedPerPopulation();
+			this.population() * this.foodConsumedPerPopulation();
 
 		var unitsSupported = this.unitsSupported(world);
 		var settlersSupported = unitsSupported.filter
@@ -374,24 +296,30 @@ class Base
 	industryThisTurnNet(world)
 	{
 		var gross = this.industryThisTurnGross(world);
-		var unitsSupportedCount = this.unitsSupportedCount();
-		var costToSupportUnits = 0; // todo
-		var upkeep = gross - costToSupportUnits;
-		return upkeep;
-	}
-
-	industryThisTurnNet(world)
-	{
-		var gross = this.industryThisTurnGross(world);
-		var owner = this.owner(world);
-		var unitsSupportedCount = this.unitsSupported(world).length;
-		var upkeep = owner.industryConsumedByUnitCount(unitsSupportedCount);
-		var net = gross - upkeep;
+		var costToSupportUnits = this.industryNeededToSupportUnits(world);
+		var net = gross - costToSupportUnits;
+		var isExperiencingUnrest = this.isExperiencingUnrest(world);
+		if (net > 0 && isExperiencingUnrest )
+		{
+			net = 0;
+		}
 		return net;
 	}
 
-	landUsageOptimize(world)
+	industryNeededToSupportUnits(world)
 	{
+		var unitsSupportedCount = this.unitsSupportedCount();
+		var owner = this.owner(world);
+		var government = owner.government();
+		var industryNeeded =
+			government.industryConsumedByUnitsSupportedByBase(this);
+		return industryNeeded;
+	}
+
+	laborOptimize(world)
+	{
+		// todo - This isn't really optimum.
+		this.demographics.specialistsReassignAllAsWorkers();
 		this.landUsage.optimize(world, this);
 	}
 
@@ -401,6 +329,10 @@ class Base
 		var moneyThisTurn = this.moneyThisTurnGross(world);
 		var researchThisTurn = this.researchThisTurn(world);
 		var luxuriesThisTurn = tradeThisTurn - moneyThisTurn - researchThisTurn;
+		var luxuriesPerEntertainer = 2;
+		var luxuriesFromEntertainers =
+			this.demographics.entertainerCount * luxuriesPerEntertainer;
+		luxuriesThisTurn += luxuriesFromEntertainers;
 		return luxuriesThisTurn;
 	}
 
@@ -480,8 +412,8 @@ class Base
 			{
 				var defn = x.defn(world);
 				var isGroundMilitary =
-					(defn.isMilitary() && defn.isGroundUnit());
-				return isGroundMilitary
+					(defn.isMilitary() && defn.isGroundUnit(world) );
+				return isGroundMilitary;
 			}
 		);
 		return returnValues;
@@ -527,6 +459,217 @@ class BaseBuildable
 	}
 }
 
+class BaseDemographics
+{
+	constructor
+	(
+		population,
+		entertainerCount,
+		scientistCount,
+		taxCollectorCount
+	)
+	{
+		this.population = population;
+		this.entertainerCount = entertainerCount || 0;
+		this.scientistCount = scientistCount || 0;
+		this.taxCollectorCount = taxCollectorCount || 0;
+	}
+
+	static fromPopulation(population)
+	{
+		return new BaseDemographics(1, null, null, null);
+	}
+
+	populationAdd(populationChange)
+	{
+		this.population += populationChange;
+	}
+
+	populationCanGrow(base)
+	{
+		var canGrow;
+
+		var improvements = BaseImprovementDefn.Instances();
+
+		if (this.population < 8)
+		{
+			canGrow = true;
+		}
+		else if
+		(
+			this.population < 12
+			&& base.hasImprovement(improvements.Aqueduct)
+		)
+		{
+			canGrow = true;
+		}
+		else if (base.hasImprovement(improvements.SewerSystem))
+		{
+			canGrow = true;
+		}
+		else
+		{
+			canGrow = false;
+		}
+
+		return canGrow;
+	}
+
+	populationHappy(world, base)
+	{
+		var luxuriesThisTurn = base.luxuriesThisTurn(world);
+		var happinessDueToLuxuries = Math.floor(luxuriesThisTurn / 2);
+		var happyPopulationCount = happinessDueToLuxuries;
+		return happyPopulationCount;
+	}
+
+	populationUnhappy(world, base)
+	{
+		var difficultyLevel = world.difficultyLevel();
+		var populationMaxBeforeUnhappiness =
+			difficultyLevel.basePopulationBeforeUnhappiness;
+
+		var unhappinessDueToOverpopulation =
+			this.population - populationMaxBeforeUnhappiness;
+		if (unhappinessDueToOverpopulation < 0)
+		{
+			unhappinessDueToOverpopulation = 0;
+		}
+
+		var unhappinessDueToMilitaryDeployment = 0;
+		var unitsSupported = base.unitsSupported(world);
+		var unitsMilitary = unitsSupported.filter(x => x.isMilitary(world))
+		var unitsMilitaryDeployed =
+			unitsMilitary.filter(x => x.isInBaseSupporting(world) == false);
+		var unitsMilitaryDeployedCount = unitsMilitaryDeployed.length;
+		if (unitsMilitaryDeployedCount > 0)
+		{
+			var governments = Government.Instances();
+
+			if (owner.governmentIs(governments.Republic))
+			{
+				unhappinessDueToMilitaryDeployment +=
+					unitsMilitaryDeployedCount;
+			}
+			else if (owner.governmentIs(governments.Democracy))
+			{
+				unhappinessDueToMilitaryDeployment +=
+					unitsMilitaryDeployedCount * 2;
+			}
+
+			var hasPoliceStation = base.hasImprovementPoliceStation();
+			if (hasPoliceStation)
+			{
+				unhappinessDueToMilitaryDeployment--;
+			}
+
+			if (unhappinessDueToMilitaryDeployment < 0)
+			{
+				unhappinessDueToMilitaryDeployment = 0;
+			}
+		}
+		
+		var unhappyPopulationCount =
+			unhappinessDueToOverpopulation
+			+ unhappinessDueToMilitaryDeployment;
+
+		var improvementsPresent = base.improvementsPresent();
+
+		if (unhappyPopulationCount > 0)
+		{
+			var unhappinessMitigatedByImprovements = 0;
+			improvementsPresent.forEach
+			(
+				x => unhappinessMitigatedByImprovements += x.unhappyPopulationMitigated()
+			);
+
+			var owner = base.owner(world);
+			var ownerGovernment = owner.government;
+			var unitsPresentMilitary = base.unitsPresentMilitary(world);
+			var unhappinessMitigatedByMartialLaw =
+				unitsPresentMilitary.length;
+			var martialLawMax =
+				ownerGovernment.unhappyPopulationMitigatedByMartialLaw;
+			if (unhappinessMitigatedByMartialLaw > martialLawMax)
+			{
+				unhappinessMitigatedByMartialLaw = martialLawMax;
+			}
+
+			var unhappinessMitigatedTotal =
+				unhappinessMitigatedByImprovements
+				+ unhappinessMitigatedByMartialLaw;
+
+			unhappyPopulationCount -= unhappinessMitigatedTotal;
+		}
+
+		if (unhappyPopulationCount < 0)
+		{
+			unhappyPopulationCount = 0;
+		}
+
+		return unhappyPopulationCount;
+	}
+
+	// Specialists.
+
+	entertainerAdd()
+	{
+		this.entertainerCount++;
+	}
+
+	entertainerReassignAsScientist()
+	{
+		this.entertainerCount--;
+		this.scientistCount++;
+	}
+
+	hasSpecialists()
+	{
+		var returnValue =
+		(
+			this.entertainerCount > 0
+			|| this.scientistCount > 0
+			|| this.taxCollectorCount > 0
+		);
+		return returnValue;
+	}
+
+	scientistReassignAsTaxCollector()
+	{
+		this.scientistCount--;
+		this.taxCollectorCount++;
+	}
+
+	specialistReassignAsWorker()
+	{
+		if (this.entertainerCount > 0)
+		{
+			this.entertainerCount--;
+		}
+		else if (this.scientistCount > 0)
+		{
+			this.scientistCount--;
+		}
+		else if (this.taxCollectorCount > 0)
+		{
+			this.taxCollectorCount--;
+		}
+	}
+
+	specialistsReassignAllAsWorkers()
+	{
+		this.entertainerCount = 0;
+		this.scientistCount = 0;
+		this.taxCollectorCount = 0;
+	}
+
+	taxCollectorReassignAsEntertainer()
+	{
+		this.taxCollectorCount--;
+		this.entertainerCount++;
+	}
+}
+
 class BaseImprovementDefn
 {
 	constructor(name, industryToBuild)
@@ -554,7 +697,7 @@ class BaseImprovementDefn
 		base.improvementAdd(this);
 	}
 
-	unhappyPopluationMitigated(owner)
+	unhappyPopulationMitigated(owner)
 	{
 		var returnValue = 0;
  
@@ -826,14 +969,23 @@ class BaseIndustry
 		var buildableInProgress = this.buildableInProgress(world, base);
 		if (buildableInProgress != null)
 		{
-			var resourcesThisTurn = base.resourcesProducedThisTurn(world);
-			var industryThisTurn = resourcesThisTurn.industry;
-			this.industryStockpiled += industryThisTurn;
-			var industryRequired = buildableInProgress.industryToBuild;
-			if (this.industryStockpiled >= industryRequired)
+			var industryThisTurnNet = base.industryThisTurnNet(world);
+			this.industryStockpiled += industryThisTurnNet;
+
+			if (this.industryStockpiled < 0)
 			{
-				buildableInProgress.build(world, base);
-				this.buildableInProgressClear();
+				var unitsSupported = base.unitsSupported(world);
+				var unitToBeDisbanded = unitsSupported[unitsSupported.length - 1];
+				// todo - Disband the unit.
+			}
+			else
+			{
+				var industryRequired = buildableInProgress.industryToBuild;
+				if (this.industryStockpiled >= industryRequired)
+				{
+					buildableInProgress.build(world, base);
+					this.buildableInProgressClear();
+				}
 			}
 		}
 	}
@@ -946,7 +1098,7 @@ class BaseLandUsage
 		var offset = this._offset.clear(); // The center is always in use.
 		this.offsetsInUse.push(offset.clone());
 
-		for (var p = 0; p < base.population; p++)
+		for (var p = 0; p < base.population(); p++)
 		{
 			this.offsetChooseOptimumFromAvailable(world, base);
 		}

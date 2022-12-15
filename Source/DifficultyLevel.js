@@ -38,10 +38,10 @@ class DifficultyLevel_Instances
 {
 	constructor()
 	{
-		var dl = (n, tm, sc, bpmu, bdfcp, bam) =>
-			new DifficultyLevel(n, tm, sc, bpmu, bdfcp, bam);
+		var dl = (n, tm, sc, bpbu, bdfcp, bam) =>
+			new DifficultyLevel(n, tm, sc, bpbu, bdfcp, bam);
 
-		// 					 name			turns	cash, 	bpmu	bdfcp,	bam
+		// 					 name			turns	cash, 	bpbu,	bdfcp,	bam
 		this.Chieftan 	= dl("Chieftan", 	570, 	50,		6,		0,		0.25);
 		this.Warlord 	= dl("Warlord", 	545, 	0,		5,		0,		0.5);
 		this.Prince 	= dl("Prince", 		520, 	0,		4,		0,		0.75);

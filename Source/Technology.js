@@ -62,7 +62,7 @@ class Technology_Instances
 		var ssps = StarshipPart.Instances();
 
 		//							name					cost		prereqs		 governmt 				buildables
-		this._Basic				= t("_Basic", 				0, 			prereqsNone, govs.Despotism, 		[ uds.Settlers ], );
+		this._Basic				= t("_Basic", 				0, 			prereqsNone, govs.Despotism, 		[ uds.Settlers, uds.Warriors ], );
 
 		this.AdvancedFlight		= t("Advanced Flight", 		costTodo, 	prereqsNone, govNone, 				[ uds.Bomber, uds.Carrier ] );
 		this.Alphabet			= t("Alphabet", 			costTodo, 	prereqsNone, govNone, 				buildablesNone);

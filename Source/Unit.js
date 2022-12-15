@@ -8,6 +8,7 @@ class Unit
 		this.pos = pos;
 
 		this.id = IdHelper.idNext();
+		this.baseSupportingId = null;
 		this.moveThirdsThisTurn = 0;
 		this.isSleeping = false;
 
@@ -33,6 +34,17 @@ class Unit
 		}
 	}
 
+	baseSupporting(world)
+	{
+		return world.baseById(this.baseSupportingId);
+	}
+
+	baseSupportingSet(base)
+	{
+		this.baseSupportingId = base.id;
+		base.unitSupport(this);
+	}
+
 	category()
 	{
 		return SelectableCategory.Instances().Units;
@@ -48,14 +60,29 @@ class Unit
 		return (this.moveThirdsThisTurn > 0);
 	}
 
+	integritySubtractDamage(damage, world)
+	{
+		this.defn(world).combat.integritySubtractDamageFromUnit(damage, this);
+	}
+
 	isIdle()
 	{
 		return (this.hasMovesThisTurn() && this.isSleeping == false);
 	}
 
+	isMilitary(world)
+	{
+		return (this.defn(world).combat.attack > 0);
+	}
+
 	initialize(world)
 	{
 		this.turnUpdate(world);
+	}
+
+	isInBaseSupporting(world)
+	{
+		return this.baseSupporting(world).pos.equals(this.pos);
 	}
 
 	movesThisTurnClear()
@@ -480,14 +507,19 @@ class UnitDefn
 		var unitPos = base.pos.clone();
 		var baseOwner = base.owner(world);
 		var unit = new Unit(baseOwner.name, this.name, unitPos);
-		base.unitSupport(unit);
+		unit.baseSupportingSet(base);
 		unit.pos = base.pos.clone();
 		world.unitAdd(unit);
 	}
 
-	isGroundUnit()
+	isGroundUnit(world)
 	{
-		return this.movement.isGround();
+		return this.movement.isGround(world);
+	}
+
+	isMilitary()
+	{
+		return (this.combat.attack > 0);
 	}
 
 	movesPerTurn()
@@ -654,10 +686,11 @@ class UnitDefn_Instances
 
 class UnitDefnCombat
 {
-	constructor(attack, defense, integrityMax)
+	constructor(attack, defense, damagePerHit, integrityMax)
 	{
 		this.attack = attack;
 		this.defense = defense;
+		this.damagePerHit = damagePerHit;
 		this.integrityMax = integrityMax;
 	}
 
@@ -666,29 +699,35 @@ class UnitDefnCombat
 		return new UnitDefnCombat(attack, defense, integrityMax);
 	}
 
-	unitAttackDefender(attacker, defender)
+	unitAttackDefender(attacker, defender, world)
 	{
 		var attackerDefn = this.defn(world);
 		var defenderDefn = defender.defn(world);
+		
+		var attackerCombat = attackerDefn.combat;
+		var defenderCombat = defenderDefn.combat;
+
 		var attackOfAttacker = attackerDefn.combat.attack;
 		var defenseOfDefender = defenderDefn.combat.defense;
+
 		var attackOfAttackerPlusDefenseOfDefender =
 			attackOfAttacker + defenseOfDefender;
 		var attackerAttackRoll =
 			Math.random() * attackOfAttackerPlusDefenseOfDefender;
+
 		if (attackerAttackRoll > defenseOfDefender)
 		{
-			defender.combat.integritySubtract1();
+			defender.integritySubtract(attackerCombat.damagePerHit, world);
 		}
 		else
 		{
-			this.integritySubtract1();
+			this.integritySubtract(defenderCombat.damagePerHit, world);
 		}
 	}
 
-	integritySubtract1(unit)
+	integritySubtractDamageFromUnit(damage, unit)
 	{
-		unit.integrity--;
+		unit.integrity -= damage;
 		if (unit.integrity <= 0)
 		{
 			// todo
@@ -716,7 +755,7 @@ class UnitDefnMovement
 		{
 			UnitDefnMovement._mapCellGround = MapOfCellsCell.fromTerrainCode
 			(
-				MapOfCellsCellTerrain.Instances().Plain.code
+				MapOfCellsCellTerrain.Instances().Plains.code
 			);
 		}
 		return UnitDefnMovement._mapCellGround;
@@ -730,12 +769,12 @@ class UnitDefnMovement
 		);
 	}
 
-	isGround()
+	isGround(world)
 	{
 		var mapCell = UnitDefnMovement.mapCellGround();
 		var costToMove = this._costToMoveFromCellToCellInThirds
 		(
-			mapCell, mapCell
+			world, this, mapCell, mapCell
 		);
 		var returnValue = (costToMove < Number.POSITIVE_INFINITY);
 		return returnValue;

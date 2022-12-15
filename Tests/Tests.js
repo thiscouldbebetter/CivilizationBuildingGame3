@@ -19,20 +19,26 @@ class TestFixtureMain
 		var universe = new Universe(display, inputHelper, outputLog, world);
 		universe.initialize();
 
-		// Make sure that owner 0 is selected at startup.
+		// Verify that the world is as expected.
+		var difficultyLevel = world.difficultyLevel();
+		Assert.areEqual(DifficultyLevel.Instances().Chieftan, difficultyLevel);
+		var ownerCount = world.owners.length;
+		Assert.areEqual(2, ownerCount);
+
+		// Verify that owner 0 is selected at startup.
 		var owner = world.ownerCurrent();
 		Assert.isNotNull(owner);
 		var owner0 = world.owners[0];
 		Assert.areEqual(owner0, owner);
 
-		// Make sure a settlers unit is selected at startup.
+		// Verify that a settlers unit is selected at startup.
 		var unit = owner.unitSelected();
 		Assert.isNotNull(unit);
 		var unitDefns = UnitDefn.Instances();
 		var unitDefnSettlers = unitDefns.Settlers;
 		Assert.areEqual(unitDefnSettlers.name, unit.defnName);
 
-		// Make sure the unit has moves initially.
+		// Verify that the unit has moves initially.
 		Assert.isTrue(unit.movesThisTurn() > 0);
 
 		// Count the number of known cells before the move.
@@ -97,7 +103,7 @@ class TestFixtureMain
 		var owner0Base0 = owner.bases[0];
 		var base = owner0Base0;
 		Assert.isTrue(base.pos.equals(unit.pos) );
-		var basePopulationInitial = base.population;
+		var basePopulationInitial = base.population();
 		Assert.areEqual(1, basePopulationInitial);
 		Assert.areEqual(2, base.landUsage.offsetsInUse.length);
 		Assert.isTrue(base.isIdle() );
@@ -123,10 +129,10 @@ class TestFixtureMain
 		var turnsToWait = Math.ceil(foodNeededToGrow / foodPerTurn);
 		Assert.isTrue(turnsToWait < turnsToWaitMax);
 		world.turnAdvanceMultiple(turnsToWait);
-		Assert.areNotEqual(basePopulationInitial, base.population);
+		Assert.areNotEqual(basePopulationInitial, base.population());
 
 		// Build a new settlers unit.
-		var basePopulationBeforeBuildingSettlers = base.population;
+		var basePopulationBeforeBuildingSettlers = base.population();
 		this.waitNTurnsForBaseInWorldToBuildUnitDefn
 		(
 			turnsToWaitMax, base, world, unitDefns.Settlers
@@ -143,7 +149,7 @@ class TestFixtureMain
 		// Make sure building settlers reduced the base's population,
 		// and that it is costing some food per turn.
 		// NOTE: This doesn't work because the population has increased too.
-		// Assert.isTrue(base.population < basePopulationBeforeBuildingSettlers);
+		// Assert.isTrue(base.population() < basePopulationBeforeBuildingSettlers);
 
 		// Move the settler one cell, irrigate, and verify.
 		unit.moveInDirection(east, world);
@@ -165,9 +171,9 @@ class TestFixtureMain
 		var cellHasRoads = cell.hasRoads();
 		Assert.isTrue(cellHasRoads);
 
-		// Re-optimize the base's land usage.
+		// Re-optimize the base's labor.
 		var resourcesBeforeOptimize = base.resourcesProducedThisTurn(world).clone();
-		base.landUsageOptimize(world);
+		base.laborOptimize(world);
 		var resourcesAfterOptimize =
 			base.resourcesProducedThisTurn(world);
 		Assert.isFalse(resourcesAfterOptimize.equals(resourcesBeforeOptimize) );
@@ -215,6 +221,35 @@ class TestFixtureMain
 			world.turnAdvance();
 		});
 
+		// Verify that the city is not experiencing unrest yet.
+		Assert.isFalse(base.isExperiencingUnrest(world) );
+
+		// Wait for the population to grow until new citizens are unhappy.
+		while (base.population() <= difficultyLevel.basePopulationBeforeUnhappiness)
+		{
+			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
+			(
+				turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
+			);
+		}
+
+		// Verify that the city is now experiencing unrest.
+		Assert.isTrue(base.isExperiencingUnrest(world) );
+
+		// Verify that production is halted due to unrest.
+		Assert.isTrue(base.industryThisTurnNet(world) <= 0);
+
+		// Reassign a worker as an entertainer and verify that they add happiness.
+		Assert.areEqual(0, base.luxuriesThisTurn(world) );
+		base.workerWorstReassignAsEntertainer(world);
+		Assert.areEqual(2, base.luxuriesThisTurn(world) );
+
+		// Build a military unit and verify that martial law mitigates unhappiness.
+		this.waitNTurnsForBaseInWorldToBuildUnitDefn
+		(
+			turnsToWaitMax, base, world, unitDefns.Warriors
+		);
+
 		// Make sure that the base can't build a granary before researching pottery.
 		var buildablesAvailableNames =
 			base.buildablesAvailableNames(world);
@@ -253,7 +288,7 @@ class TestFixtureMain
 		Assert.isTrue(base.foodStockpiled >= (foodNeededToGrow / 2) );
 
 		// Wait for the population to grow to 8.
-		while (base.population < 8)
+		while (base.population() < 8)
 		{
 			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
 			(
@@ -291,7 +326,7 @@ class TestFixtureMain
 			turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
 		);
 
-		while (base.population < 12)
+		while (base.population() < 12)
 		{
 			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
 			(
@@ -490,7 +525,7 @@ class TestFixtureMain
 		turnsToWaitMax, base, world, isBaseExpectedToActuallyGrow
 	)
 	{
-		var basePopulationBefore = base.population;
+		var basePopulationBefore = base.population();
 		var foodNeededToGrow = base.foodNeededToGrow();
 		var foodAdditionalNeededToGrow =
 			foodNeededToGrow - base.foodStockpiled;
@@ -498,8 +533,8 @@ class TestFixtureMain
 		var turnsToWait = Math.ceil(foodAdditionalNeededToGrow / foodPerTurn);
 		Assert.isTrue(turnsToWait < turnsToWaitMax);
 		world.turnAdvanceMultiple(turnsToWait);
-		var basePopulationAfter = base.population;
-		var didBaseActuallyGrow = (base.population == basePopulationBefore + 1);
+		var basePopulationAfter = base.population();
+		var didBaseActuallyGrow = (basePopulationAfter == basePopulationBefore + 1);
 		Assert.areEqual(isBaseExpectedToActuallyGrow, didBaseActuallyGrow);
 	}
 

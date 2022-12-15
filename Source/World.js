@@ -98,6 +98,7 @@ class World
 				OwnerIncomeAllocation.default(), // incomeAllocation,
 				OwnerResearch.default(),
 				OwnerMapKnowledge.default(),
+				NotificationLog.default(),
 				[], // bases
 				[
 					unitInitial

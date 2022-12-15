@@ -8,6 +8,7 @@ class Owner
 		incomeAllocation,
 		research,
 		mapKnowledge,
+		notificationLog,
 		bases,
 		units
 	)
@@ -17,6 +18,7 @@ class Owner
 		this.incomeAllocation = incomeAllocation;
 		this.research = research;
 		this.mapKnowledge = mapKnowledge;
+		this.notificationLog = notificationLog;
 		this.bases = bases;
 		this.units = units;
 

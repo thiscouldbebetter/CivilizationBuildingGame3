@@ -18,7 +18,7 @@ class Government
 			unhappyPopulationMitigatedByMartialLaw;
 		this.corruptionPerUnitDistanceFromCapital =
 			corruptionPerUnitDistanceFromCapital;
-		this.industryConsumedByUnitsSupportedByBase =
+		this._industryConsumedByUnitsSupportedByBase =
 			industryConsumedByUnitsSupportedByBase;
 	}
 
@@ -35,6 +35,11 @@ class Government
 	{
 		return Government.Instances().byName(name);
 	}
+
+	industryConsumedByUnitsSupportedByBase(base)
+	{
+		return this._industryConsumedByUnitsSupportedByBase(base);
+	}
 }
 
 class Government_Instances
@@ -48,7 +53,7 @@ class Government_Instances
 			var returnMethod = (base) => 
 			{
 				var unitsToSupportCount =
-					base.unitsSupportedCount() - base.population;
+					base.unitsSupportedCount() - base.population();
 				if (unitsToSupportCount < 0)
 				{
 					unitsToSupportCount = 0;
