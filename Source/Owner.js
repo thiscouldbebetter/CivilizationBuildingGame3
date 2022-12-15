@@ -192,6 +192,11 @@ class Owner
 		return (this.technologiesResearchable().indexOf(technology) >= 0);
 	}
 
+	technologyIsKnown(technology)
+	{
+		return (this.technologiesKnown().indexOf(technology) >= 0);
+	}
+
 	technologyResearch(technology)
 	{
 		this.research.technologyResearch(technology);

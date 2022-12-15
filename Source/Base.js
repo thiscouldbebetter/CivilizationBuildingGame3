@@ -537,38 +537,49 @@ class BaseDemographics
 		}
 
 		var unhappinessDueToMilitaryDeployment = 0;
-		var unitsSupported = base.unitsSupported(world);
-		var unitsMilitary = unitsSupported.filter(x => x.isMilitary(world))
-		var unitsMilitaryDeployed =
-			unitsMilitary.filter(x => x.isInBaseSupporting(world) == false);
-		var unitsMilitaryDeployedCount = unitsMilitaryDeployed.length;
-		if (unitsMilitaryDeployedCount > 0)
+		var owner = base.owner(world);
+		var governments = Government.Instances();
+		var doesDeploymentCauseUnhappiness =
+		(
+			owner.governmentIs(governments.Republic)
+			|| owner.governmentIs(governments.Democracy)
+		);
+
+		if (doesDeploymentCauseUnhappiness)
 		{
-			var governments = Government.Instances();
+			var unitsSupported = base.unitsSupported(world);
+			var unitsMilitary = unitsSupported.filter(x => x.isMilitary(world))
+			var unitsMilitaryDeployed =
+				unitsMilitary.filter(x => x.isInBaseSupporting(world) == false);
+			var unitsMilitaryDeployedCount = unitsMilitaryDeployed.length;
+			if (unitsMilitaryDeployedCount > 0)
+			{
+				var governments = Government.Instances();
 
-			if (owner.governmentIs(governments.Republic))
-			{
-				unhappinessDueToMilitaryDeployment +=
-					unitsMilitaryDeployedCount;
-			}
-			else if (owner.governmentIs(governments.Democracy))
-			{
-				unhappinessDueToMilitaryDeployment +=
-					unitsMilitaryDeployedCount * 2;
-			}
+				if (owner.governmentIs(governments.Republic))
+				{
+					unhappinessDueToMilitaryDeployment +=
+						unitsMilitaryDeployedCount;
+				}
+				else if (owner.governmentIs(governments.Democracy))
+				{
+					unhappinessDueToMilitaryDeployment +=
+						unitsMilitaryDeployedCount * 2;
+				}
 
-			var hasPoliceStation = base.hasImprovementPoliceStation();
-			if (hasPoliceStation)
-			{
-				unhappinessDueToMilitaryDeployment--;
-			}
+				var hasPoliceStation = base.hasImprovementPoliceStation();
+				if (hasPoliceStation)
+				{
+					unhappinessDueToMilitaryDeployment--;
+				}
 
-			if (unhappinessDueToMilitaryDeployment < 0)
-			{
-				unhappinessDueToMilitaryDeployment = 0;
+				if (unhappinessDueToMilitaryDeployment < 0)
+				{
+					unhappinessDueToMilitaryDeployment = 0;
+				}
 			}
 		}
-		
+
 		var unhappyPopulationCount =
 			unhappinessDueToOverpopulation
 			+ unhappinessDueToMilitaryDeployment;
@@ -580,7 +591,8 @@ class BaseDemographics
 			var unhappinessMitigatedByImprovements = 0;
 			improvementsPresent.forEach
 			(
-				x => unhappinessMitigatedByImprovements += x.unhappyPopulationMitigated()
+				x => unhappinessMitigatedByImprovements +=
+					x.unhappyPopulationMitigated(owner)
 			);
 
 			var owner = base.owner(world);
@@ -700,7 +712,7 @@ class BaseImprovementDefn
 	unhappyPopulationMitigated(owner)
 	{
 		var returnValue = 0;
- 
+
 		var improvements = BaseImprovementDefn.Instances();
 		var techs = Technology.Instances();
 

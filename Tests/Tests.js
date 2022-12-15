@@ -5,12 +5,7 @@ class TestFixtureMain
 {
 	playDemoFromStart()
 	{
-		var turnsToWaitMax = 100;
-		var directions = Direction.Instances();
-		var east = directions.East;
-		var north = directions.North;
-		var south = directions.South;
-		var west = directions.West;
+		this.turnsToWaitMax = 100;
 
 		var display = new DisplayMock();
 		var inputHelper = new InputHelperMock();
@@ -18,6 +13,25 @@ class TestFixtureMain
 		var world = World.demo();
 		var universe = new Universe(display, inputHelper, outputLog, world);
 		universe.initialize();
+
+		this.universe = universe;
+		this.world = world;
+
+		this.playFromStart_1_Startup();
+		this.playFromStart_2_UnitMovement();
+		this.playFromStart_3_EndingARound();
+		this.playFromStart_4_FoundingABase();
+		this.playFromStart_5_BuildingAUnit();
+		this.playFromStart_6_ImprovingLand();
+		this.playFromStart_7_BaseUnrest();
+		this.playFromStart_8_Research();
+		this.playFromStart_9_BaseGrowthLimiters();
+		this.playFromStart_10_ResearchAllAndBuildStarship();
+	}
+
+	playFromStart_1_Startup()
+	{
+		var world = this.world;
 
 		// Verify that the world is as expected.
 		var difficultyLevel = world.difficultyLevel();
@@ -37,13 +51,23 @@ class TestFixtureMain
 		var unitDefns = UnitDefn.Instances();
 		var unitDefnSettlers = unitDefns.Settlers;
 		Assert.areEqual(unitDefnSettlers.name, unit.defnName);
+	}
+
+	playFromStart_2_UnitMovement()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+		var unit = owner.unitSelected();
+		var directions = Direction.Instances();
+		var east = directions.East;
+		var west = directions.West;
 
 		// Verify that the unit has moves initially.
 		Assert.isTrue(unit.movesThisTurn() > 0);
 
 		// Count the number of known cells before the move.
-		var owner0MapKnowledge = owner0.mapKnowledge;
-		var cellsKnownIndices = owner0MapKnowledge.cellsKnownIndicesByIndex;
+		var ownerMapKnowledge = owner.mapKnowledge;
+		var cellsKnownIndices = ownerMapKnowledge.cellsKnownIndicesByIndex;
 		var cellsKnownCountBeforeMove = cellsKnownIndices.size;
 
 		// Move the unit.
@@ -67,6 +91,13 @@ class TestFixtureMain
 		owner.unitSelectNextIdle();
 		unit = owner.unitSelected();
 		Assert.isNull(unit);
+	}
+
+	playFromStart_3_EndingARound()
+	{
+		var universe = this.universe;
+		var world = this.world;
+		var owner = world.ownerCurrent();
 
 		// End the first owner's turn.
 		var ownerBeforeEndingTurn = owner;
@@ -85,10 +116,15 @@ class TestFixtureMain
 
 		// Make sure owner 0 is the current one again.
 		var ownerAfterEndingRound = world.ownerCurrent();
-		Assert.areEqual(owner0, ownerAfterEndingRound);
+		Assert.areEqual(owner, ownerAfterEndingRound);
+	}
 
-		// Found a city with the settlers.
-		owner = ownerAfterEndingRound;
+	playFromStart_4_FoundingABase()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+
+		// Found a base with the settlers.
 		var unit = owner.unitSelected();
 		var activityDefns = UnitActivityDefn.Instances();
 		var activityBefore = unit.activity;
@@ -122,25 +158,35 @@ class TestFixtureMain
 		Assert.isFalse(resourcesThisTurn.equals(resourcesNone ) );
 		var industryStockpiled = base.industry.industryStockpiled;
 		Assert.areEqual(0, industryStockpiled);
+	}
+
+	playFromStart_5_BuildingAUnit()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+		var base = owner.bases[0];
 
 		// Wait for the population to grow.
+		var basePopulationBeforeGrowing = base.population();
 		var foodNeededToGrow = base.foodNeededToGrow();
 		var foodPerTurn = base.foodThisTurnNet(world);
 		var turnsToWait = Math.ceil(foodNeededToGrow / foodPerTurn);
-		Assert.isTrue(turnsToWait < turnsToWaitMax);
+		Assert.isTrue(turnsToWait < this.turnsToWaitMax);
 		world.turnAdvanceMultiple(turnsToWait);
-		Assert.areNotEqual(basePopulationInitial, base.population());
+		var basePopulationAfterGrowing = base.population();
+		Assert.areNotEqual(basePopulationBeforeGrowing, basePopulationAfterGrowing);
 
 		// Build a new settlers unit.
 		var basePopulationBeforeBuildingSettlers = base.population();
+		var unitDefns = UnitDefn.Instances();
 		this.waitNTurnsForBaseInWorldToBuildUnitDefn
 		(
-			turnsToWaitMax, base, world, unitDefns.Settlers
+			this.turnsToWaitMax, base, world, unitDefns.Settlers
 		);
 
 		// Make sure the settlers unit has been built as expected.
 		Assert.areEqual(1, owner.units.length);
-		unit = owner.units[0];
+		var unit = owner.units[0];
 		Assert.areEqual(unit.defnName, unitDefns.Settlers.name);
 		Assert.isTrue(unit.pos.equals(base.pos));
 		Assert.areEqual(unit, owner.unitSelected());
@@ -150,22 +196,38 @@ class TestFixtureMain
 		// and that it is costing some food per turn.
 		// NOTE: This doesn't work because the population has increased too.
 		// Assert.isTrue(base.population() < basePopulationBeforeBuildingSettlers);
+	}
+
+	playFromStart_6_ImprovingLand()
+	{
+		var world = this.world;
+		var map = world.map;
+		var owner = world.ownerCurrent();
+		var base = owner.bases[0];
+		var unit = owner.unitSelected();
+
+		var directions = Direction.Instances();
+		var east = directions.East;
+		var north = directions.North;
+		var south = directions.South;
+		var west = directions.West;
 
 		// Move the settler one cell, irrigate, and verify.
 		unit.moveInDirection(east, world);
 		world.turnAdvance();
+		var activityDefns = UnitActivityDefn.Instances();
 		this.waitNTurnsForUnitInWorldToCompleteActivity
 		(
-			turnsToWaitMax, unit, world, activityDefns.SettlersBuildIrrigation
+			this.turnsToWaitMax, unit, world, activityDefns.SettlersBuildIrrigation
 		);
-		cell = map.cellAtPosInCells(unit.pos);
+		var cell = map.cellAtPosInCells(unit.pos);
 		var cellHasIrrigation = cell.hasIrrigation();
 		Assert.isTrue(cellHasIrrigation);
 
 		// Build some roads, and verify they appeared.
 		this.waitNTurnsForUnitInWorldToCompleteActivity
 		(
-			turnsToWaitMax, unit, world, activityDefns.SettlersBuildRoads
+			this.turnsToWaitMax, unit, world, activityDefns.SettlersBuildRoads
 		);
 		cell = map.cellAtPosInCells(unit.pos);
 		var cellHasRoads = cell.hasRoads();
@@ -202,7 +264,7 @@ class TestFixtureMain
 		// Improve some more land (to make enough to make later tests feasible).
 		var directionsToMove =
 		[
-			north, north, west, west
+			north, north, west, west, west, south
 		];
 		directionsToMove.forEach(direction =>
 		{
@@ -212,14 +274,22 @@ class TestFixtureMain
 			Assert.isFalse(map.cellAtPosInCells(unit.pos).hasRoads());
 			this.waitNTurnsForUnitInWorldToCompleteActivity
 			(
-				turnsToWaitMax, unit, world, activityDefns.SettlersBuildIrrigation 
+				this.turnsToWaitMax, unit, world, activityDefns.SettlersBuildIrrigation 
 			);
 			this.waitNTurnsForUnitInWorldToCompleteActivity
 			(
-				turnsToWaitMax, unit, world, activityDefns.SettlersBuildRoads
+				this.turnsToWaitMax, unit, world, activityDefns.SettlersBuildRoads
 			);
 			world.turnAdvance();
 		});
+	}
+
+	playFromStart_7_BaseUnrest()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+		var base = owner.bases[0];
+		var difficultyLevel = world.difficultyLevel();
 
 		// Verify that the city is not experiencing unrest yet.
 		Assert.isFalse(base.isExperiencingUnrest(world) );
@@ -229,7 +299,7 @@ class TestFixtureMain
 		{
 			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
 			(
-				turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
+				this.turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
 			);
 		}
 
@@ -245,10 +315,18 @@ class TestFixtureMain
 		Assert.areEqual(2, base.luxuriesThisTurn(world) );
 
 		// Build a military unit and verify that martial law mitigates unhappiness.
+		var unitDefns = UnitDefn.Instances();
 		this.waitNTurnsForBaseInWorldToBuildUnitDefn
 		(
-			turnsToWaitMax, base, world, unitDefns.Warriors
+			this.turnsToWaitMax, base, world, unitDefns.Warriors
 		);
+	}
+
+	playFromStart_8_Research()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+		var base = owner.bases[0];
 
 		// Make sure that the base can't build a granary before researching pottery.
 		var buildablesAvailableNames =
@@ -263,7 +341,7 @@ class TestFixtureMain
 		var technologies = Technology.Instances();
 		this.waitNTurnsForOwnerInWorldToResearchTech
 		(
-			turnsToWaitMax, owner, world, technologies.Pottery
+			this.turnsToWaitMax, owner, world, technologies.Pottery
 		);
 
 		// Make sure that the base can build the improvement now.
@@ -275,37 +353,59 @@ class TestFixtureMain
 
 		this.waitNTurnsForBaseInWorldToBuildImprovement
 		(
-			turnsToWaitMax, base, world, improvementToBuild
+			this.turnsToWaitMax, base, world, improvementToBuild
 		);
 
 		// Wait for the population to grow again,
 		// and make sure the granary saves half the food.
 		this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
 		(
-			turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
+			this.turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
 		);
-		foodNeededToGrow = base.foodNeededToGrow();
+		var foodNeededToGrow = base.foodNeededToGrow();
 		Assert.isTrue(base.foodStockpiled >= (foodNeededToGrow / 2) );
+	}
 
-		// Wait for the population to grow to 8.
-		while (base.population() < 8)
+	playFromStart_9_BaseGrowthLimiters()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+		var base = owner.bases[0];
+
+		// Build some more military units to enforce martial law.
+
+		var unitDefns = UnitDefn.Instances();
+		for (var i = 0; i < 3; i++)
 		{
-			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
+			this.waitNTurnsForBaseInWorldToBuildUnitDefn
 			(
-				turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
+				this.turnsToWaitMax, base, world, unitDefns.Warriors
 			);
 		}
 
-		// Wait for the population to grow from 8 to 9,
-		// but it can't, because that requires an aqueduct.
-		this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
+		// Do some more research and build a temple (with mysticism)
+		// and colosseum to prevent population growth leading to unrest.
+
+		var technologies = Technology.Instances();
+		this.waitNTurnsForOwnerInWorldToResearchTechs
 		(
-			turnsToWaitMax, base, world, false // isBaseExpectedToActuallyGrow
+			this.turnsToWaitMax, owner, world,
+			[
+				technologies.CeremonialBurial,
+				technologies.Mysticism,
+			]
+		);
+
+		var improvements = BaseImprovementDefn.Instances();
+
+		this.waitNTurnsForBaseInWorldToBuildImprovement
+		(
+			this.turnsToWaitMax, base, world, improvements.Temple
 		);
 
 		this.waitNTurnsForOwnerInWorldToResearchTechs
 		(
-			turnsToWaitMax, owner, world,
+			this.turnsToWaitMax, owner, world,
 			[
 				technologies.BronzeWorking,
 				technologies.Currency,
@@ -316,34 +416,59 @@ class TestFixtureMain
 
 		this.waitNTurnsForBaseInWorldToBuildImprovement
 		(
-			turnsToWaitMax, base, world, improvements.Aqueduct
+			this.turnsToWaitMax, base, world, improvements.Colosseum
+		);
+
+		// Wait for the population to grow to 8.
+		while (base.population() < 8)
+		{
+			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
+			(
+				this.turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
+			);
+		}
+
+		// Wait for the population to grow from 8 to 9,
+		// but it can't, because that requires an aqueduct.
+		this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
+		(
+			this.turnsToWaitMax, base, world, false // isBaseExpectedToActuallyGrow
+		);
+
+		this.waitNTurnsForBaseInWorldToBuildImprovement
+		(
+			this.turnsToWaitMax, base, world, improvements.Aqueduct
 		);
 
 		// Wait for the population to grow from 8 to 9 again,
 		// and this time it can, because the base has an aqueduct.
 		this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
 		(
-			turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
+			this.turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
 		);
 
+		// Wait for the population to grow to 12.
 		while (base.population() < 12)
 		{
 			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
 			(
-				turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
+				this.turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
 			);
 		}
 
-		// Wait for the population to grow from 11 to 12,
+		// Wait for the population to grow from 12 to 13,
 		// but it can't, because that requires a sewer system.
+
 		this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
 		(
-			turnsToWaitMax, base, world, false // isBaseExpectedToActuallyGrow
+			this.turnsToWaitMax, base, world, false // isBaseExpectedToActuallyGrow
 		);
+
+		// Do some more research to learn Sanitation.
 
 		this.waitNTurnsForOwnerInWorldToResearchTechs
 		(
-			turnsToWaitMax, owner, world,
+			this.turnsToWaitMax, owner, world,
 			[
 				technologies.HorsebackRiding,
 				technologies.Wheel,
@@ -352,27 +477,32 @@ class TestFixtureMain
 				technologies.CodeOfLaws,
 				technologies.Writing,
 				technologies.Literacy,
-				technologies.CeremonialBurial,
-				technologies.Mysticism,
 				technologies.Philosophy,
 				technologies.Trade,
 				technologies.Medicine,
-				technologies.Sanitation,
+				technologies.Sanitation
 			]
 		);
 
 		this.waitNTurnsForBaseInWorldToBuildImprovement
 		(
-			turnsToWaitMax, base, world, improvements.SewerSystem
+			this.turnsToWaitMax, base, world, improvements.SewerSystem
 		);
 
 		// Wait for the population to grow from 11 to 12 again,
 		// and this time it can, because a sewer system has been built.
 		this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
 		(
-			(turnsToWaitMax * 2), // hack,
+			(this.turnsToWaitMax * 2), // hack,
 			base, world, true // isBaseExpectedToActuallyGrow
 		);
+	}
+
+	playFromStart_10_ResearchAllAndBuildStarship()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+		var base = owner.bases[0];
 
 		// Research everything.
 		var techsResearchable = owner.technologiesResearchable();
@@ -380,18 +510,19 @@ class TestFixtureMain
 		{
 			this.waitNTurnsForOwnerInWorldToResearchTechs
 			(
-				turnsToWaitMax, owner, world, techsResearchable
+				this.turnsToWaitMax, owner, world, techsResearchable
 			);
 			techsResearchable = owner.technologiesResearchable();
 		}
 
 		var techsKnown = owner.technologiesKnown();
+		var technologies = Technology.Instances();
 		Assert.areEqual(technologies._All.length, techsKnown.length);
 
 		// Build a starship, launch it, and wait for it to reach destination.
 		this.waitNTurnsForBaseInWorldToBuildStarshipParts
 		(
-			turnsToWaitMax, base, world
+			this.turnsToWaitMax, base, world
 		);
 	}
 
