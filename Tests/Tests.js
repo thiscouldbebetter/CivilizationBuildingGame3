@@ -129,7 +129,7 @@ class TestFixtureMain
 		var activityDefns = UnitActivityDefn.Instances();
 		var activityBefore = unit.activity;
 		Assert.isNull(activityBefore);
-		unit.activityStart(activityDefns.SettlersStartCity, world);
+		unit.activityDefnStartForWorld(activityDefns.SettlersStartCity, world);
 
 		// Verify that the settlers have disappeared, and become a base.
 		Assert.areEqual(0, owner.units.length);
@@ -247,7 +247,7 @@ class TestFixtureMain
 		unit.moveInDirection(west, world);
 		unit.moveInDirection(east, world);
 		Assert.isTrue(unit.hasMovesThisTurn());
-		Assert.areEqual(1, unit.moveThirdsThisTurn);
+		Assert.areEqual(1, unit.moveThirdsThisTurn());
 
 		// Try to move the unit off the road,
 		// but it can't, because it only has 1/3 move left. 
@@ -674,10 +674,10 @@ class TestFixtureMain
 		turnsToWaitMax, unit, world, activityDefn
 	)
 	{
-		unit.activityStart(activityDefn, world);
+		unit.activityDefnStartForWorld(activityDefn, world);
 		var unitDefn = unit.defn(world);
 		var turnsToWaitExpected =
-			activityDefn.movesToComplete / unitDefn.movesPerTurn();
+			activityDefn.movesToComplete() / unitDefn.movesPerTurn();
 		Assert.isTrue(turnsToWaitExpected < turnsToWaitMax);
 		world.turnAdvanceMultiple(turnsToWaitExpected);
 	}

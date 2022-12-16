@@ -9,20 +9,38 @@ class Unit
 
 		this.id = IdHelper.idNext();
 		this.baseSupportingId = null;
-		this.moveThirdsThisTurn = 0;
+		this._moveThirdsThisTurn = null;
+		this.movesThisTurnClear();
 		this.isSleeping = false;
 
 		this._cellToPos = Coords.create();
 	}
 
-	activityStart(activityDefn, world)
+	activityClear()
+	{
+		this.activity = null;
+	}
+
+	activityDefnStart(activityDefn)
+	{
+		this.activityDefnStartForWorld(activityDefn, null);
+	}
+
+	activityDefnStartForWorld(activityDefn, world)
+	{
+		this.activityDefnStartForWorldWithVariables(activityDefn, world, null);
+	}
+
+	activityDefnStartForWorldWithVariables
+	(
+		activityDefn, world, variableValuesByName
+	)
 	{
 		this.activity = new UnitActivity
 		(
-			activityDefn.name, 0
+			activityDefn.name, variableValuesByName
 		);
-		var owner = this.owner(world);
-		this.activity.start(null, world, owner, this);
+		this.activityUpdate(null, world);
 	}
 
 	activityUpdate(universe, world)
@@ -30,7 +48,7 @@ class Unit
 		if (this.activity != null)
 		{
 			var owner = this.owner(world);
-			this.activity.turnUpdate(universe, world, owner, this);
+			this.activity.perform(universe, world, owner, this);
 		}
 	}
 
@@ -57,7 +75,7 @@ class Unit
 
 	hasMovesThisTurn()
 	{
-		return (this.moveThirdsThisTurn > 0);
+		return (this.moveThirdsThisTurn() > 0);
 	}
 
 	integritySubtractDamage(damage, world)
@@ -85,9 +103,19 @@ class Unit
 		return this.baseSupporting(world).pos.equals(this.pos);
 	}
 
+	moveThirdsThisTurn()
+	{
+		return this._moveThirdsThisTurn;
+	}
+
+	moveThirdsThisTurnSet(value)
+	{
+		this._moveThirdsThisTurn = value;
+	}
+
 	movesThisTurnClear()
 	{
-		this.moveThirdsThisTurn = 0;
+		this.moveThirdsThisTurnSet(0);
 	}
 
 	owner(world)
@@ -124,11 +152,11 @@ class Unit
 	turnUpdate(world)
 	{
 		var defn = this.defn(world);
-		this.moveThirdsThisTurn = defn.movement.moveThirdsPerTurn;
+		this.moveThirdsThisTurnSet(defn.movement.moveThirdsPerTurn);
 		var owner = this.owner(world);
 		if (this.activity != null)
 		{
-			this.activity.turnUpdate(null, world, owner, this);
+			this.activity.perform(null, world, owner, this);
 		}
 	}
 
@@ -148,7 +176,7 @@ class Unit
 		return canMove;
 	}
 
-	cellsFromAndTo(directionToMove, world)
+	cellsFromAndToForDirectionAndWorld(directionToMove, world)
 	{
 		var map = world.map;
 		var cellFromPos = this.pos;
@@ -169,7 +197,10 @@ class Unit
 
 	costToMoveInDirectionInThirds(directionToMove, world)
 	{
-		var cellsFromAndTo = this.cellsFromAndTo(directionToMove, world);
+		var cellsFromAndTo = this.cellsFromAndToForDirectionAndWorld
+		(
+			directionToMove, world
+		);
 		var cellFrom = cellsFromAndTo[0];
 		var cellTo = cellsFromAndTo[1];
 
@@ -186,41 +217,21 @@ class Unit
 
 	moveInDirection(directionToMove, world)
 	{
-		var costToMoveInThirds =
-			this.costToMoveInDirectionInThirds(directionToMove, world);
-
-		if (costToMoveInThirds <= this.moveThirdsThisTurn)
-		{
-			var cellsFromAndTo = this.cellsFromAndTo(directionToMove, world);
-			var cellFrom = cellsFromAndTo[0];
-			var cellTo = cellsFromAndTo[1];
-
-			this.moveThirdsThisTurn -= costToMoveInThirds;
-
-			var unitMovingOwner = this.owner(world);
-			var isEnemyUnitPresent =
-				cellTo.unitNotAlliedWithOwnerIsPresent(unitMovingOwner);
-			
-			if (isEnemyUnitPresent)
-			{
-				// todo - Log to output.
-				var defender =
-					cellTo.unitsNotAlliedWithOwner(unitMovingOwner)[0];
-				this.attackDefender(defender, world);
-			}
-			else
-			{
-				this.pos.overwriteWith(cellTo.pos);
-				cellFrom.unitRemove(this);
-				cellTo.unitAdd(this);
-				this.ownerMapKnowledgeUpdate(world);
-			}
-		}
+		var activityDefns = UnitActivityDefn.Instances();
+		this.activityDefnStartForWorldWithVariables
+		(
+			activityDefns.Move,
+			world,
+			new Map
+			([
+				[ UnitActivityVariableNames.Direction(), directionToMove ]
+			])
+		);
 	}
 
 	movesThisTurn()
 	{
-		return this.moveThirdsThisTurn / 3;
+		return this.moveThirdsThisTurn() / 3;
 	}
 
 	ownerMapKnowledgeUpdate(world)
@@ -233,16 +244,11 @@ class Unit
 
 class UnitActivity
 {
-	constructor(defnName, movesInvestedSoFar)
+	constructor(defnName, variableValuesByName)
 	{
 		this.defnName = defnName;
-		this.movesInvestedSoFar = movesInvestedSoFar;
-	}
 
-	complete(universe, world, owner, unit)
-	{
-		var defn = this.defn();
-		defn.perform(universe, world, owner, unit);
+		this.variableValuesByName = variableValuesByName || new Map();
 	}
 
 	defn()
@@ -250,32 +256,25 @@ class UnitActivity
 		return UnitActivityDefn.byName(this.defnName);
 	}
 
-	start(universe, world, owner, unit)
+	perform(universe, world, owner, unit)
 	{
 		var defn = this.defn();
-		defn.start(universe, world, owner, unit);
+		defn.perform(universe, world, owner, unit);
 	}
 
-	turnUpdate(universe, world, owner, unit)
+	variableValueByName(name)
 	{
-		this.movesInvestedSoFar += unit.movesThisTurn();
-		var defn = this.defn();
-		if (this.movesInvestedSoFar >= defn.movesToComplete)
-		{
-			this.complete(universe, world, owner, unit);
-			unit.activity = null;
-		}
-		unit.movesThisTurnClear();
+		return this.variableValuesByName.get(name);
 	}
 }
 
 class UnitActivityDefn
 {
-	constructor(name, movesToComplete, start, perform)
+	constructor(name, variableValuesInitialByName, perform)
 	{
 		this.name = name;
-		this.movesToComplete = movesToComplete;
-		this._start = start;
+		this.variableValuesInitialByName =
+			variableValuesInitialByName || new Map();
 		this._perform = perform;
 	}
 
@@ -294,17 +293,22 @@ class UnitActivityDefn
 		return UnitActivityDefn.Instances().byName(name);
 	}
 
+	movesToComplete()
+	{
+		return this.variableValueInitialByName
+		(
+			UnitActivityVariableNames.MovesToComplete()
+		);
+	}
+
 	perform(universe, world, owner, unit)
 	{
 		this._perform(universe, world, owner, unit);
 	}
 
-	start(universe, world, owner, unit)
+	variableValueInitialByName(name)
 	{
-		if (this._start != null)
-		{
-			this._start(universe, world, owner, unit);
-		}
+		return this.variableValuesInitialByName.get(name);
 	}
 }
 
@@ -313,27 +317,31 @@ class UnitActivityDefn_Instances
 	constructor()
 	{
 		var startNone = () => {};
-		var uad = (a, b, c, d) => new UnitActivityDefn(a, b, c, d);
+		var uad = (a, b, c) => new UnitActivityDefn(a, b, c);
+		var movesToComplete1 = new Map( [ [ UnitActivityVariableNames.MovesToComplete(), 1 ] ] );
+		var movesToComplete3 = new Map( [ [ UnitActivityVariableNames.MovesToComplete(), 3 ] ] );
 
-		// 									  name					mv start	  complete
-		this.Disband 					= uad("Disband", 			1, startNone, this.disband);
-		this.Fortify 					= uad("Fortify", 			1, startNone, this.fortify);
-		this.Pass 						= uad("Pass", 				1, startNone, this.pass);
-		this.RestAfterMove 				= uad("RestAfterMove", 		1, startNone, this.restAfterMove);
-		this.Sleep 						= uad("Sleep", 				1, startNone, this.sleep);
+		// 									  name,					vars, 				perform
+		this.Disband 					= uad("Disband", 			null, 				this.disband);
+		this.Fortify 					= uad("Fortify", 			null, 				this.fortify);
+		this.Move 						= uad("Move",				null, 				this.move);
+		this.Pass 						= uad("Pass", 				null, 				this.pass);
+		this.RestAfterMove 				= uad("RestAfterMove", 		null, 				this.restAfterMove);
+		this.Sleep 						= uad("Sleep", 				null, 				this.sleep);
 
-		this.SettlersBuildFort 			= uad("Build Fort", 		3, startNone, this.settlersBuildFort);
-		this.SettlersBuildIrrigation 	= uad("Build Irrigation", 	3, startNone, this.settlersBuildIrrigation);
-		this.SettlersBuildMines 		= uad("Build Mines", 		3, startNone, this.settlersBuildMines);
-		this.SettlersBuildRoads 		= uad("Build Roads", 		3, startNone, this.settlersBuildRoads);
-		this.SettlersClearForest 		= uad("Clear Forest", 		3, startNone, this.settlersClearForest);
-		this.SettlersPlantForest 		= uad("Plant Forest", 		3, startNone, this.settlersPlantForest);
-		this.SettlersStartCity 			= uad("Start City", 		1, this.settlersStartCity, null);
+		this.SettlersBuildFort 			= uad("Build Fort", 		movesToComplete3, 	this.settlersBuildFort);
+		this.SettlersBuildIrrigation 	= uad("Build Irrigation", 	movesToComplete3, 	this.settlersBuildIrrigation);
+		this.SettlersBuildMines 		= uad("Build Mines", 		movesToComplete3, 	this.settlersBuildMines);
+		this.SettlersBuildRoads 		= uad("Build Roads", 		movesToComplete1, 	this.settlersBuildRoads);
+		this.SettlersClearForest 		= uad("Clear Forest", 		movesToComplete3, 	this.settlersClearForest);
+		this.SettlersPlantForest 		= uad("Plant Forest", 		movesToComplete3, 	this.settlersPlantForest);
+		this.SettlersStartCity 			= uad("Start City", 		null, 				this.settlersStartCity);
 
 		this._All =
 		[
 			this.Disband,
 			this.Fortify,
+			this.Move,
 			this.Pass,
 			this.RestAfterMove,
 			this.Sleep,
@@ -366,6 +374,55 @@ class UnitActivityDefn_Instances
 	fortify(universe, world, owner, unit)
 	{
 		unit.fortify();
+	}
+
+	move(universe, world, owner, unit)
+	{
+		var activity = unit.activity;
+		var directionToMove = activity.variableValueByName
+		(
+			UnitActivityVariableNames.Direction()
+		);
+		var costToMoveInThirds =
+			unit.costToMoveInDirectionInThirds(directionToMove, world);
+		var movesRemainingInThirds = unit.moveThirdsThisTurn();
+
+		if (costToMoveInThirds <= movesRemainingInThirds)
+		{
+			var cellsFromAndTo = unit.cellsFromAndToForDirectionAndWorld
+			(
+				directionToMove, world
+			);
+			var cellFrom = cellsFromAndTo[0];
+			var cellTo = cellsFromAndTo[1];
+
+			unit.moveThirdsThisTurnSet
+			(
+				unit.moveThirdsThisTurn() - costToMoveInThirds
+			);
+
+			var unitMovingOwner = unit.owner(world);
+			var isEnemyUnitPresent =
+				cellTo.unitNotAlliedWithOwnerIsPresent(unitMovingOwner);
+
+			if (isEnemyUnitPresent)
+			{
+				// todo - Log to output.
+				var defender =
+					cellTo.unitsNotAlliedWithOwner(unitMovingOwner)[0];
+				unit.attackDefender(defender, world);
+			}
+			else
+			{
+				unit.pos.overwriteWith(cellTo.pos);
+				cellFrom.unitRemove(this);
+				cellTo.unitAdd(this);
+				unit.ownerMapKnowledgeUpdate(world);
+			}
+		}
+
+		// todo - Handle single-move units moving onto multi-move terrain.
+		unit.activityClear(); 
 	}
 
 	pass(universe, world, owner, unit)
@@ -440,6 +497,12 @@ class UnitActivityDefn_Instances
 		owner.unitRemove(unit);
 		owner.unitSelectNextIdle();
 	}
+}
+
+class UnitActivityVariableNames
+{
+	static Direction() { return "Direction"; }
+	static MovesToComplete() { return "MovesToComplete"; }
 }
 
 class UnitDefn

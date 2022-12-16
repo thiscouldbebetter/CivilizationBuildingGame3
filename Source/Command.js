@@ -317,8 +317,10 @@ class CommandOpcode_Instances
 					"Unit " + unit.id + " doing: "
 					+ actionToPerform.name + "."
 				);
-				unit.activityStart(actionToPerform);
-				unit.activityUpdate(u, w);
+				unit.activityDefnStart
+				(
+					actionToPerform
+				);
 
 				w.draw(u);
 			}
