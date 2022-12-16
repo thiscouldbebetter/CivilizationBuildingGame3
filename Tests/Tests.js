@@ -25,8 +25,9 @@ class TestFixtureMain
 		this.playFromStart_6_ImprovingLand();
 		this.playFromStart_7_BaseUnrest();
 		this.playFromStart_8_Research();
-		this.playFromStart_9_BaseGrowthLimiters();
-		this.playFromStart_10_ResearchAllAndBuildStarship();
+		this.playFromStart_9_Ships();
+		this.playFromStart_10_BaseGrowthLimiters();
+		this.playFromStart_11_ResearchAllAndBuildStarship();
 	}
 
 	playFromStart_1_Startup()
@@ -127,7 +128,7 @@ class TestFixtureMain
 		// Found a base with the settlers.
 		var unit = owner.unitSelected();
 		var activityDefns = UnitActivityDefn.Instances();
-		var activityBefore = unit.activity;
+		var activityBefore = unit.activity();
 		Assert.isNull(activityBefore);
 		unit.activityDefnStartForWorld(activityDefns.SettlersStartCity, world);
 
@@ -216,7 +217,7 @@ class TestFixtureMain
 		unit.moveInDirection(east, world);
 		world.turnAdvance();
 		var activityDefns = UnitActivityDefn.Instances();
-		this.waitNTurnsForUnitInWorldToCompleteActivity
+		this.waitNTurnsForUnitInWorldToCompleteActivityDefn
 		(
 			this.turnsToWaitMax, unit, world, activityDefns.SettlersBuildIrrigation
 		);
@@ -225,7 +226,7 @@ class TestFixtureMain
 		Assert.isTrue(cellHasIrrigation);
 
 		// Build some roads, and verify they appeared.
-		this.waitNTurnsForUnitInWorldToCompleteActivity
+		this.waitNTurnsForUnitInWorldToCompleteActivityDefn
 		(
 			this.turnsToWaitMax, unit, world, activityDefns.SettlersBuildRoads
 		);
@@ -272,11 +273,11 @@ class TestFixtureMain
 			world.turnAdvance();
 			Assert.isFalse(map.cellAtPosInCells(unit.pos).hasIrrigation());
 			Assert.isFalse(map.cellAtPosInCells(unit.pos).hasRoads());
-			this.waitNTurnsForUnitInWorldToCompleteActivity
+			this.waitNTurnsForUnitInWorldToCompleteActivityDefn
 			(
 				this.turnsToWaitMax, unit, world, activityDefns.SettlersBuildIrrigation 
 			);
-			this.waitNTurnsForUnitInWorldToCompleteActivity
+			this.waitNTurnsForUnitInWorldToCompleteActivityDefn
 			(
 				this.turnsToWaitMax, unit, world, activityDefns.SettlersBuildRoads
 			);
@@ -319,6 +320,52 @@ class TestFixtureMain
 		this.waitNTurnsForBaseInWorldToBuildUnitDefn
 		(
 			this.turnsToWaitMax, base, world, unitDefns.Warriors
+		);
+
+		// Build some more military units to enforce martial law.
+		var unitDefns = UnitDefn.Instances();
+		for (var i = 0; i < 3; i++)
+		{
+			this.waitNTurnsForBaseInWorldToBuildUnitDefn
+			(
+				this.turnsToWaitMax, base, world, unitDefns.Warriors
+			);
+		}
+
+		// Do some more research and build a temple (then add mysticism)
+		// and colosseum to prevent population growth leading to unrest.
+
+		var technologies = Technology.Instances();
+		this.waitNTurnsForOwnerInWorldToResearchTechs
+		(
+			this.turnsToWaitMax, owner, world,
+			[
+				technologies.CeremonialBurial,
+				technologies.Mysticism,
+			]
+		);
+
+		var improvements = BaseImprovementDefn.Instances();
+
+		this.waitNTurnsForBaseInWorldToBuildImprovement
+		(
+			this.turnsToWaitMax, base, world, improvements.Temple
+		);
+
+		this.waitNTurnsForOwnerInWorldToResearchTechs
+		(
+			this.turnsToWaitMax, owner, world,
+			[
+				technologies.BronzeWorking,
+				technologies.Currency,
+				technologies.Masonry,
+				technologies.Construction,
+			]
+		);
+
+		this.waitNTurnsForBaseInWorldToBuildImprovement
+		(
+			this.turnsToWaitMax, base, world, improvements.Colosseum
 		);
 	}
 
@@ -366,58 +413,32 @@ class TestFixtureMain
 		Assert.isTrue(base.foodStockpiled >= (foodNeededToGrow / 2) );
 	}
 
-	playFromStart_9_BaseGrowthLimiters()
+	playFromStart_9_Ships()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+		var unit = owner.unitSelected();
+
+		unit.moveStartTowardPosInWorld(Coords.zeroes(), world);
+		while (unit.activity() != null)
+		{
+			world.turnAdvance();
+		}
+
+		// todo
+		// Found a city, build a trireme, load troops on it,
+		// sail to opposite shore, unload troops,
+		// attack enemy base,
+		// end turn away from shore, die.
+	}
+
+	playFromStart_10_BaseGrowthLimiters()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();
 		var base = owner.bases[0];
-
-		// Build some more military units to enforce martial law.
-
-		var unitDefns = UnitDefn.Instances();
-		for (var i = 0; i < 3; i++)
-		{
-			this.waitNTurnsForBaseInWorldToBuildUnitDefn
-			(
-				this.turnsToWaitMax, base, world, unitDefns.Warriors
-			);
-		}
-
-		// Do some more research and build a temple (with mysticism)
-		// and colosseum to prevent population growth leading to unrest.
-
-		var technologies = Technology.Instances();
-		this.waitNTurnsForOwnerInWorldToResearchTechs
-		(
-			this.turnsToWaitMax, owner, world,
-			[
-				technologies.CeremonialBurial,
-				technologies.Mysticism,
-			]
-		);
-
 		var improvements = BaseImprovementDefn.Instances();
-
-		this.waitNTurnsForBaseInWorldToBuildImprovement
-		(
-			this.turnsToWaitMax, base, world, improvements.Temple
-		);
-
-		this.waitNTurnsForOwnerInWorldToResearchTechs
-		(
-			this.turnsToWaitMax, owner, world,
-			[
-				technologies.BronzeWorking,
-				technologies.Currency,
-				technologies.Masonry,
-				technologies.Construction,
-			]
-		);
-
-		this.waitNTurnsForBaseInWorldToBuildImprovement
-		(
-			this.turnsToWaitMax, base, world, improvements.Colosseum
-		);
+		var technologies = Technology.Instances();
 
 		// Wait for the population to grow to 8.
 		while (base.population() < 8)
@@ -498,7 +519,7 @@ class TestFixtureMain
 		);
 	}
 
-	playFromStart_10_ResearchAllAndBuildStarship()
+	playFromStart_11_ResearchAllAndBuildStarship()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();
@@ -669,7 +690,7 @@ class TestFixtureMain
 		Assert.areEqual(isBaseExpectedToActuallyGrow, didBaseActuallyGrow);
 	}
 
-	waitNTurnsForUnitInWorldToCompleteActivity
+	waitNTurnsForUnitInWorldToCompleteActivityDefn
 	(
 		turnsToWaitMax, unit, world, activityDefn
 	)

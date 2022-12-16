@@ -8,6 +8,11 @@ class Direction
 		this.offset = offset;
 	}
 
+	static byOffset(offset)
+	{
+		return Direction.Instances().byOffset(offset);
+	}
+
 	static Instances()
 	{
 		if (Direction._instances == null)
@@ -54,5 +59,10 @@ class Direction_Instances
 	byCode(code)
 	{
 		return this._AllByCode.get(code);
+	}
+
+	byOffset(offset)
+	{
+		return this._All.find(x => x.offset.equals(offset));
 	}
 }

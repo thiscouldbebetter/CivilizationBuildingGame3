@@ -16,9 +16,14 @@ class Unit
 		this._cellToPos = Coords.create();
 	}
 
+	activity()
+	{
+		return this._activity;
+	}
+
 	activityClear()
 	{
-		this.activity = null;
+		this.activitySet(null);
 	}
 
 	activityDefnStart(activityDefn)
@@ -31,24 +36,44 @@ class Unit
 		this.activityDefnStartForWorldWithVariables(activityDefn, world, null);
 	}
 
+	activityDefnStartForWorldWithVariableNameAndValue
+	(
+		activityDefn, world, variableName, variableValue
+	)
+	{
+		this.activityDefnStartForWorldWithVariables
+		(
+			activityDefn, world,
+			new Map( [ [variableName, variableValue] ] )
+		)
+	}
+
 	activityDefnStartForWorldWithVariables
 	(
 		activityDefn, world, variableValuesByName
 	)
 	{
-		this.activity = new UnitActivity
+		this.activitySet
 		(
-			activityDefn.name, variableValuesByName
+			new UnitActivity
+			(
+				activityDefn.name, variableValuesByName
+			)
 		);
 		this.activityUpdate(null, world);
 	}
 
+	activitySet(value)
+	{
+		this._activity = value;
+	}
+
 	activityUpdate(universe, world)
 	{
-		if (this.activity != null)
+		if (this._activity != null)
 		{
 			var owner = this.owner(world);
-			this.activity.perform(universe, world, owner, this);
+			this._activity.perform(universe, world, owner, this);
 		}
 	}
 
@@ -103,6 +128,18 @@ class Unit
 		return this.baseSupporting(world).pos.equals(this.pos);
 	}
 
+	moveStartTowardPosInWorld(targetPos, world)
+	{
+		var activityDefns = UnitActivityDefn.Instances();
+		this.activityDefnStartForWorldWithVariableNameAndValue
+		(
+			activityDefns.MoveTo,
+			world,
+			UnitActivityVariableNames.TargetPos(),
+			targetPos
+		);
+	}
+
 	moveThirdsThisTurn()
 	{
 		return this._moveThirdsThisTurn;
@@ -154,10 +191,7 @@ class Unit
 		var defn = this.defn(world);
 		this.moveThirdsThisTurnSet(defn.movement.moveThirdsPerTurn);
 		var owner = this.owner(world);
-		if (this.activity != null)
-		{
-			this.activity.perform(null, world, owner, this);
-		}
+		this.activityUpdate(null, world);
 	}
 
 	// Movement.
@@ -218,14 +252,11 @@ class Unit
 	moveInDirection(directionToMove, world)
 	{
 		var activityDefns = UnitActivityDefn.Instances();
-		this.activityDefnStartForWorldWithVariables
+		this.activityDefnStartForWorldWithVariableNameAndValue
 		(
 			activityDefns.Move,
 			world,
-			new Map
-			([
-				[ UnitActivityVariableNames.Direction(), directionToMove ]
-			])
+			UnitActivityVariableNames.Direction(), directionToMove
 		);
 	}
 
@@ -262,9 +293,21 @@ class UnitActivity
 		defn.perform(universe, world, owner, unit);
 	}
 
+	variableSetByNameAndValue(name, value)
+	{
+		this.variableValuesByName.set(name, value);
+	}
+
 	variableValueByName(name)
 	{
 		return this.variableValuesByName.get(name);
+	}
+
+	// Variable convenience accessors.
+
+	targetPos()
+	{
+		return this.variableValueByName(UnitActivityVariableNames.TargetPos() );
 	}
 }
 
@@ -293,14 +336,6 @@ class UnitActivityDefn
 		return UnitActivityDefn.Instances().byName(name);
 	}
 
-	movesToComplete()
-	{
-		return this.variableValueInitialByName
-		(
-			UnitActivityVariableNames.MovesToComplete()
-		);
-	}
-
 	perform(universe, world, owner, unit)
 	{
 		this._perform(universe, world, owner, unit);
@@ -309,6 +344,16 @@ class UnitActivityDefn
 	variableValueInitialByName(name)
 	{
 		return this.variableValuesInitialByName.get(name);
+	}
+
+	// Variable convenience accessors.
+
+	movesToComplete()
+	{
+		return this.variableValueInitialByName
+		(
+			UnitActivityVariableNames.MovesToComplete()
+		);
 	}
 }
 
@@ -325,6 +370,7 @@ class UnitActivityDefn_Instances
 		this.Disband 					= uad("Disband", 			null, 				this.disband);
 		this.Fortify 					= uad("Fortify", 			null, 				this.fortify);
 		this.Move 						= uad("Move",				null, 				this.move);
+		this.MoveTo 					= uad("MoveTo",				null, 				this.moveTo);
 		this.Pass 						= uad("Pass", 				null, 				this.pass);
 		this.RestAfterMove 				= uad("RestAfterMove", 		null, 				this.restAfterMove);
 		this.Sleep 						= uad("Sleep", 				null, 				this.sleep);
@@ -342,6 +388,7 @@ class UnitActivityDefn_Instances
 			this.Disband,
 			this.Fortify,
 			this.Move,
+			this.MoveTo,
 			this.Pass,
 			this.RestAfterMove,
 			this.Sleep,
@@ -378,7 +425,7 @@ class UnitActivityDefn_Instances
 
 	move(universe, world, owner, unit)
 	{
-		var activity = unit.activity;
+		var activity = unit.activity();
 		var directionToMove = activity.variableValueByName
 		(
 			UnitActivityVariableNames.Direction()
@@ -423,6 +470,43 @@ class UnitActivityDefn_Instances
 
 		// todo - Handle single-move units moving onto multi-move terrain.
 		unit.activityClear(); 
+	}
+
+	moveTo(universe, world, owner, unit)
+	{
+		var activity = unit.activity();
+		var targetPos = activity.targetPos();
+		var unitPos = unit.pos;
+		var displacementFromUnitToTarget =
+			targetPos.clone().subtract(unitPos);
+		var distanceFromUnitToTarget =
+			displacementFromUnitToTarget.magnitude();
+		if (distanceFromUnitToTarget == 0)
+		{
+			unit.activityClear();
+		}
+		else
+		{
+			// todo - Pathfinding.
+			var offsetToCellNext =
+				displacementFromUnitToTarget.directions();
+			var directionToCellNext = Direction.byOffset(offsetToCellNext);
+			var canMoveInDirection =
+				unit.canMoveInDirection(directionToCellNext, world);
+			if (canMoveInDirection == false)
+			{
+				unit.activityClear();
+			}
+			else
+			{
+				activity.variableSetByNameAndValue
+				(
+					UnitActivityVariableNames.Direction(), directionToCellNext
+				);
+				unit.moveInDirection(directionToCellNext, world);
+				unit.activitySet(activity); // .move() clears it.
+			}
+		}
 	}
 
 	pass(universe, world, owner, unit)
@@ -503,6 +587,7 @@ class UnitActivityVariableNames
 {
 	static Direction() { return "Direction"; }
 	static MovesToComplete() { return "MovesToComplete"; }
+	static TargetPos() { return "TargetPos"; }
 }
 
 class UnitDefn

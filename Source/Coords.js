@@ -45,6 +45,7 @@ class Coords
 	{
 		this.x += other.x;
 		this.y += other.y;
+		this.z += other.z;
 		return this;
 	}
 
@@ -72,9 +73,12 @@ class Coords
 		return this;
 	}
 
-	dotProduct(other)
+	directions()
 	{
-		return this.x * other.x + this.y * other.y + this.z * other.z;
+		this.x = (this.x == 0 ? 0 : this.x / Math.abs(this.x) );
+		this.y = (this.y == 0 ? 0 : this.y / Math.abs(this.y) );
+		this.z = (this.z == 0 ? 0 : this.z / Math.abs(this.z) );
+		return this;
 	}
 
 	divideScalar(scalar)
@@ -83,6 +87,11 @@ class Coords
 		this.y /= scalar;
 		this.z /= scalar;
 		return this;
+	}
+
+	dotProduct(other)
+	{
+		return this.x * other.x + this.y * other.y + this.z * other.z;
 	}
 
 	equals(other)
