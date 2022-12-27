@@ -206,6 +206,16 @@ class Base
 		return this.demographics.populationCanGrow(this);
 	}
 
+	populationHappy(world)
+	{
+		return this.demographics.populationHappy(world, this);
+	}
+
+	populationUnhappy(world)
+	{
+		return this.demographics.populationUnhappy(world, this);
+	}
+
 	// Improvements.
 
 	hasImprovement(improvement)
@@ -1079,12 +1089,13 @@ class BaseLandUsage
 		return cellsUsable;
 	}
 
-	buildRoadsAndIrrigationInAllCellsMagicallyForBaseAndWorld(base, world)
+	buildImprovementsInAllCellsMagicallyForBaseAndWorld(base, world)
 	{
 		// This is a cheat, used only for testing.
 
 		var cellsUsable = this.cellsUsableForBaseAndMap(base, world.map);
 		var improvements = MapOfCellsCellImprovement.Instances();
+		var terrains = MapOfCellsCellTerrain.Instances(); 
 		cellsUsable.forEach(cell =>
 		{
 			if (cell.hasIrrigation() == false)
@@ -1094,6 +1105,19 @@ class BaseLandUsage
 			if (cell.hasRoads() == false)
 			{
 				cell.improvementAdd(improvements.Roads);
+			}
+
+			var cellTerrain = cell.terrain(world);
+			if
+			(
+				cellTerrain == terrains.Hills
+				|| cellTerrain == terrains.Mountains
+			)
+			{
+				if (cell.hasMines() == false)
+				{
+					cell.improvementAdd(improvements.Mines);
+				}
 			}
 		});
 	}
@@ -1134,11 +1158,13 @@ class BaseLandUsage
 		var offset = this._offset;
 		var cellPos = this._cellPos;
 
-		for (var y = -2; y <= 2; y++)
+		var offsetDimensionMax = this.offsetDimensionMax();
+
+		for (var y = -offsetDimensionMax; y <= offsetDimensionMax; y++)
 		{
 			offset.y = y;
 
-			for (var x = -2; x <= 2; x++)
+			for (var x = -offsetDimensionMax; x <= offsetDimensionMax; x++)
 			{
 				offset.x = x;
 
@@ -1147,7 +1173,7 @@ class BaseLandUsage
 				var offsetIsInRange =
 				(
 					offsetAbsoluteSumOfDimensions > 0
-					&& offsetAbsoluteSumOfDimensions < 4
+					&& offsetAbsoluteSumOfDimensions < offsetDimensionMax * 2
 				);
 
 				var offsetIsInUse =
@@ -1177,6 +1203,11 @@ class BaseLandUsage
 		}
 
 		this.offsetsInUse.push(offsetWithValueMaxSoFar);
+	}
+
+	offsetDimensionMax()
+	{
+		return 2;
 	}
 
 	offsetRemoveWorst(world, base)
@@ -1217,7 +1248,7 @@ class BaseLandUsage
 
 		var offset = Coords.create();
 
-		var distanceMax = 2;
+		var distanceMax = this.offsetDimensionMax();
 
 		for (var y = -distanceMax; y <= distanceMax; y++)
 		{
@@ -1287,6 +1318,148 @@ class BaseLandUsage
 			+ this.offsetsInUse.map(x => x.toString()).join(";");
 
 		return returnValue;
+	}
+
+	toStringVisualForWorldAndBase(world, base)
+	{
+		// For debugging.
+
+		var map = world.map;
+
+		var territoryAsLines = [];
+
+		var offset = Coords.create();
+
+		var distanceMax = this.offsetDimensionMax();
+		var territoryDiameterInCells = distanceMax * 2 + 1;
+		var cellSizeInChars = Coords.fromXY(12, 6);
+		var territorySizeInChars = cellSizeInChars.clone().multiplyScalar
+		(
+			territoryDiameterInCells
+		);
+		var cellPosInCellsFromUpperLeft = Coords.create();
+		var cellPosInChars = Coords.create();
+		var cellPosInCells = Coords.create();
+
+		for (var y = -distanceMax; y <= distanceMax; y++)
+		{
+			offset.y = y;
+			cellPosInCellsFromUpperLeft.y = offset.y + distanceMax;
+
+			for (var x = -distanceMax; x <= distanceMax; x++)
+			{
+				offset.x = x;
+				cellPosInCellsFromUpperLeft.x = offset.x + distanceMax;
+
+				var offsetAbsoluteSumOfDimensions =
+					offset.clone().absolute().sumOfDimensions();
+				var offsetIsInRange =
+				(
+					offsetAbsoluteSumOfDimensions < distanceMax * 2
+				);
+
+				cellPosInChars.overwriteWith
+				(
+					cellPosInCellsFromUpperLeft
+				).multiply
+				(
+					cellSizeInChars
+				);
+
+				var cellAsLines = [];
+
+				if (offsetIsInRange)
+				{
+					var horizontalBorder =
+						"+".padEnd(cellSizeInChars.x, "-") + "+";
+					cellAsLines.push(horizontalBorder);
+
+					cellPosInCells.overwriteWith(offset).add(base.pos);
+					var cell = map.cellAtPosInCells(cellPosInCells);
+					var cellTerrainCode = cell.terrainCode;
+					var cellTerrain = cell.terrain(world);
+					var cellTerrainAbbreviation = cellTerrain.abbreviation;
+					var resourceSpecialPresent = cell.resourceSpecialPresent();
+					var resourceSpecialPresentName =
+					(
+						resourceSpecialPresent == null
+						? ""
+						: resourceSpecialPresent.name
+					);
+					var riverIndicator = (cell.hasRiver() ? "r" : "");
+					var cellTerrainAsString =
+						cellTerrainCode
+						+ " " + cellTerrainAbbreviation
+						+ " " + resourceSpecialPresentName
+						+ " " + riverIndicator;
+
+					cellAsLines.push
+					(
+						"|" + cellTerrainAsString.padEnd(cellSizeInChars.x - 1, " ") + "|"
+					);
+
+					var cellImprovements =
+						(cell.hasRailroads() ? "R " : (cell.hasRoads() ? "r " : ""))
+						+ (cell.hasFarmland() ? "I " : (cell.hasIrrigation() ? "i " : ""));
+						+ (cell.hasFortress() ? "F" : "");
+					cellAsLines.push
+					(
+						"|" + cellImprovements.padEnd(cellSizeInChars.x - 1, " ") + "|"
+					);
+
+					var cellResourcesProduced = cell.resourcesProduced(world, base);
+					var food = cellResourcesProduced.food;
+					var industry = cellResourcesProduced.industry;
+					var trade = cellResourcesProduced.trade;
+					var resourcesProduced =
+						(food > 0 ? "f" + food + " " : "")
+						+ (industry > 0 ? "i" + industry + " " : "")
+						+ (trade > 0 ? "t" + trade + " " : "");
+
+					cellAsLines.push
+					(
+						"|" + resourcesProduced.padEnd(cellSizeInChars.x - 1, " ") + "|"
+					);
+
+					var cellIsInUse = this.offsetsInUse.some(x => x.equals(offset));
+					var isInUseFlag = (cellIsInUse ? "In Use" : "");
+					cellAsLines.push
+					(
+						"|" + isInUseFlag.padEnd(cellSizeInChars.x - 1, " ") + "|"
+					);
+
+					cellAsLines.push
+					(
+						"|".padEnd(cellSizeInChars.x, " ") + "|"
+					);
+
+				}
+				else if (x == -distanceMax)
+				{
+					cellAsLines.push(
+						"".padEnd(cellSizeInChars.x, " ")
+					);
+
+					for (var i = 0; i < cellSizeInChars.y - 1; i++)
+					{
+						cellAsLines.push
+						(
+							"".padEnd(cellSizeInChars.x, " ")
+						);
+					}
+				}
+
+				StringHelper.copyStringsIntoStringsAtPos
+				(
+					cellAsLines, territoryAsLines, cellPosInChars
+				);
+
+			}
+		}
+
+		var territoryAsString = territoryAsLines.join("\n");
+
+		return territoryAsString;
 	}
 
 	turnUpdate(world, base)

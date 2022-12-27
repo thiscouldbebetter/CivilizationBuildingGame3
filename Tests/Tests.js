@@ -24,8 +24,8 @@ class TestFixtureMain
 		this.playFromStart_5_BuildingAUnit();
 		this.playFromStart_6_ImprovingLand();
 		this.playFromStart_7_Government();
+		this.playFromStart_9_ResearchForBuildable();
 		this.playFromStart_8_BaseUnrest();
-		this.playFromStart_9_Research();
 		this.playFromStart_10_Ships();
 		this.playFromStart_11_BaseGrowthLimiters();
 		this.playFromStart_12_ResearchAllAndBuildStarship();
@@ -287,7 +287,7 @@ class TestFixtureMain
 		});
 
 		// Rather than building things up the slow way, for now: cheat!
-		base.landUsage.buildRoadsAndIrrigationInAllCellsMagicallyForBaseAndWorld
+		base.landUsage.buildImprovementsInAllCellsMagicallyForBaseAndWorld
 		(
 			base, world
 		);
@@ -381,8 +381,14 @@ class TestFixtureMain
 
 		// Reassign a worker as an entertainer and verify that they add happiness.
 		Assert.areEqual(0, base.luxuriesThisTurn(world) );
+		var populationHappyBeforeEntertainer = base.populationHappy(world);
+		var populationUnhappyBeforeEntertainer = base.populationUnhappy(world);
 		base.workerWorstReassignAsEntertainer(world);
 		Assert.areEqual(2, base.luxuriesThisTurn(world) );
+		var populationHappyAfterEntertainer = base.populationHappy(world);
+		var populationUnhappyAfterEntertainer = base.populationUnhappy(world);
+		Assert.areEqual(populationUnhappyAfterEntertainer, populationUnhappyBeforeEntertainer);
+		Assert.areEqual(populationHappyAfterEntertainer, populationHappyBeforeEntertainer + 1);
 
 		// Build a military unit and verify that martial law mitigates unhappiness.
 		var unitDefns = UnitDefn.Instances();
@@ -392,8 +398,7 @@ class TestFixtureMain
 		);
 
 		// Build some more military units to enforce martial law.
-		var unitDefns = UnitDefn.Instances();
-		var militaryUnitsToBuildCount = 1;
+		var militaryUnitsToBuildCount = 0; // todo
 		for (var i = 0; i < militaryUnitsToBuildCount; i++)
 		{
 			this.waitNTurnsForBaseInWorldToBuildUnitDefn
@@ -439,7 +444,7 @@ class TestFixtureMain
 		);
 	}
 
-	playFromStart_9_Research()
+	playFromStart_9_ResearchForBuildable()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();

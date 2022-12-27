@@ -176,6 +176,11 @@ class MapOfCellsCell
 		return (this.hasImprovement(MapOfCellsCellImprovement.Instances().Farmland) );
 	}
 
+	hasFortress()
+	{
+		return (this.hasImprovement(MapOfCellsCellImprovement.Instances().Fortress) );
+	}
+
 	hasImprovement(improvement)
 	{
 		return (this.improvementsPresentNames.indexOf(improvement.name) >= 0);
@@ -372,7 +377,8 @@ class MapOfCellsCellImprovement_Instances
 	{
 		var effectTodo = "";
 
-		this.Farmland 	= new MapOfCellsCellImprovement("Farmland", "f", effectTodo);
+		this.Farmland 	= new MapOfCellsCellImprovement("Farmland", "I", effectTodo);
+		this.Fortress 	= new MapOfCellsCellImprovement("Fortress", "f", effectTodo);
 		this.Irrigation = new MapOfCellsCellImprovement("Irrigation", "i", effectTodo);
 		this.Mines 		= new MapOfCellsCellImprovement("Mines", "m", effectTodo);
 		this.Railroads 	= new MapOfCellsCellImprovement("Railroads", "R", effectTodo);
@@ -381,6 +387,7 @@ class MapOfCellsCellImprovement_Instances
 		this._All =
 		[
 			this.Farmland,
+			this.Fortress,
 			this.Irrigation,
 			this.Mines,
 			this.Railroads,
@@ -491,6 +498,7 @@ class MapOfCellsCellTerrain
 	constructor
 	(
 		name,
+		abbreviation,
 		categoryName,
 		code,
 		colorName,
@@ -500,6 +508,7 @@ class MapOfCellsCellTerrain
 	)
 	{
 		this.name = name;
+		this.abbreviation = abbreviation;
 		this.categoryName = categoryName;
 		this.code = code;
 		this.colorName = colorName;
@@ -528,9 +537,9 @@ class MapOfCellsCellTerrain_Instances
 {
 	constructor()
 	{
-		var t = (a, b, c, d, e, f, g) =>
+		var t = (a, b, c, d, e, f, g, h) =>
 		{
-			return new MapOfCellsCellTerrain(a, b, c, d, e, f, g);
+			return new MapOfCellsCellTerrain(a, b, c, d, e, f, g, h);
 		};
 
 		var rp = (food, industry, trade) => new ResourceProduction(food, industry, trade);
@@ -538,18 +547,18 @@ class MapOfCellsCellTerrain_Instances
 		var land = "Land";
 		var water = "Water";
 
-		// 					name,			cat,	code,	color,				symbol, moves, 	resourceProd
-		this.Desert 	= t("Desert",		land,	"/", 	"rgb(255,000,128)",	"/",	1,		rp(0, 1, 0) );
-		this.Forest		= t("Forest", 		land,	"@",	"rgb(000,255,000)",	"@",	2,		rp(1, 2, 0) );
-		this.Glacier	= t("Glacier", 		land,	"#",	"rgb(255,255,255)",	"#",	2,		rp(0, 0, 0) );
-		this.Grassland	= t("Grassland", 	land,	":",	"rgb(000,255,000)",	":",	1,		rp(2, 0, 0) );
-		this.Hills		= t("Hills",		land,	"*",	"rgb(000,255,000)",	"*",	2,		rp(1, 0, 0) );
-		this.Jungle		= t("Jungle",		land, 	"&",	"rgb(000,064,000)",	"&",	2,		rp(1, 0, 0) );
-		this.Mountains	= t("Mountains",	land, 	"^", 	"rgb(128,128,128)",	"^",	3, 		rp(0, 1, 0) );
-		this.Ocean 		= t("Ocean",		water,	"~",	"rgb(000,000,255)",	"~",	100,	rp(1, 0, 2) );
-		this.Plains 	= t("Plains",		land,	".",	"rgb(000,128,000)",	".",	1,		rp(1, 1, 0) );
-		this.Swamp		= t("Swamp",		land,	"=",	"rgb(064,192,000)",	"=",	2,		rp(1, 0, 0) );
-		this.Tundra		= t("Tundra",		land, 	"-",	"rgb(128,255,128)",	"-",	2,		rp(1, 0, 0) );
+		// 					name,			abbr,	cat,	code,	color,				symbol, moves, 	resourceProd
+		this.Desert 	= t("Desert",		"d",	land,	"/", 	"rgb(255,000,128)",	"/",	1,		rp(0, 1, 0) );
+		this.Forest		= t("Forest", 		"f",	land,	"@",	"rgb(000,255,000)",	"@",	2,		rp(1, 2, 0) );
+		this.Glacier	= t("Glacier", 		"i",	land,	"#",	"rgb(255,255,255)",	"#",	2,		rp(0, 0, 0) );
+		this.Grassland	= t("Grassland", 	"g",	land,	":",	"rgb(000,255,000)",	":",	1,		rp(2, 0, 0) );
+		this.Hills		= t("Hills",		"h",	land,	"*",	"rgb(000,255,000)",	"*",	2,		rp(1, 0, 0) );
+		this.Jungle		= t("Jungle",		"j",	land, 	"&",	"rgb(000,064,000)",	"&",	2,		rp(1, 0, 0) );
+		this.Mountains	= t("Mountains",	"m",	land, 	"^", 	"rgb(128,128,128)",	"^",	3, 		rp(0, 1, 0) );
+		this.Ocean 		= t("Ocean",		"o",	water,	"~",	"rgb(000,000,255)",	"~",	100,	rp(1, 0, 2) );
+		this.Plains 	= t("Plains",		"p",	land,	".",	"rgb(000,128,000)",	".",	1,		rp(1, 1, 0) );
+		this.Swamp		= t("Swamp",		"s",	land,	"=",	"rgb(064,192,000)",	"=",	2,		rp(1, 0, 0) );
+		this.Tundra		= t("Tundra",		"t",	land, 	"-",	"rgb(128,255,128)",	"-",	2,		rp(1, 0, 0) );
 
 		// todo - Rivers.
 
