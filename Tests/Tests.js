@@ -23,11 +23,12 @@ class TestFixtureMain
 		this.playFromStart_4_FoundingABase();
 		this.playFromStart_5_BuildingAUnit();
 		this.playFromStart_6_ImprovingLand();
-		this.playFromStart_7_BaseUnrest();
-		this.playFromStart_8_Research();
-		this.playFromStart_9_Ships();
-		this.playFromStart_10_BaseGrowthLimiters();
-		this.playFromStart_11_ResearchAllAndBuildStarship();
+		this.playFromStart_7_Government();
+		this.playFromStart_8_BaseUnrest();
+		this.playFromStart_9_Research();
+		this.playFromStart_10_Ships();
+		this.playFromStart_11_BaseGrowthLimiters();
+		this.playFromStart_12_ResearchAllAndBuildStarship();
 	}
 
 	playFromStart_1_Startup()
@@ -236,10 +237,11 @@ class TestFixtureMain
 
 		// Re-optimize the base's labor.
 		var resourcesBeforeOptimize = base.resourcesProducedThisTurn(world).clone();
-		base.laborOptimize(world);
+		base.laborOptimizeForWorld(world);
 		var resourcesAfterOptimize =
 			base.resourcesProducedThisTurn(world);
-		Assert.isFalse(resourcesAfterOptimize.equals(resourcesBeforeOptimize) );
+		// But improvements don't matter, because despotism truncates the extra food.
+		Assert.isTrue(resourcesAfterOptimize.equals(resourcesBeforeOptimize) );
 
 		world.turnAdvance(); // hack - Should this be necessary?
 
@@ -283,9 +285,76 @@ class TestFixtureMain
 			);
 			world.turnAdvance();
 		});
+
+		// Rather than building things up the slow way, for now: cheat!
+		base.landUsage.buildRoadsAndIrrigationInAllCellsMagicallyForBaseAndWorld
+		(
+			base, world
+		);
+		base.laborOptimizeForWorld(world);
 	}
 
-	playFromStart_7_BaseUnrest()
+	playFromStart_7_Government()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+
+		// Verify that the initial government is despotism.
+		var governments = Government.Instances();
+		Assert.isTrue(owner.governmentIs(governments.Despotism) );
+
+		// Verify that only one government is known initially.
+		var governmentsKnown = owner.governmentsKnown();
+		Assert.areEqual(1, governmentsKnown.length);
+		Assert.isTrue(governmentsKnown[0] == governments.Despotism);
+
+		// Record the gross industry before.
+		var base = owner.bases[0];
+		var baseIndustryGrossBefore = base.industryThisTurnGross(world);
+		Assert.isTrue(baseIndustryGrossBefore > 0);
+
+		// Research a second government type, monarchy.
+		var technologies = Technology.Instances();
+		this.waitNTurnsForOwnerInWorldToResearchTechs
+		(
+			this.turnsToWaitMax, owner, world,
+			[
+				technologies.CeremonialBurial,
+				technologies.Alphabet,
+				technologies.CodeOfLaws,
+				technologies.Monarchy
+			]
+		);
+
+		// Verify that monarchy is now a known form of government.
+		governmentsKnown = owner.governmentsKnown();
+		Assert.areEqual(2, governmentsKnown.length);
+		Assert.isTrue(governmentsKnown[1] == governments.Monarchy);
+
+		// Overthrow the government to prepare to switch to monarchy.
+		owner.governmentOverthrow();
+		Assert.isTrue(owner.governmentIs(governments.Anarchy) );
+
+		// Can't set government to monarchy immediately after overthrow.
+		Assert.throwsException(() => owner.governmentSet(governments.Monarchy));
+		Assert.isFalse(owner.governmentIs(governments.Monarchy) );
+
+		// Wait for the anarchy to pass, then switch to monarchy.
+		var turnsOfAnarchyMax = 4;
+		this.waitNTurns(turnsOfAnarchyMax, world);
+		Assert.throwsException(owner.governmentSet(governments.Monarchy));
+		Assert.isTrue(owner.governmentIs(governments.Monarchy) );
+
+		// Since, under a monarchy,
+		// production over 2 per cell per resource is not curtailed,
+		// net industry should be greater.
+		var baseIndustryGrossAfter = base.industryThisTurnGross(world);
+		Assert.isTrue(baseIndustryGrossAfter > baseIndustryGrossBefore);
+
+		// Disband non-free units.
+	}
+
+	playFromStart_8_BaseUnrest()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();
@@ -324,7 +393,8 @@ class TestFixtureMain
 
 		// Build some more military units to enforce martial law.
 		var unitDefns = UnitDefn.Instances();
-		for (var i = 0; i < 3; i++)
+		var militaryUnitsToBuildCount = 1;
+		for (var i = 0; i < militaryUnitsToBuildCount; i++)
 		{
 			this.waitNTurnsForBaseInWorldToBuildUnitDefn
 			(
@@ -340,7 +410,7 @@ class TestFixtureMain
 		(
 			this.turnsToWaitMax, owner, world,
 			[
-				technologies.CeremonialBurial,
+				// Ceremonial Burial has already been researched.
 				technologies.Mysticism,
 			]
 		);
@@ -369,7 +439,7 @@ class TestFixtureMain
 		);
 	}
 
-	playFromStart_8_Research()
+	playFromStart_9_Research()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();
@@ -398,6 +468,7 @@ class TestFixtureMain
 			buildablesAvailableNames.indexOf(improvementToBuild.name) >= 0;
 		Assert.isTrue(canBuildImprovement);
 
+		// Build the improvement.
 		this.waitNTurnsForBaseInWorldToBuildImprovement
 		(
 			this.turnsToWaitMax, base, world, improvementToBuild
@@ -413,26 +484,104 @@ class TestFixtureMain
 		Assert.isTrue(base.foodStockpiled >= (foodNeededToGrow / 2) );
 	}
 
-	playFromStart_9_Ships()
+	playFromStart_10_Ships()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();
-		var unit = owner.unitSelected();
+		var unitSettlers = owner.unitSelected();
 
-		unit.moveStartTowardPosInWorld(Coords.zeroes(), world);
-		while (unit.activity() != null)
+		// Move to the coast.
+		unitSettlers.moveStartTowardPosInWorld(Coords.zeroes(), world);
+		while (unitSettlers.activity() != null)
 		{
 			world.turnAdvance();
 		}
 
+		// Found another base, this one on the coast.
+		var baseCountBefore = owner.bases.length;
+		var activityDefns = UnitActivityDefn.Instances();
+		unitSettlers.activityDefnStartForWorld
+		(
+			activityDefns.SettlersStartCity, world
+		);
+		var baseCountAfter = owner.bases.length;
+		Assert.areEqual(baseCountAfter, baseCountBefore + 1);
+		var base = owner.bases[owner.bases.length - 1];
+		Assert.isNotNull(base);
+		Assert.isTrue(base.pos.equals(unitSettlers.pos));
+
+		// Research map making so a trireme can be built.
+		var technologies = Technology.Instances();
+		this.waitNTurnsForOwnerInWorldToResearchTechs
+		(
+			this.turnsToWaitMax, owner, world,
+			[
+				technologies.MapMaking
+			]
+		);
+
+		// Build a trireme.
+		var unitDefns = UnitDefn.Instances();
+		this.waitNTurnsForBaseInWorldToBuildUnitDefn
+		(
+			this.turnsToWaitMax, base, world, unitDefns.Trireme
+		);
+		var unitsSupported = base.unitsSupported(world);
+		var unitShip = unitsSupported[0];
+		Assert.areEqual(unitDefns.Trireme.name, unitShip.defnName);
+
+		// Let the city grow some.
+		this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
+		(
+			this.turnsToWaitMax, base, world, true // isExpectedToGrow
+		);
+
+		// Build some troops to load onto the ship.
+		var capacityOfTrireme = 3;
+		var troopsToBuildCount = capacityOfTrireme + 1;
+		for (var i = 0; i < troopsToBuildCount; i++)
+		{
+			this.waitNTurnsForBaseInWorldToBuildUnitDefn
+			(
+				this.turnsToWaitMax, base, world, unitDefns.Warriors
+			);
+			unitsSupported = base.unitsSupported(world);
+			var unitWarriors = unitsSupported[unitsSupported.length - 1];
+			Assert.areEqual(unitDefns.Warriors.name, unitWarriors.defnName);
+			unitWarriors.sleep(world);
+		}
+
+		// Move the ship out of the base,
+		// and verify that the max amount of sleeping troops came with it.
+		var directions = Direction.Instances();
+		unitShip.moveInDirection(directions.West, world);
+		Assert.areNotEqual(unitShip.pos, base.pos);
+		unitsSupported = base.unitsSupported(world);
+		var unitWarriors = unitsSupported.find(x => x.defnName = unitDefns.Warriors.name);
+		Assert.areEqual(unitWarriors.pos, unitShip.pos);
+
+		// See if the ship can move onto an unoccupied land square,
+		// which it shouldn't.
+		Assert.isFalse(unitShip.canMoveInDirection(directions.SouthEast, world));
+
+		// However, it should be able to move back onto the base.
+		Assert.isTrue(unitShip.canMoveInDirection(directions.East, world));
+
+		// It also shouldn't get lost at sea, as long as it stays next to land.
+		var turnsToWait = 10;
+		for (var i = 0; i < turnsToWait; i++)
+		{ 
+			world.turnAdvance();
+		}
+		Assert.isTrue(world.units.contains(unitShip));
+
 		// todo
-		// Found a city, build a trireme, load troops on it,
 		// sail to opposite shore, unload troops,
 		// attack enemy base,
 		// end turn away from shore, die.
 	}
 
-	playFromStart_10_BaseGrowthLimiters()
+	playFromStart_11_BaseGrowthLimiters()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();
@@ -494,8 +643,6 @@ class TestFixtureMain
 				technologies.HorsebackRiding,
 				technologies.Wheel,
 				technologies.Engineering,
-				technologies.Alphabet,
-				technologies.CodeOfLaws,
 				technologies.Writing,
 				technologies.Literacy,
 				technologies.Philosophy,
@@ -519,7 +666,7 @@ class TestFixtureMain
 		);
 	}
 
-	playFromStart_11_ResearchAllAndBuildStarship()
+	playFromStart_12_ResearchAllAndBuildStarship()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();
@@ -545,6 +692,11 @@ class TestFixtureMain
 		(
 			this.turnsToWaitMax, base, world
 		);
+	}
+
+	waitNTurns(turnsToWait, world)
+	{
+		world.turnAdvanceMultiple(turnsToWait);
 	}
 
 	waitNTurnsForBaseInWorldToBuildImprovement

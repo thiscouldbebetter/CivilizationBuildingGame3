@@ -23,6 +23,7 @@ class Owner
 		this.units = units;
 
 		this.governmentName = Government.Instances().Despotism.name; // todo
+		this.governmentAnarchyTurnsRemaining = null;
 		this.selection = new OwnerSelection();
 		this.starshipStatus = OwnerStarshipStatus.create();
 
@@ -77,9 +78,52 @@ class Owner
 		return Government.byName(this.governmentName);
 	}
 
+	governmentOverthrow()
+	{
+		this.governmentName = Government.Instances().Anarchy.name;
+		var turnsOfAnarchyMin = 1;
+		var turnsOfAnarchyMax = 3;
+		var turnsOfAnarchyRange = turnsOfAnarchyMax - turnsOfAnarchyMin;
+		this.governmentAnarchyTurnsRemaining =
+			turnsOfAnarchyMin
+			+ Math.floor(Math.random() * turnsOfAnarchyRange);
+	}
+
 	governmentIs(governmentToCheck)
 	{
 		return (this.governmentName == governmentToCheck.name);
+	}
+
+	governmentIsAnarchy()
+	{
+		return this.governmentIs(Government.Instances().Anarchy);
+	}
+
+	governmentIsAnarchyOrDespotism()
+	{
+		return (this.governmentIsAnarchy() || this.governmentIsDespotism() );
+	}
+
+	governmentIsDespotism()
+	{
+		return this.governmentIs(Government.Instances().Despotism);
+	}
+
+	governmentSet(governmentToSet)
+	{
+		var governmentsKnown = this.governmentsKnown();
+		if (governmentsKnown.indexOf(governmentToSet) < 0)
+		{
+			throw new Error("Attempted to use unknown government!");
+		}
+		else if (this.governmentAnarchyTurnsRemaining > 0)
+		{
+			throw new Error("Cannot set government during anarchy!");
+		}
+		else
+		{
+			this.governmentName = governmentToSet.name;
+		}
 	}
 
 	governmentsKnown()
@@ -133,8 +177,36 @@ class Owner
 		this.unitSelectNextIdle();
 	}
 
+	notifyByMessageForWorld(message, world)
+	{
+		this.notificationLog.notifyByMessageForWorld(message, world);
+	}
+
 	turnUpdate(world)
 	{
+		var isAnarchy = this.governmentIsAnarchy();
+		if (isAnarchy)
+		{
+			this.governmentAnarchyTurnsRemaining--;
+			if (this.governmentAnarchyTurnsRemaining <= 0)
+			{
+				// todo - Prompt for a new government.
+			}
+		}
+		else
+		{
+			var areAnyBasesExperiencingUnrest = false; // todo
+
+			if (areAnyBasesExperiencingUnrest)
+			{
+				var isUnrestSufficientForRevolution = false; // todo
+				if (isUnrestSufficientForRevolution)
+				{
+					this.governmentOverthrow();
+				}
+			}
+		}
+
 		this.bases.forEach(x => x.turnUpdate(world) );
 		this.units.forEach(x => x.turnUpdate(world) );
 

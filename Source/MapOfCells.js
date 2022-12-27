@@ -143,7 +143,7 @@ class MapOfCellsCell
 			pos, terrainCode, resourceSpecialCode, null, null, null
 		);
 	}
-	
+
 	static fromTerrainCode(terrainCode)
 	{
 		return new MapOfCellsCell(null, terrainCode, null, null, null, null);
@@ -262,6 +262,23 @@ class MapOfCellsCell
 		if (resourceSpecialPresent != null)
 		{
 			resources.add(resourceSpecialPresent.resourcesProduced);
+		}
+
+		var owner = base.owner(world);
+		if (owner.governmentIsAnarchyOrDespotism())
+		{
+			if (resources.food > 2)
+			{
+				resources.food--;
+			}
+			if (resources.industry > 2)
+			{
+				resources.industry--;
+			}
+			if (resources.trade > 2)
+			{
+				resources.trade--;
+			}
 		}
 
 		return resources;
@@ -417,8 +434,8 @@ class MapOfCellsCellResource_Instances
 		this.Buffalo 	= r("Buffalo", 	"A", 	ts.Plains, 		rp(0, 2, 0));
 		this.Coal 		= r("Coal", 	"B", 	ts.Hills, 		rp(0, 2, 0));
 		this.Fish 		= r("Fish", 	"C", 	ts.Ocean, 		rp(3, 0, 0));
-		this.Fruit 		= r("Fruit", 	"D", 	ts.Jungle, 		rp(0, 0, 0));
-		this.Furs		= r("Furs",		"E", 	ts.Tundra, 		rp(0, 0, 0));
+		this.Fruit 		= r("Fruit", 	"D", 	ts.Jungle, 		rp(3, 0, 1));
+		this.Furs		= r("Furs",		"E", 	ts.Tundra, 		rp(1, 0, 3));
 		this.Game 		= r("Game", 	"F", 	ts.Tundra, 		rp(2, 1, 0));
 		this.Gems 		= r("Gems",		"G", 	ts.Jungle, 		rp(0, 0, 4));
 		this.Gold 		= r("Gold",		"H", 	ts.Mountains, 	rp(0, 0, 6));

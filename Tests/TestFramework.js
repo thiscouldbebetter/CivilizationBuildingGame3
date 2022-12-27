@@ -52,6 +52,26 @@ class Assert
 			throw new Error("Expected: true, but was: false.");
 		}
 	}
+
+	static throwsException(lambdaToRun)
+	{
+		var didThrowException;
+
+		try
+		{
+			lambdaToRun();
+			didThrowException = false;
+		}
+		catch (ex)
+		{
+			didThrowException = true;
+		}
+		
+		if (didThrowException == false)
+		{
+			throw new Error("Expected exception, but none was thrown.");
+		}
+	}
 }
 
 class Test

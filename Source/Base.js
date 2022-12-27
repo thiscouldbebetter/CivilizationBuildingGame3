@@ -68,7 +68,7 @@ class Base
 		var cellOccupied = world.map.cellAtPosInCells(this.pos);
 		cellOccupied.improvementAddIrrigation();
 		cellOccupied.improvementAddRoads();
-		this.laborOptimize(world);
+		this.laborOptimizeForWorld(world);
 	}
 
 	isBuildingSomething()
@@ -97,6 +97,11 @@ class Base
 	mapCellOccupied(world)
 	{
 		return world.map.cellAtPosInCells(this.pos);
+	}
+
+	mapCellsUsable(world)
+	{
+		return this.landUsage.cellsUsableForBaseAndMap(this, world.map);
 	}
 
 	owner(world)
@@ -316,7 +321,7 @@ class Base
 		return industryNeeded;
 	}
 
-	laborOptimize(world)
+	laborOptimizeForWorld(world)
 	{
 		// todo - This isn't really optimum.
 		this.demographics.specialistsReassignAllAsWorkers();
@@ -390,6 +395,15 @@ class Base
 	}
 
 	// Units.
+
+	unitRemove(unit)
+	{
+		this.unitsSupportedIds.splice
+		(
+			this.unitsSupportedIds.indexOf(unit.id),
+			1 // numberToRemove
+		);
+	}
 
 	unitSupport(unit)
 	{
@@ -953,16 +967,17 @@ class BaseIndustry
 		return returnValue;
 	}
 
+	buildableInProgressClear()
+	{
+		this.buildableInProgressName = null;
+		this.industryStockpiled = 0;
+	}
+
 	canBuildBuildable(buildable, world)
 	{
 		var canBuild = this.owner(world).canBuildBuildable(buildable);
 		// todo - Some bases can't build some things, for instance, boats.
 		return canBuild;
-	}
-
-	buildableInProgressClear()
-	{
-		this.buildableInProgressName = null;
 	}
 
 	toString()
@@ -988,7 +1003,13 @@ class BaseIndustry
 			{
 				var unitsSupported = base.unitsSupported(world);
 				var unitToBeDisbanded = unitsSupported[unitsSupported.length - 1];
-				// todo - Disband the unit.
+				world.unitRemove(unitToBeDisbanded);
+				var message =
+					"Base '" + base.name
+					+ "' could not support unit '" + unitToBeDisbanded.defnName
+					+ "', disbanding.";
+				owner.notifyByMessageForWorld(message, world);
+				this.buildableInProgressClear();
 			}
 			else
 			{
@@ -1019,9 +1040,93 @@ class BaseLandUsage
 		return new BaseLandUsage(null);
 	}
 
+	cellsInUseForBaseAndMap(base, map)
+	{
+		var cellPos = this._cellPos;
+		var basePos = base.pos;
+		var mapSizeInCells = map.sizeInCells
+		var cellsInUse = this.offsetsInUse.map
+		(
+			offset => map.cellAtPosInCells
+			(
+				cellPos.overwriteWith
+				(
+					basePos
+				).add
+				(
+					offset
+				).wrapXTrimYToMax
+				(
+					mapSizeInCells
+				)
+			)
+		);
+		return cellsInUse;
+	}
+
+	cellsUsableForBaseAndMap(base, map)
+	{
+		var cellPos = this._cellPos;
+		var basePos = base.pos;
+		var offsetsUsable = this.offsetsUsableForMap(map);
+		var cellsUsable = offsetsUsable.map
+		(
+			x => map.cellAtPosInCells
+			(
+				cellPos.overwriteWith(basePos).add(x)
+			)
+		);
+		return cellsUsable;
+	}
+
+	buildRoadsAndIrrigationInAllCellsMagicallyForBaseAndWorld(base, world)
+	{
+		// This is a cheat, used only for testing.
+
+		var cellsUsable = this.cellsUsableForBaseAndMap(base, world.map);
+		var improvements = MapOfCellsCellImprovement.Instances();
+		cellsUsable.forEach(cell =>
+		{
+			if (cell.hasIrrigation() == false)
+			{
+				cell.improvementAdd(improvements.Irrigation);
+			}
+			if (cell.hasRoads() == false)
+			{
+				cell.improvementAdd(improvements.Roads);
+			}
+		});
+	}
+
+	isValid()
+	{
+		var isValidSoFar = true;
+
+		for (var i = 0; i < this.offsetsInUse.length; i++)
+		{
+			var offsetI = this.offsetsInUse[i];
+
+			for (var j = i + 1; j < this.offsetsInUse.length; j++)
+			{
+				var offsetJ = this.offsetsInUse[j];
+
+				var areOffsetsEqual = offsetI.equals(offsetJ);
+				if (areOffsetsEqual)
+				{
+					isValidSoFar = false;
+					i = this.offsetsInUse.length;
+					break;
+				}
+			}
+		}
+
+		return isValidSoFar;
+	}
+
 	offsetChooseOptimumFromAvailable(world, base)
 	{
 		var map = world.map;
+		var mapSizeInCells = map.sizeInCells;
 
 		var offsetValueMaxSoFar = 0;
 		var offsetWithValueMaxSoFar = null;
@@ -1054,13 +1159,18 @@ class BaseLandUsage
 				if (offsetIsAvailable)
 				{
 					cellPos.overwriteWith(base.pos).add(offset);
-					var cellAtOffset = map.cellAtPosInCells(cellPos);
-					var offsetValue = cellAtOffset.value(world, base);
 
-					if (offsetValue > offsetValueMaxSoFar)
+					if (cellPos.isYInRangeMaxExclusive(mapSizeInCells))
 					{
-						offsetValueMaxSoFar = offsetValue;
-						offsetWithValueMaxSoFar = offset.clone();
+						cellPos.wrapXTrimYToMax(mapSizeInCells);
+						var cellAtOffset = map.cellAtPosInCells(cellPos);
+						var offsetValue = cellAtOffset.value(world, base);
+
+						if (offsetValue > offsetValueMaxSoFar)
+						{
+							offsetValueMaxSoFar = offsetValue;
+							offsetWithValueMaxSoFar = offset.clone();
+						}
 					}
 				}
 			}
@@ -1101,6 +1211,40 @@ class BaseLandUsage
 		)
 	}
 
+	offsetsUsableForMap(map)
+	{
+		var offsetsUsable = [];
+
+		var offset = Coords.create();
+
+		var distanceMax = 2;
+
+		for (var y = -distanceMax; y <= distanceMax; y++)
+		{
+			offset.y = y;
+
+			for (var x = -distanceMax; x <= distanceMax; x++)
+			{
+				offset.x = x;
+
+				var offsetAbsoluteSumOfDimensions =
+					offset.clone().absolute().sumOfDimensions();
+				var offsetIsInRange =
+				(
+					offsetAbsoluteSumOfDimensions > 0
+					&& offsetAbsoluteSumOfDimensions < distanceMax + distanceMax
+				);
+
+				if (offsetIsInRange)
+				{
+					offsetsUsable.push(offset.clone());
+				}
+			}
+		}
+
+		return offsetsUsable;
+	}
+
 	optimize(world, base)
 	{
 		// todo - This isn't very efficient.
@@ -1124,11 +1268,8 @@ class BaseLandUsage
 			this._resourcesProducedThisTurn.clear();
 
 		var basePos = base.pos;
-		var cellsInUsePositions =
-			this.offsetsInUse.map(x => x.clone().add(basePos));
 		var map = world.map;
-		var cellsInUse =
-			cellsInUsePositions.map(x => map.cellAtPosInCells(x) );
+		var cellsInUse = this.cellsInUseForBaseAndMap(base, map);
 		var resourcesProducedByCells =
 			cellsInUse.map(x => x.resourcesProduced(world, base) );
 		resourcesProducedByCells.forEach

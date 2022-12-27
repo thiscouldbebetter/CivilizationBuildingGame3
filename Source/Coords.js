@@ -119,6 +119,11 @@ class Coords
 		return this.divideScalar(2);
 	}
 
+	isYInRangeMaxExclusive(max)
+	{
+		return (this.y >= 0 && this.y < max.y);
+	}
+
 	magnitude()
 	{
 		return Math.sqrt

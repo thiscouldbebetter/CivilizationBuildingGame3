@@ -15,7 +15,7 @@ class NotificationLog
 		this.notifications = notifications || [];
 	}
 
-	static default()
+	static create()
 	{
 		return new NotificationLog(null);
 	}

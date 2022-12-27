@@ -165,6 +165,12 @@ class Unit
 		this.ownerName = owner.name;
 	}
 
+	sleep(world)
+	{
+		var activityDefns = UnitActivityDefn.Instances();
+		this.activityDefnStartForWorld(activityDefns.Sleep, world);
+	}
+
 	toStringDetails(world)
 	{
 		var defn = this.defn(world);
@@ -383,6 +389,9 @@ class UnitActivityDefn_Instances
 		this.SettlersPlantForest 		= uad("Plant Forest", 		movesToComplete3, 	this.settlersPlantForest);
 		this.SettlersStartCity 			= uad("Start City", 		null, 				this.settlersStartCity);
 
+		// Convenience activities.
+		this._SettlersBuildAll 			= uad("Build All", 			null, 				this.settlersBuildAll);
+
 		this._All =
 		[
 			this.Disband,
@@ -399,7 +408,9 @@ class UnitActivityDefn_Instances
 			this.SettlersBuildRoads,
 			this.SettlersClearForest,
 			this.SettlersPlantForest,
-			this.SettlersStartCity
+			this.SettlersStartCity,
+
+			this._SettlersBuildAll
 		];
 
 		this._AllByName = new Map(this._All.map(x => [x.name, x] ) );
@@ -522,6 +533,69 @@ class UnitActivityDefn_Instances
 	}
 
 	// Settlers.
+
+	settlersBuildAll(universe, world, owner, unit)
+	{
+		var unitPos = unit.pos;
+
+		var base = unit.baseSupporting(world);
+		var landUsage = base.landUsage;
+		var cellsUsable = base.cellsUsable(world);
+
+		var canBuildRailroads = false; // todo
+		var canBuildFarmland = false; // todo
+
+		var cellScoreMaxSoFar = 0;
+		var cellWithScoreMaxSoFar = null;
+		var cellDistanceMax = 8; // todo
+
+		for (var i = 0; i < cellsUsable.length; i++)
+		{
+			var cell = cellsUsable[i];
+			var cellPos = cell.posInMap(map);
+
+			var cellScore;
+
+			var cellNeedsIrrigation = (cell.hasIrrigation() == false);
+			var cellNeedsRoads = (cell.hasRoads() == false);
+
+			var cellNeedsFarmland =
+			(
+				canBuildFarmland && cell.hasFarmland() == false
+			);
+			var cellNeedsRailroads =
+			(
+				canBuildRailroads && cell.hasRailroads() == false
+			);
+
+			var improvementsNeededCount =
+				(cellNeedsIrrigation ? 1 : 0)
+				+ (cellNeedsRoads ? 1 : 0)
+				+ (cellNeedsFarmland ? 1: 0)
+				+ (cellNeedsRailroads ? 1 : 0);
+
+			if (improvementsNeededCount == 0)
+			{
+				cellScore = 0;
+			}
+			else
+			{
+				var cellDistance = cellPos.subtract(unitPos).magnitude();
+				cellScore = cellDistanceMax - cellDistance; // todo
+			}
+
+			if (cellScore > cellScoreMaxSoFar)
+			{
+				cellScoreMaxSoFar = cellScore;
+				cellWithScoreMaxSoFar = cell;
+			}
+		}
+
+		if (cellScoreMaxSoFar == 0)
+		{
+			// Everything's already fully improved.
+		}
+	}
 
 	settlersBuildFort(universe, world, owner, unit)
 	{

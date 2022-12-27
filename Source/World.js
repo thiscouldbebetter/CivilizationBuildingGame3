@@ -58,8 +58,8 @@ class World
 			[
 				"~~~~~~~~~~~~~~~~",
 				"~..............~",
-				"~PPPPPPPPPPPPPP~",
-				"~..............~",
+				"~PPPPPPPPPPPPPP~", // P = shield
+				"~TTTTTTTTTTTTTT~", // T = wheat
 				"~::::::::::::::~",
 				"~..............~",
 				"~::::::::::::::~",
@@ -98,7 +98,7 @@ class World
 				OwnerIncomeAllocation.default(), // incomeAllocation,
 				OwnerResearch.default(),
 				OwnerMapKnowledge.default(),
-				NotificationLog.default(),
+				NotificationLog.create(),
 				[], // bases
 				[
 					unitInitial
@@ -228,6 +228,11 @@ class World
 
 	unitRemove(unit)
 	{
+		var baseSupporting = unit.baseSupporting(this);
+		if (baseSupporting != null) // The initial settler has no support.
+		{
+			baseSupporting.unitRemove(unit);
+		}
 		this.units.splice(this.units.indexOf(unit), 1);
 		var cell = this.map.cellAtPosInCells(unit.pos);
 		cell.unitRemove(unit);
