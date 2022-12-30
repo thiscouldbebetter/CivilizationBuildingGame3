@@ -603,6 +603,15 @@ class TestFixtureMain
 		Assert.isNotNull(base);
 		Assert.isTrue(base.pos.equals(unitSettlers.pos));
 
+		// Rather than building things up the slow way, for now: cheat!
+		var improvements = BaseImprovementDefn.Instances();
+		base.improvementAdd(improvements.Temple);
+		base.landUsage.buildImprovementsInAllCellsMagicallyForBaseAndWorld
+		(
+			base, world
+		);
+		base.laborOptimizeForWorld(world);
+
 		// Research map making so a trireme can be built.
 		var technologies = Technology.Instances();
 		this.waitNTurnsForOwnerInWorldToResearchTechs
@@ -624,7 +633,7 @@ class TestFixtureMain
 		Assert.areEqual(unitDefns.Trireme.name, unitShip.defnName);
 
 		// Let the city grow some.
-		var timesToGrow = 2;
+		var timesToGrow = 4;
 		for (var i = 0; i < timesToGrow; i++)
 		{
 			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne

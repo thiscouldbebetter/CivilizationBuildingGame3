@@ -119,6 +119,18 @@ class Coords
 		return this.divideScalar(2);
 	}
 
+	isInRangeMaxExclusive(max)
+	{
+		var returnValue =
+		(
+			this.x >= 0
+			&& this.x < max.x
+			&& this.y >= 0
+			&& this.y < max.y
+		);
+		return returnValue;
+	}
+
 	isYInRangeMaxExclusive(max)
 	{
 		return (this.y >= 0 && this.y < max.y);
@@ -201,6 +213,20 @@ class Coords
 	toStringXY()
 	{
 		return this.x + "," + this.y;
+	}
+
+	wrapXToMax(max)
+	{
+		while (this.x < 0)
+		{
+			this.x += max.x;
+		}
+		while (this.x >= max.x)
+		{
+			this.x -= max.x;
+		}
+
+		return this;
 	}
 
 	wrapXTrimYToMax(max)
