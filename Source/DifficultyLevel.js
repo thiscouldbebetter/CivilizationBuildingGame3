@@ -6,7 +6,7 @@ class DifficultyLevel
 		name,
 		turnsMax,
 		startingCash,
-		basePopulationBeforeUnhappiness,
+		basePopulationBeforeDiscontent,
 		buildDiscountForComputerPlayers,
 		barbarianAttackMultiplier
 	)
@@ -14,7 +14,7 @@ class DifficultyLevel
 		this.name = name;
 		this.turnsMax = turnsMax;
 		this.startingCash = startingCash;
-		this.basePopulationBeforeUnhappiness = basePopulationBeforeUnhappiness;
+		this.basePopulationBeforeDiscontent = basePopulationBeforeDiscontent;
 		this.buildDiscountForComputerPlayers = buildDiscountForComputerPlayers;
 		this.barbarianAttackMultiplier = barbarianAttackMultiplier;
 	}

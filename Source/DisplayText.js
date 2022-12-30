@@ -4,6 +4,7 @@ class DisplayText
 	constructor(domElementId)
 	{
 		this.domElementId = domElementId;
+		this.newline = "<br />";
 	}
 
 	clear()
@@ -27,11 +28,12 @@ class DisplayText
 
 	writeNewline()
 	{
-		this.writeString("<br />");
+		this.writeString(this.newline);
 	}
 
 	writeString(stringToWrite, colorName)
 	{
+		stringToWrite = stringToWrite.split("\n").join(this.newline);
 		var d = document;
 		var textareaDisplay = d.getElementById(this.domElementId);
 		if (colorName != null)

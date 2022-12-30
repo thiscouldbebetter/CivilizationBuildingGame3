@@ -6,7 +6,7 @@ class Government
 		name,
 		taxRateMax,
 		foodConsumedPerSettler,
-		unhappyPopulationMitigatedByMartialLaw,
+		discontentPopulationMitigatedByMartialLaw,
 		corruptionPerUnitDistanceFromCapital,
 		industryConsumedByUnitsSupportedByBase
 	)
@@ -14,8 +14,8 @@ class Government
 		this.name = name;
 		this.taxRateMax = taxRateMax;
 		this.foodConsumedPerSettler	= foodConsumedPerSettler;
-		this.unhappyPopulationMitigatedByMartialLaw =
-			unhappyPopulationMitigatedByMartialLaw;
+		this.discontentPopulationMitigatedByMartialLaw =
+			discontentPopulationMitigatedByMartialLaw;
 		this.corruptionPerUnitDistanceFromCapital =
 			corruptionPerUnitDistanceFromCapital;
 		this._industryConsumedByUnitsSupportedByBase =
@@ -87,7 +87,7 @@ class Government_Instances
 				return returnMethod;
 			};
 
-		var unhappyPopulationMitigatedByMartialLaw = 3;
+		var discontentPopulationMitigatedByMartialLaw = 3;
 
 		var g = (n, t, fps, ml, cor, sup) =>
 			new Government(n, t, fps, ml, cor, sup);

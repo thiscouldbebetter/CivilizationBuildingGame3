@@ -77,19 +77,6 @@ class Base
 		return (this.isIdle() == false);
 	}
 
-	isExperiencingUnrest(world)
-	{
-		var unhappyPopulationCount =
-			this.demographics.populationUnhappy(world, this);
-
-		var happyPopulationCount =
-			this.demographics.populationHappy(world, this);
-
-		var returnValue = (unhappyPopulationCount > happyPopulationCount);
-
-		return returnValue;
-	}
-
 	isIdle()
 	{
 		return (this.industry.buildableInProgressName == null);
@@ -117,6 +104,11 @@ class Base
 
 	toStringDetails(world)
 	{
+
+		var demographics =
+			"Demographics: "
+			+ this.demographics.toStringDetails(world, this);
+
 		var foodGross = this.foodThisTurnGross(world);
 		var foodNet = this.foodThisTurnNet(world);
 		var foodConsumed = foodGross - foodNet;
@@ -138,15 +130,30 @@ class Base
 			"Industry: "
 			+ industryGross + " produced, "
 			+ industryLostToCorruption + " wasted, "
-			+ industryConsumedByUnits + " to support " + this.unitsSupportedCount() + " units"
+			+ industryConsumedByUnits + " to support " + this.unitsSupportedCount() + " units, "
+			+ industryNet + " netted"
 			+ "\n"
-			+ this.industry.toString();
+			+ this.industry.toString(world, this);
+
+		var tradeGross = this.tradeThisTurnGross(world);
+		var tradeNet = this.tradeThisTurnNet(world);
+		var tradeLostToCorruption = tradeGross - tradeNet;
+
+		var trade =
+			"Trade: "
+			+ tradeGross + " produced, "
+			+ tradeLostToCorruption + " stolen, "
+			+ tradeNet + " netted, "
+			+ this.luxuriesThisTurnFromTrade(world) + " to luxuries, "
+			+ this.researchThisTurn(world) + " to research, "
+			+ this.moneyThisTurnGross(world) + " to taxes, "
+			+ this.moneyThisTurnNet(world) + " after expenses";
 
 		var improvements =
 			"Improvements: "
 			+ this.improvementsPresent().map
 			(
-				x => x.name + " (" + x.defn().costPerTurn + ")"
+				x => x.name + " (" + x.costPerTurn + ")"
 			).join(", ");
 
 		var landUsage =
@@ -157,9 +164,10 @@ class Base
 			"Name: " + this.id,
 			"Onwer:" + this.ownerName,
 			"Position: " + this.pos.toStringXY(),
-			"Demographics: " + this.demographics.toStringDetails(),
+			demographics,
 			food,
 			industry,
+			trade,
 			improvements,
 			landUsage,
 		];
@@ -218,13 +226,20 @@ class Base
 		}
 	}
 
-	workerWorstReassignAsEntertainer(world)
-	{
-		this.landUsage.offsetRemoveWorst(world, this);
-		this.demographics.entertainerAdd();
-	}
-
 	// Demographics.
+
+	isExperiencingUnrest(world)
+	{
+		var discontentPopulationCount =
+			this.populationDiscontent(world, this);
+
+		var happyPopulationCount =
+			this.populationHappy(world, this);
+
+		var returnValue = (discontentPopulationCount > happyPopulationCount);
+
+		return returnValue;
+	}
 
 	population()
 	{
@@ -246,9 +261,25 @@ class Base
 		return this.demographics.populationHappy(world, this);
 	}
 
-	populationUnhappy(world)
+	populationDiscontent(world)
 	{
-		return this.demographics.populationUnhappy(world, this);
+		return this.demographics.populationDiscontent(world, this);
+	}
+
+	whileDiscontentReassignLaborersAsEntertainers(world)
+	{
+		// hack
+		// It may not always be possible to restore order with just entertainers.
+		while (this.isExperiencingUnrest(world))
+		{
+			this.laborerWorstReassignAsEntertainer(world);
+		}
+	}
+
+	laborerWorstReassignAsEntertainer(world)
+	{
+		this.landUsage.offsetRemoveWorst(world, this);
+		this.demographics.entertainerAdd();
 	}
 
 	// Improvements.
@@ -261,6 +292,14 @@ class Base
 	improvementAdd(improvement)
 	{
 		this.improvementsPresentNames.push(improvement.name);
+	}
+
+	improvementsCostPerTurn()
+	{
+		var costPerTurnTotal = 0;
+		var improvements = this.improvementsPresent();
+		improvements.forEach(x => costPerTurnTotal += x.costPerTurn);
+		return costPerTurnTotal;
 	}
 
 	improvementsPresent()
@@ -374,20 +413,41 @@ class Base
 		this.landUsage.optimize(world, this);
 	}
 
+	luxuriesPerEntertainer()
+	{
+		return 2;
+	}
+
 	luxuriesThisTurn(world)
 	{
-		var tradeThisTurn = this.tradeThisTurnNet(world);
-		var moneyThisTurn = this.moneyThisTurnGross(world);
-		var researchThisTurn = this.researchThisTurn(world);
-		var luxuriesThisTurn = tradeThisTurn - moneyThisTurn - researchThisTurn;
-		var luxuriesPerEntertainer = 2;
+		var luxuriesFromTrade =
+			this.luxuriesThisTurnFromTrade(world);
+
 		var luxuriesFromEntertainers =
-			this.demographics.entertainerCount * luxuriesPerEntertainer;
-		luxuriesThisTurn += luxuriesFromEntertainers;
+			this.demographics.entertainerCount * this.luxuriesPerEntertainer();
+
+		var luxuriesThisTurn =
+			luxuriesFromTrade
+			+ luxuriesFromEntertainers;
+
 		return luxuriesThisTurn;
 	}
 
-	moneyThisTurnGross(world)
+	luxuriesThisTurnFromTrade(world)
+	{
+		var tradeThisTurn = this.tradeThisTurnNet(world);
+		var moneyThisTurn = this.moneyThisTurnFromTrade(world);
+		var researchThisTurn = this.researchThisTurnFromTrade(world);
+		var luxuriesThisTurn = tradeThisTurn - moneyThisTurn - researchThisTurn;
+		return luxuriesThisTurn;
+	}
+
+	moneyPerTaxCollector()
+	{
+		return 2;
+	}
+
+	moneyThisTurnFromTrade(world)
 	{
 		var tradeThisTurn = this.tradeThisTurnNet(world);
 		var owner = this.owner(world);
@@ -396,10 +456,20 @@ class Base
 		return moneyThisTurn;
 	}
 
+	moneyThisTurnGross(world)
+	{
+		var moneyFromTrade = this.moneyThisTurnFromTrade(world);
+		var moneyFromTaxCollectors =
+			this.demographics.taxCollectorCount
+			* this.moneyPerTaxCollector();
+		var moneyTotal = moneyFromTrade + moneyFromTaxCollectors;
+		return moneyTotal;
+	}
+
 	moneyThisTurnNet(world)
 	{
 		var gross = this.moneyThisTurnGross(world);
-		var upkeep = this.improvementsUpkeepCost();
+		var upkeep = this.improvementsCostPerTurn();
 		var net = gross - upkeep;
 		return net; // todo - What if this is negative?
 	}
@@ -409,7 +479,25 @@ class Base
 		return (this.moneyThisTurnNet() < 0);
 	}
 
+	researchPerScientist()
+	{
+		return 2;
+	}
+
 	researchThisTurn(world)
+	{
+		var researchFromTrade = this.researchThisTurnFromTrade(world);
+
+		var researchFromScientists =
+			this.demographics.scientistCount
+			* this.researchPerScientist();
+
+		var researchTotal = researchFromTrade + researchFromScientists;
+
+		return researchTotal;
+	}
+
+	researchThisTurnFromTrade(world)
 	{
 		var tradeThisTurn = this.tradeThisTurnNet(world);
 		var moneyThisTurn = this.moneyThisTurnGross(world)
@@ -540,15 +628,22 @@ class BaseDemographics
 		return new BaseDemographics(1, null, null, null);
 	}
 
-	toStringDetails()
+	toStringDetails(world, base)
 	{
 		var returnValue =
-			"Population: " + this.population;
-			+ " ("
-			+ "Laborers:" + this.laborerCount()
-			+ "Entertainers: " + this.entertainerCount
-			+ "Scientists: " + this.scientistCount
-			+ "TaxCollectors: " + this.taxCollectorCount;
+			"Population: " + this.population
+			+ ", Happy: " + this.populationHappy(world, base)
+			+ ", Content: " + this.populationContent(world, base)
+			+ ", Discontent: " + this.populationDiscontent(world, base);
+
+		if (this.hasSpecialists())
+		{
+			returnValue +=
+				", Laborers:" + this.laborerCount()
+				+ (this.entertainerCount == 0 ? "" : ", Entertainers: " + this.entertainerCount)
+				+ (this.scientistCount == 0 ? "" : ", Scientists: " + this.scientistCount)
+				+ (this.taxCollectorCount == 0 ? "" : ", Tax Collectors: " + this.taxCollectorCount);
+		}
 
 		return returnValue;
 	}
@@ -590,22 +685,24 @@ class BaseDemographics
 		return canGrow;
 	}
 
-	populationHappy(world, base)
+	populationContent(world, base)
 	{
-		var luxuriesThisTurn = base.luxuriesThisTurn(world);
-		var happinessDueToLuxuries = Math.floor(luxuriesThisTurn / 2);
-		var happyPopulationCount = happinessDueToLuxuries;
-		return happyPopulationCount;
+		var returnValue =
+			this.population
+			- this.populationHappy(world, base)
+			- this.populationDiscontent(world, base);
+
+		return returnValue;
 	}
 
-	populationUnhappy(world, base)
+	populationDiscontent(world, base)
 	{
 		var difficultyLevel = world.difficultyLevel();
-		var populationMaxBeforeUnhappiness =
-			difficultyLevel.basePopulationBeforeUnhappiness;
+		var populationMaxBeforeDiscontent =
+			difficultyLevel.basePopulationBeforeDiscontent;
 
 		var unhappinessDueToOverpopulation =
-			this.population - populationMaxBeforeUnhappiness;
+			this.population - populationMaxBeforeDiscontent;
 		if (unhappinessDueToOverpopulation < 0)
 		{
 			unhappinessDueToOverpopulation = 0;
@@ -614,13 +711,13 @@ class BaseDemographics
 		var unhappinessDueToMilitaryDeployment = 0;
 		var owner = base.owner(world);
 		var governments = Government.Instances();
-		var doesDeploymentCauseUnhappiness =
+		var doesDeploymentCauseDiscontent =
 		(
 			owner.governmentIs(governments.Republic)
 			|| owner.governmentIs(governments.Democracy)
 		);
 
-		if (doesDeploymentCauseUnhappiness)
+		if (doesDeploymentCauseDiscontent)
 		{
 			var unitsSupported = base.unitsSupported(world);
 			var unitsMilitary = unitsSupported.filter(x => x.isMilitary(world))
@@ -655,19 +752,19 @@ class BaseDemographics
 			}
 		}
 
-		var unhappyPopulationCount =
+		var discontentPopulationCount =
 			unhappinessDueToOverpopulation
 			+ unhappinessDueToMilitaryDeployment;
 
 		var improvementsPresent = base.improvementsPresent();
 
-		if (unhappyPopulationCount > 0)
+		if (discontentPopulationCount > 0)
 		{
 			var unhappinessMitigatedByImprovements = 0;
 			improvementsPresent.forEach
 			(
 				x => unhappinessMitigatedByImprovements +=
-					x.unhappyPopulationMitigated(owner)
+					x.discontentPopulationMitigated(owner)
 			);
 
 			var owner = base.owner(world);
@@ -676,7 +773,7 @@ class BaseDemographics
 			var unhappinessMitigatedByMartialLaw =
 				unitsPresentMilitary.length;
 			var martialLawMax =
-				ownerGovernment.unhappyPopulationMitigatedByMartialLaw;
+				ownerGovernment.discontentPopulationMitigatedByMartialLaw;
 			if (unhappinessMitigatedByMartialLaw > martialLawMax)
 			{
 				unhappinessMitigatedByMartialLaw = martialLawMax;
@@ -686,15 +783,23 @@ class BaseDemographics
 				unhappinessMitigatedByImprovements
 				+ unhappinessMitigatedByMartialLaw;
 
-			unhappyPopulationCount -= unhappinessMitigatedTotal;
+			discontentPopulationCount -= unhappinessMitigatedTotal;
 		}
 
-		if (unhappyPopulationCount < 0)
+		if (discontentPopulationCount < 0)
 		{
-			unhappyPopulationCount = 0;
+			discontentPopulationCount = 0;
 		}
 
-		return unhappyPopulationCount;
+		return discontentPopulationCount;
+	}
+
+	populationHappy(world, base)
+	{
+		var luxuriesThisTurn = base.luxuriesThisTurn(world);
+		var happinessDueToLuxuries = Math.floor(luxuriesThisTurn / 2);
+		var happyPopulationCount = happinessDueToLuxuries;
+		return happyPopulationCount;
 	}
 
 	// Specialists.
@@ -800,7 +905,7 @@ class BaseImprovementDefn
 		base.improvementAdd(this);
 	}
 
-	unhappyPopulationMitigated(owner)
+	discontentPopulationMitigated(owner)
 	{
 		var returnValue = 0;
 
@@ -1070,8 +1175,10 @@ class BaseIndustry
 		{
 			buildableDetails =
 				buildableInProgress.name
+				+ " "
 				+ this.industryStockpiled
-				+ buildableInProgress.defn(world).industryToBuild;
+				+ "/"
+				+ buildableInProgress.industryToBuild;
 		}
 
 		var returnValue =
@@ -1281,12 +1388,17 @@ class BaseLandUsage
 			}
 		}
 
-		this.offsetsInUse.push(offsetWithValueMaxSoFar);
+		this.offsetInUseAdd(offsetWithValueMaxSoFar);
 	}
 
 	offsetDimensionMax()
 	{
 		return 2;
+	}
+
+	offsetInUseAdd(offset)
+	{
+		this.offsetsInUse.push(offset);
 	}
 
 	offsetRemoveWorst(world, base)
@@ -1362,7 +1474,7 @@ class BaseLandUsage
 		this.offsetsInUse.length = 0;
 
 		var offset = this._offset.clear(); // The center is always in use.
-		this.offsetsInUse.push(offset.clone());
+		this.offsetInUseAdd(offset.clone());
 
 		for (var p = 0; p < base.population(); p++)
 		{

@@ -183,8 +183,8 @@ class Unit
 			"Moves: " + this.movesThisTurn() + "/" + defn.movement.movesPerTurn(),
 			defn.combat.toString()
 		];
-		var linesJoined = lines.join("<br />");
-		return linesJoined
+		var linesJoined = lines.join("\n");
+		return linesJoined;
 	}
 
 	toStringForList()

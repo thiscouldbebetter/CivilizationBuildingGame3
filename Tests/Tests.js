@@ -24,10 +24,10 @@ class TestFixtureMain
 		this.playFromStart_5_BuildingAUnit();
 		this.playFromStart_6_ImprovingLand();
 		this.playFromStart_7_Government();
-		this.playFromStart_9_ResearchForBuildable();
 		this.playFromStart_8_BaseUnrest();
-		this.playFromStart_10_Ships();
-		this.playFromStart_11_BaseGrowthLimiters();
+		this.playFromStart_9_BaseGrowthLimiters();
+		this.playFromStart_10_Granary();
+		this.playFromStart_11_Ships();
 		this.playFromStart_12_ResearchAllAndBuildStarship();
 	}
 
@@ -364,8 +364,8 @@ class TestFixtureMain
 		// Verify that the city is not experiencing unrest yet.
 		Assert.isFalse(base.isExperiencingUnrest(world) );
 
-		// Wait for the population to grow until new citizens are unhappy.
-		while (base.population() <= difficultyLevel.basePopulationBeforeUnhappiness)
+		// Wait for the population to grow until new citizens are disconent.
+		while (base.population() <= difficultyLevel.basePopulationBeforeDiscontent)
 		{
 			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
 			(
@@ -382,15 +382,15 @@ class TestFixtureMain
 		// Reassign a worker as an entertainer and verify that they add happiness.
 		Assert.areEqual(0, base.luxuriesThisTurn(world) );
 		var populationHappyBeforeEntertainer = base.populationHappy(world);
-		var populationUnhappyBeforeEntertainer = base.populationUnhappy(world);
-		base.workerWorstReassignAsEntertainer(world);
+		var populationDiscontentBeforeEntertainer = base.populationDiscontent(world);
+		base.laborerWorstReassignAsEntertainer(world);
 		Assert.areEqual(2, base.luxuriesThisTurn(world) );
 		var populationHappyAfterEntertainer = base.populationHappy(world);
-		var populationUnhappyAfterEntertainer = base.populationUnhappy(world);
-		Assert.areEqual(populationUnhappyAfterEntertainer, populationUnhappyBeforeEntertainer);
+		var populationDiscontentAfterEntertainer = base.populationDiscontent(world);
+		Assert.areEqual(populationDiscontentAfterEntertainer, populationDiscontentBeforeEntertainer);
 		Assert.areEqual(populationHappyAfterEntertainer, populationHappyBeforeEntertainer + 1);
 
-		// Build a military unit and verify that martial law mitigates unhappiness.
+		// Build a military unit and verify that martial law mitigates discontent.
 		var unitDefns = UnitDefn.Instances();
 		this.waitNTurnsForBaseInWorldToBuildUnitDefn
 		(
@@ -444,149 +444,7 @@ class TestFixtureMain
 		);
 	}
 
-	playFromStart_9_ResearchForBuildable()
-	{
-		var world = this.world;
-		var owner = world.ownerCurrent();
-		var base = owner.bases[0];
-
-		// Make sure that the base can't build a granary before researching pottery.
-		var buildablesAvailableNames =
-			base.buildablesAvailableNames(world);
-		Assert.areNotEqual(0, buildablesAvailableNames.length);
-		var improvements = BaseImprovementDefn.Instances();
-		var improvementToBuild = improvements.Granary;
-		var canBuildImprovement =
-			buildablesAvailableNames.indexOf(improvementToBuild.name) >= 0;
-		Assert.isFalse(canBuildImprovement);
-
-		var technologies = Technology.Instances();
-		this.waitNTurnsForOwnerInWorldToResearchTech
-		(
-			this.turnsToWaitMax, owner, world, technologies.Pottery
-		);
-
-		// Make sure that the base can build the improvement now.
-		buildablesAvailableNames =
-			base.buildablesAvailableNames(world);
-		canBuildImprovement =
-			buildablesAvailableNames.indexOf(improvementToBuild.name) >= 0;
-		Assert.isTrue(canBuildImprovement);
-
-		// Build the improvement.
-		this.waitNTurnsForBaseInWorldToBuildImprovement
-		(
-			this.turnsToWaitMax, base, world, improvementToBuild
-		);
-
-		// Wait for the population to grow again,
-		// and make sure the granary saves half the food.
-		this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
-		(
-			this.turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
-		);
-		var foodNeededToGrow = base.foodNeededToGrow();
-		Assert.isTrue(base.foodStockpiled >= (foodNeededToGrow / 2) );
-	}
-
-	playFromStart_10_Ships()
-	{
-		var world = this.world;
-		var owner = world.ownerCurrent();
-		var unitSettlers = owner.unitSelected();
-
-		// Move to the coast.
-		unitSettlers.moveStartTowardPosInWorld(Coords.zeroes(), world);
-		while (unitSettlers.activity() != null)
-		{
-			world.turnAdvance();
-		}
-
-		// Found another base, this one on the coast.
-		var baseCountBefore = owner.bases.length;
-		var activityDefns = UnitActivityDefn.Instances();
-		unitSettlers.activityDefnStartForWorld
-		(
-			activityDefns.SettlersStartCity, world
-		);
-		var baseCountAfter = owner.bases.length;
-		Assert.areEqual(baseCountAfter, baseCountBefore + 1);
-		var base = owner.bases[owner.bases.length - 1];
-		Assert.isNotNull(base);
-		Assert.isTrue(base.pos.equals(unitSettlers.pos));
-
-		// Research map making so a trireme can be built.
-		var technologies = Technology.Instances();
-		this.waitNTurnsForOwnerInWorldToResearchTechs
-		(
-			this.turnsToWaitMax, owner, world,
-			[
-				technologies.MapMaking
-			]
-		);
-
-		// Build a trireme.
-		var unitDefns = UnitDefn.Instances();
-		this.waitNTurnsForBaseInWorldToBuildUnitDefn
-		(
-			this.turnsToWaitMax, base, world, unitDefns.Trireme
-		);
-		var unitsSupported = base.unitsSupported(world);
-		var unitShip = unitsSupported[0];
-		Assert.areEqual(unitDefns.Trireme.name, unitShip.defnName);
-
-		// Let the city grow some.
-		this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
-		(
-			this.turnsToWaitMax, base, world, true // isExpectedToGrow
-		);
-
-		// Build some troops to load onto the ship.
-		var capacityOfTrireme = 3;
-		var troopsToBuildCount = capacityOfTrireme + 1;
-		for (var i = 0; i < troopsToBuildCount; i++)
-		{
-			this.waitNTurnsForBaseInWorldToBuildUnitDefn
-			(
-				this.turnsToWaitMax, base, world, unitDefns.Warriors
-			);
-			unitsSupported = base.unitsSupported(world);
-			var unitWarriors = unitsSupported[unitsSupported.length - 1];
-			Assert.areEqual(unitDefns.Warriors.name, unitWarriors.defnName);
-			unitWarriors.sleep(world);
-		}
-
-		// Move the ship out of the base,
-		// and verify that the max amount of sleeping troops came with it.
-		var directions = Direction.Instances();
-		unitShip.moveInDirection(directions.West, world);
-		Assert.areNotEqual(unitShip.pos, base.pos);
-		unitsSupported = base.unitsSupported(world);
-		var unitWarriors = unitsSupported.find(x => x.defnName = unitDefns.Warriors.name);
-		Assert.areEqual(unitWarriors.pos, unitShip.pos);
-
-		// See if the ship can move onto an unoccupied land square,
-		// which it shouldn't.
-		Assert.isFalse(unitShip.canMoveInDirection(directions.SouthEast, world));
-
-		// However, it should be able to move back onto the base.
-		Assert.isTrue(unitShip.canMoveInDirection(directions.East, world));
-
-		// It also shouldn't get lost at sea, as long as it stays next to land.
-		var turnsToWait = 10;
-		for (var i = 0; i < turnsToWait; i++)
-		{ 
-			world.turnAdvance();
-		}
-		Assert.isTrue(world.units.contains(unitShip));
-
-		// todo
-		// sail to opposite shore, unload troops,
-		// attack enemy base,
-		// end turn away from shore, die.
-	}
-
-	playFromStart_11_BaseGrowthLimiters()
+	playFromStart_9_BaseGrowthLimiters()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();
@@ -669,6 +527,155 @@ class TestFixtureMain
 			(this.turnsToWaitMax * 2), // hack,
 			base, world, true // isBaseExpectedToActuallyGrow
 		);
+	}
+
+	playFromStart_10_Granary()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+		var base = owner.bases[0];
+
+		// Make sure that the base can't build a granary before researching pottery.
+		var buildablesAvailableNames =
+			base.buildablesAvailableNames(world);
+		Assert.areNotEqual(0, buildablesAvailableNames.length);
+		var improvements = BaseImprovementDefn.Instances();
+		var improvementToBuild = improvements.Granary;
+		var canBuildImprovement =
+			buildablesAvailableNames.indexOf(improvementToBuild.name) >= 0;
+		Assert.isFalse(canBuildImprovement);
+
+		var technologies = Technology.Instances();
+		this.waitNTurnsForOwnerInWorldToResearchTech
+		(
+			this.turnsToWaitMax, owner, world, technologies.Pottery
+		);
+
+		// Make sure that the base can build the improvement now.
+		buildablesAvailableNames =
+			base.buildablesAvailableNames(world);
+		canBuildImprovement =
+			buildablesAvailableNames.indexOf(improvementToBuild.name) >= 0;
+		Assert.isTrue(canBuildImprovement);
+
+		// hack
+		base.whileDiscontentReassignLaborersAsEntertainers(world);
+
+		// Build the improvement.
+		this.waitNTurnsForBaseInWorldToBuildImprovement
+		(
+			this.turnsToWaitMax, base, world, improvementToBuild
+		);
+
+		// Wait for the population to grow again,
+		// and make sure the granary saves half the food.
+		this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
+		(
+			this.turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
+		);
+		var foodNeededToGrow = base.foodNeededToGrow();
+		Assert.isTrue(base.foodStockpiled >= (foodNeededToGrow / 2) );
+	}
+
+	playFromStart_11_Ships()
+	{
+		var world = this.world;
+		var owner = world.ownerCurrent();
+		var unitSettlers = owner.unitSelected();
+
+		// Move to the coast.
+		unitSettlers.moveStartTowardPosInWorld(Coords.zeroes(), world);
+		while (unitSettlers.activity() != null)
+		{
+			world.turnAdvance();
+		}
+
+		// Found another base, this one on the coast.
+		var baseCountBefore = owner.bases.length;
+		var activityDefns = UnitActivityDefn.Instances();
+		unitSettlers.activityDefnStartForWorld
+		(
+			activityDefns.SettlersStartCity, world
+		);
+		var baseCountAfter = owner.bases.length;
+		Assert.areEqual(baseCountAfter, baseCountBefore + 1);
+		var base = owner.bases[owner.bases.length - 1];
+		Assert.isNotNull(base);
+		Assert.isTrue(base.pos.equals(unitSettlers.pos));
+
+		// Research map making so a trireme can be built.
+		var technologies = Technology.Instances();
+		this.waitNTurnsForOwnerInWorldToResearchTechs
+		(
+			this.turnsToWaitMax, owner, world,
+			[
+				technologies.MapMaking
+			]
+		);
+
+		// Build a trireme.
+		var unitDefns = UnitDefn.Instances();
+		this.waitNTurnsForBaseInWorldToBuildUnitDefn
+		(
+			this.turnsToWaitMax, base, world, unitDefns.Trireme
+		);
+		var unitsSupported = base.unitsSupported(world);
+		var unitShip = unitsSupported[0];
+		Assert.areEqual(unitDefns.Trireme.name, unitShip.defnName);
+
+		// Let the city grow some.
+		var timesToGrow = 2;
+		for (var i = 0; i < timesToGrow; i++)
+		{
+			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
+			(
+				this.turnsToWaitMax, base, world, true // isExpectedToGrow
+			);
+		}
+
+		// Build some troops to load onto the ship.
+		var capacityOfTrireme = 3;
+		var troopsToBuildCount = capacityOfTrireme + 1;
+		for (var i = 0; i < troopsToBuildCount; i++)
+		{
+			this.waitNTurnsForBaseInWorldToBuildUnitDefn
+			(
+				this.turnsToWaitMax, base, world, unitDefns.Warriors
+			);
+			unitsSupported = base.unitsSupported(world);
+			var unitWarriors = unitsSupported[unitsSupported.length - 1];
+			Assert.areEqual(unitDefns.Warriors.name, unitWarriors.defnName);
+			unitWarriors.sleep(world);
+		}
+
+		// Move the ship out of the base,
+		// and verify that the max amount of sleeping troops came with it.
+		var directions = Direction.Instances();
+		unitShip.moveInDirection(directions.West, world);
+		Assert.areNotEqual(unitShip.pos, base.pos);
+		unitsSupported = base.unitsSupported(world);
+		var unitWarriors = unitsSupported.find(x => x.defnName = unitDefns.Warriors.name);
+		Assert.areEqual(unitWarriors.pos, unitShip.pos);
+
+		// See if the ship can move onto an unoccupied land square,
+		// which it shouldn't.
+		Assert.isFalse(unitShip.canMoveInDirection(directions.SouthEast, world));
+
+		// However, it should be able to move back onto the base.
+		Assert.isTrue(unitShip.canMoveInDirection(directions.East, world));
+
+		// It also shouldn't get lost at sea, as long as it stays next to land.
+		var turnsToWait = 10;
+		for (var i = 0; i < turnsToWait; i++)
+		{ 
+			world.turnAdvance();
+		}
+		Assert.isTrue(world.units.contains(unitShip));
+
+		// todo
+		// sail to opposite shore, unload troops,
+		// attack enemy base,
+		// end turn away from shore, die.
 	}
 
 	playFromStart_12_ResearchAllAndBuildStarship()
