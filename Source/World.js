@@ -82,6 +82,11 @@ class World
 		{
 			var ownerName = "Owner" + i;
 			var ownerColorName = ownerColorNames[i];
+			
+			var ownerIntelligence = 
+			(
+				i == 0 ? OwnerIntelligence.human() : OwnerIntelligence.machine()
+			);
 
 			var startingPos = ownerStartingPositions[i];
 			var unitInitial = new Unit
@@ -95,6 +100,7 @@ class World
 			(
 				ownerName,
 				ownerColorName,
+				ownerIntelligence,
 				OwnerIncomeAllocation.default(), // incomeAllocation,
 				OwnerResearch.default(),
 				OwnerMapKnowledge.default(),

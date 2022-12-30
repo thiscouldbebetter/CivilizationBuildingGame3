@@ -5,6 +5,7 @@ class Owner
 	(
 		name,
 		colorName,
+		intelligence,
 		incomeAllocation,
 		research,
 		mapKnowledge,
@@ -15,6 +16,7 @@ class Owner
 	{
 		this.name = name;
 		this.colorName = colorName;
+		this.intelligence = intelligence;
 		this.incomeAllocation = incomeAllocation;
 		this.research = research;
 		this.mapKnowledge = mapKnowledge;
@@ -38,6 +40,77 @@ class Owner
 		return returnValue;
 	}
 
+	hasWon(world)
+	{
+		var hasConqueredWorld =
+		(
+			world.owners.length == 1
+			&& world.owners[0] == this
+		);
+
+		var hasAchievedWorldPeace = false; // todo
+
+		var hasReachedNeighboringStarsystem =
+			this.starshipStatus.hasReachedDestination(world);
+
+		var hasWon =
+		(
+			hasConqueredWorld
+			|| hasAchievedWorldPeace
+			|| hasReachedNeighboringStarsystem
+		);
+
+		return hasWon;
+	}
+
+	initialize(world)
+	{
+		this.bases.forEach(x => x.initialize(world) );
+		this.units.forEach(x => x.initialize(world) );
+
+		this.unitSelectNextIdle();
+	}
+
+	notifyByMessageForWorld(message, world)
+	{
+		this.notificationLog.notifyByMessageForWorld(message, world);
+	}
+
+	turnUpdate(world)
+	{
+		var isAnarchy = this.governmentIsAnarchy();
+		if (isAnarchy)
+		{
+			this.governmentAnarchyTurnsRemaining--;
+			if (this.governmentAnarchyTurnsRemaining <= 0)
+			{
+				// todo - Prompt for a new government.
+			}
+		}
+		else
+		{
+			var areAnyBasesExperiencingUnrest = false; // todo
+
+			if (areAnyBasesExperiencingUnrest)
+			{
+				var isUnrestSufficientForRevolution = false; // todo
+				if (isUnrestSufficientForRevolution)
+				{
+					this.governmentOverthrow();
+				}
+			}
+		}
+
+		this.bases.forEach(x => x.turnUpdate(world) );
+		this.units.forEach(x => x.turnUpdate(world) );
+
+		this.research.turnUpdate(world, this);
+
+		this.unitSelectNextIdle();
+	}
+
+	// Bases.
+
 	baseAdd(base)
 	{
 		this.bases.push(base);
@@ -53,15 +126,7 @@ class Owner
 		this.bases.splice(this.bases.indexOf(base), 1);
 	}
 
-	buildablesKnownNames()
-	{
-		return this.research.buildablesKnownNames();
-	}
-
-	canBuildBuildable(buildable)
-	{
-		return this.research.canBuildBuildable(buildable, this);
-	}
+	// Government.
 
 	corruptionPerUnitDistanceFromCapital()
 	{
@@ -76,6 +141,17 @@ class Owner
 	government()
 	{
 		return Government.byName(this.governmentName);
+	}
+
+	governmentChoiceNeedsInput()
+	{
+		var returnValue =
+		(
+			this.governmentIsAnarchy()
+			&& this.governmentAnarchyTurnsRemaining <= 0
+		);
+
+		return returnValue;
 	}
 
 	governmentOverthrow()
@@ -131,90 +207,6 @@ class Owner
 		return this.research.governmentsKnown();
 	}
 
-	hasWon(world)
-	{
-		var hasConqueredWorld =
-		(
-			world.owners.length == 1
-			&& world.owners[0] == this
-		);
-
-		var hasAchievedWorldPeace = false; // todo
-
-		var hasReachedNeighboringStarsystem =
-			this.starshipStatus.hasReachedDestination(world);
-
-		var hasWon =
-		(
-			hasConqueredWorld
-			|| hasAchievedWorldPeace
-			|| hasReachedNeighboringStarsystem
-		);
-
-		return hasWon;
-	}
-
-	industryConsumedByUnitCount(unitCount)
-	{
-		// todo
-		var unitsFree = 2;
-		var unitsSupportedCount = unitCount - unitsFree;
-		if (unitsSupportedCount < 0)
-		{
-			unitsSupportedCount = 0;
-		}
-		var industryConsumedPerUnitSupported = 2;
-		var industryConsumed =
-			unitsSupportedCount * industryConsumedPerUnitSupported;
-		return industryConsumed;
-	}
-
-	initialize(world)
-	{
-		this.bases.forEach(x => x.initialize(world) );
-		this.units.forEach(x => x.initialize(world) );
-
-		this.unitSelectNextIdle();
-	}
-
-	notifyByMessageForWorld(message, world)
-	{
-		this.notificationLog.notifyByMessageForWorld(message, world);
-	}
-
-	turnUpdate(world)
-	{
-		var isAnarchy = this.governmentIsAnarchy();
-		if (isAnarchy)
-		{
-			this.governmentAnarchyTurnsRemaining--;
-			if (this.governmentAnarchyTurnsRemaining <= 0)
-			{
-				// todo - Prompt for a new government.
-			}
-		}
-		else
-		{
-			var areAnyBasesExperiencingUnrest = false; // todo
-
-			if (areAnyBasesExperiencingUnrest)
-			{
-				var isUnrestSufficientForRevolution = false; // todo
-				if (isUnrestSufficientForRevolution)
-				{
-					this.governmentOverthrow();
-				}
-			}
-		}
-
-		this.bases.forEach(x => x.turnUpdate(world) );
-		this.units.forEach(x => x.turnUpdate(world) );
-
-		this.research.turnUpdate(world, this);
-
-		this.unitSelectNextIdle();
-	}
-
 	// Income allocation.
 
 	luxuriesRate()
@@ -233,6 +225,16 @@ class Owner
 	}
 
 	// Research.
+
+	buildablesKnownNames()
+	{
+		return this.research.buildablesKnownNames();
+	}
+
+	canBuildBuildable(buildable)
+	{
+		return this.research.canBuildBuildable(buildable, this);
+	}
 
 	researchThisTurn(world)
 	{
@@ -310,6 +312,15 @@ class Owner
 	{
 		this.selection.clear();
 		return this;
+	}
+
+	unitSelectedNeedsInput()
+	{
+		var unitSelected = this.unitSelected();
+		var unitSelectedActivity = unitSelected.activity();
+		var activityDefn = unitSelectedActivity.defn();
+		var returnValue = (activityDefn == ActivityDefn.Instances().NeedsInput);
+		return returnValue;
 	}
 
 	// Starship.
@@ -418,6 +429,30 @@ class OwnerIncomeAllocation
 			+ this.luxuriesFraction;
 
 		return (sumOfFractions == 1);
+	}
+}
+
+class OwnerIntelligence
+{
+	constructor(name, commandChoose)
+	{
+		this.name = name;
+		this._commandChoose = commandChoose;
+	}
+
+	static human()
+	{
+		return new OwnerIntelligence("Human", () => {});
+	}
+
+	static machine()
+	{
+		return new OwnerIntelligence("Machine", () => {});
+	}
+
+	commandChoose()
+	{
+		this._commandChoose();
 	}
 }
 

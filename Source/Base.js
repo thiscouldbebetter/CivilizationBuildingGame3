@@ -9,7 +9,8 @@ class Base
 		demographics,
 		landUsage,
 		foodStockpiled,
-		industry
+		industry,
+		improvementsPresentNames
 	)
 	{
 		this.id = IdHelper.idNext();
@@ -22,13 +23,13 @@ class Base
 		this.foodStockpiled = foodStockpiled || 0;
 		this.industry = industry || BaseIndustry.default();
 
-		this.improvementsPresentNames = [];
+		this.improvementsPresentNames = improvementsPresentNames || [];
 		this.unitsSupportedIds = [];
 	}
 
 	static fromNamePosAndOwnerName(name, pos, ownerName)
 	{
-		return new Base(name, pos, ownerName, null, null, null, null);
+		return new Base(name, pos, ownerName, null, null, null, null, null);
 	}
 
 	buildableStart(buildableToBuild, world)
@@ -116,20 +117,54 @@ class Base
 
 	toStringDetails(world)
 	{
-		var defn = this.defn(world);
+		var foodGross = this.foodThisTurnGross(world);
+		var foodNet = this.foodThisTurnNet(world);
+		var foodConsumed = foodGross - foodNet;
+
+		var food =
+			"Food: "
+			+ foodGross + " produced, "
+			+ foodConsumed + " consumed, "
+			+ foodNet + " netted, " 
+			+ this.foodStockpiled + " stored, "
+			+ this.foodNeededToGrow() + " to grow";
+
+		var industryGross = this.industryThisTurnGross(world);
+		var industryLostToCorruption = 0; // todo 
+		var industryConsumedByUnits = this.industryNeededToSupportUnits(world);
+
+		var industryNet = this.industryThisTurnNet(world);
+		var industry =
+			"Industry: "
+			+ industryGross + " produced, "
+			+ industryLostToCorruption + " wasted, "
+			+ industryConsumedByUnits + " to support " + this.unitsSupportedCount() + " units"
+			+ "\n"
+			+ this.industry.toString();
+
+		var improvements =
+			"Improvements: "
+			+ this.improvementsPresent().map
+			(
+				x => x.name + " (" + x.defn().costPerTurn + ")"
+			).join(", ");
+
+		var landUsage =
+			this.landUsage.toStringVisualForWorldAndBase(world, this);
 
 		var lines =
 		[
 			"Name: " + this.id,
 			"Onwer:" + this.ownerName,
-			"Position: " + this.pos.toString(),
-			"Population: " + this.population(),
-			"Food: " + this.foodStockpiled,
-			this.landUsage.toString(),
-			this.industry.toString()
+			"Position: " + this.pos.toStringXY(),
+			"Demographics: " + this.demographics.toStringDetails(),
+			food,
+			industry,
+			improvements,
+			landUsage,
 		];
 
-		var linesJoined = lines.join("<br />");
+		var linesJoined = lines.join("\n");
 
 		return linesJoined;
 	}
@@ -311,6 +346,7 @@ class Base
 	industryThisTurnNet(world)
 	{
 		var gross = this.industryThisTurnGross(world);
+		var industryWastedDueToCorruption = 0; // todo
 		var costToSupportUnits = this.industryNeededToSupportUnits(world);
 		var net = gross - costToSupportUnits;
 		var isExperiencingUnrest = this.isExperiencingUnrest(world);
@@ -334,7 +370,7 @@ class Base
 	laborOptimizeForWorld(world)
 	{
 		// todo - This isn't really optimum.
-		this.demographics.specialistsReassignAllAsWorkers();
+		this.demographics.specialistsReassignAllAsLaborers();
 		this.landUsage.optimize(world, this);
 	}
 
@@ -504,6 +540,21 @@ class BaseDemographics
 		return new BaseDemographics(1, null, null, null);
 	}
 
+	toStringDetails()
+	{
+		var returnValue =
+			"Population: " + this.population;
+			+ " ("
+			+ "Laborers:" + this.laborerCount()
+			+ "Entertainers: " + this.entertainerCount
+			+ "Scientists: " + this.scientistCount
+			+ "TaxCollectors: " + this.taxCollectorCount;
+
+		return returnValue;
+	}
+
+	// Population.
+
 	populationAdd(populationChange)
 	{
 		this.population += populationChange;
@@ -670,13 +721,18 @@ class BaseDemographics
 		return returnValue;
 	}
 
+	laborerCount()
+	{
+		return this.population - this.specialistCount();
+	}
+
 	scientistReassignAsTaxCollector()
 	{
 		this.scientistCount--;
 		this.taxCollectorCount++;
 	}
 
-	specialistReassignAsWorker()
+	specialistReassignAsLaborer()
 	{
 		if (this.entertainerCount > 0)
 		{
@@ -692,7 +748,17 @@ class BaseDemographics
 		}
 	}
 
-	specialistsReassignAllAsWorkers()
+	specialistCount()
+	{
+		var returnValue =
+			this.entertainerCount
+			+ this.scientistCount
+			+ this.taxCollectorCount;
+
+		return returnValue;
+	}
+
+	specialistsReassignAllAsLaborers()
 	{
 		this.entertainerCount = 0;
 		this.scientistCount = 0;
@@ -708,10 +774,11 @@ class BaseDemographics
 
 class BaseImprovementDefn
 {
-	constructor(name, industryToBuild)
+	constructor(name, industryToBuild, costPerTurn)
 	{
 		this.name = name;
 		this.industryToBuild = industryToBuild;
+		this.costPerTurn = costPerTurn;
 	}
 
 	static Instances()
@@ -781,72 +848,72 @@ class BaseImprovementDefn_Instances
 {
 	constructor()
 	{
-		var bid = (n, i) => new BaseImprovementDefn(n, i);
+		var bid = (n, i, c) => new BaseImprovementDefn(n, i, c);
 
-		this.Airport 				= bid("Airport", 				160);
-		this.Aqueduct 				= bid("Aqueduct", 				80);
-		this.Bank 					= bid("Bank", 					120);
-		this.Barracks 				= bid("Barracks", 				40);
-		this.Capitalization 		= bid("Capitalization", 		null);
-		this.Cathedral 				= bid("Cathedral", 				120);
-		this.CityWalls 				= bid("City Walls", 			80);
-		this.CoastalFortress 		= bid("Coastal Fortress", 		80);
-		this.Colosseum				= bid("Colosseum", 				100);
-		this.Courthouse 			= bid("Courthouse", 			80);
-		this.Factory 				= bid("Factory", 				200);
-		this.Granary 				= bid("Granary", 				60);
-		this.Harbor 				= bid("Harbor",					60);
-		this.HydroPlant 			= bid("HydroPlant", 			240);
-		this.Library 				= bid("Library", 				80);
-		this.ManufacturingPlant 	= bid("Manufacturing Plant", 	320);
-		this.Marketplace			= bid("Marketplace", 			80);
-		this.MassTransit			= bid("Mass Transit", 			160);
-		this.NuclearPlant			= bid("Nuclear Plant", 			160);
-		this.OffshorePlatform 		= bid("Offshore Platform", 		160);
-		this.Palace 				= bid("Palace", 				10);
-		this.PoliceStation 			= bid("Police Station", 		60);
-		this.PortFacility 			= bid("Port Facility", 			80);
-		this.PowerPlant 			= bid("Power Plant", 			160);
-		this.RecyclingCenter		= bid("Recycling Center", 		200);
-		this.ResearchLab			= bid("Research Lab", 			160);
-		this.SamMissileBattery 		= bid("SAM Missile Battery", 	100);
-		this.SdiDefense 			= bid("SDI Defense", 			200);
-		this.SewerSystem 			= bid("Sewer System", 			120);
-		this.SolarPlant				= bid("Solar Plant", 			320);
-		this.StockExchange 			= bid("Stock Exchange", 		160);
-		this.Superhighways			= bid("Superhighways",			200);
-		this.Supermarkets			= bid("Supermarkets",			80);
-		this.Temple 				= bid("Temple", 				40);
-		this.University 			= bid("University",				160);
+		this.Airport 				= bid("Airport", 				160, 	3);
+		this.Aqueduct 				= bid("Aqueduct", 				80, 	2);
+		this.Bank 					= bid("Bank", 					120, 	3);
+		this.Barracks 				= bid("Barracks", 				40, 	1);
+		this.Capitalization 		= bid("Capitalization", 		null, 	null);
+		this.Cathedral 				= bid("Cathedral", 				120, 	3);
+		this.CityWalls 				= bid("City Walls", 			80, 	0);
+		this.CoastalFortress 		= bid("Coastal Fortress", 		80, 	1);
+		this.Colosseum				= bid("Colosseum", 				100, 	4);
+		this.Courthouse 			= bid("Courthouse", 			80, 	1);
+		this.Factory 				= bid("Factory", 				200, 	4);
+		this.Granary 				= bid("Granary", 				60, 	1);
+		this.Harbor 				= bid("Harbor",					60, 	1);
+		this.HydroPlant 			= bid("Hydro Plant", 			240, 	4);
+		this.Library 				= bid("Library", 				80, 	1);
+		this.ManufacturingPlant 	= bid("Manufacturing Plant", 	320, 	6);
+		this.Marketplace			= bid("Marketplace", 			80, 	1);
+		this.MassTransit			= bid("Mass Transit", 			160, 	4);
+		this.NuclearPlant			= bid("Nuclear Plant", 			160, 	2);
+		this.OffshorePlatform 		= bid("Offshore Platform", 		160, 	3);
+		this.Palace 				= bid("Palace", 				10, 	0);
+		this.PoliceStation 			= bid("Police Station", 		60, 	2);
+		this.PortFacility 			= bid("Port Facility", 			80, 	3);
+		this.PowerPlant 			= bid("Power Plant", 			160, 	4);
+		this.RecyclingCenter		= bid("Recycling Center", 		200, 	2);
+		this.ResearchLab			= bid("Research Lab", 			160, 	3);
+		this.SamMissileBattery 		= bid("SAM Missile Battery", 	100, 	2);
+		this.SdiDefense 			= bid("SDI Defense", 			200, 	4);
+		this.SewerSystem 			= bid("Sewer System", 			120, 	2);
+		this.SolarPlant				= bid("Solar Plant", 			320, 	4);
+		this.StockExchange 			= bid("Stock Exchange", 		160, 	4);
+		this.Superhighways			= bid("Superhighways",			200, 	5);
+		this.Supermarkets			= bid("Supermarkets",			80, 	3);
+		this.Temple 				= bid("Temple", 				40, 	1);
+		this.University 			= bid("University",				160, 	3);
 
-		this.AdamSmithsTradingCo 	= bid("Adam Smith's Trading Co",400);
-		this.ApolloProgram 			= bid("Apollo Program",			600);
-		this.Colossus 				= bid("Colossus",				200);
-		this.CopernicusObservatory 	= bid("Copernicus' Observatory",300);
-		this.CureForCancer 			= bid("Cure for Cancer",		600);
-		this.DarwinsVoyage 			= bid("Darwin's Voyage",		400);
-		this.EiffelTower 			= bid("Eiffel Tower",			300);
-		this.GreatLibrary 			= bid("Great Library",			300);
-		this.GreatWall 				= bid("GreatWall",				300);
-		this.HangingGardens 		= bid("HangingGardens",			200);
-		this.HooverDam 				= bid("Hoover Dam",				600);
-		this.IsaacNewtonsCollege 	= bid("Isaac Newton's College",	400);
-		this.JsBachsCathedral		= bid("J.S. Bach's Cathedral",	400);
-		this.KingRichardsCrusade 	= bid("King Richard's Crusade",	300);
-		this.LeonardosWorkshop 		= bid("Leonardo's Workshop",	400);
-		this.Lighthouse 			= bid("Lighthouse",				200);
-		this.MagellansExpedition 	= bid("Magellan's Expedition",	400);
-		this.ManhattanProject 		= bid("Manhattan Project",		600);
-		this.MarcoPolosEmbassy 		= bid("Marco's Polo's Embassy", 200);
-		this.MichelangelosChapel 	= bid("Michelangelo's Chapel", 	400);
-		this.Oracle					= bid("Oracle",					300);
-		this.Pyramids 				= bid("Pyramids",				200);
-		this.SetiProgram 			= bid("SETI Program",			600);
-		this.ShakespearesTheatre 	= bid("Shakespeare's Theatre",	300);
-		this.StatueOfLiberty 		= bid("Statue of Liberty",		400);
-		this.SunTzusWarAcademy 		= bid("Sun Tzu's War Academy", 	300);
-		this.UnitedNations 			= bid("United Nations",			600);
-		this.WomensSuffrage 		= bid("Women's Suffrage",		600);
+		this.AdamSmithsTradingCo 	= bid("Adam Smith's Trading Co",400, 	0);
+		this.ApolloProgram 			= bid("Apollo Program",			600, 	0);
+		this.Colossus 				= bid("Colossus",				200, 	0);
+		this.CopernicusObservatory 	= bid("Copernicus' Observatory",300, 	0);
+		this.CureForCancer 			= bid("Cure for Cancer",		600, 	0);
+		this.DarwinsVoyage 			= bid("Darwin's Voyage",		400, 	0);
+		this.EiffelTower 			= bid("Eiffel Tower",			300, 	0);
+		this.GreatLibrary 			= bid("Great Library",			300, 	0);
+		this.GreatWall 				= bid("GreatWall",				300, 	0);
+		this.HangingGardens 		= bid("HangingGardens",			200, 	0);
+		this.HooverDam 				= bid("Hoover Dam",				600, 	0);
+		this.IsaacNewtonsCollege 	= bid("Isaac Newton's College",	400, 	0);
+		this.JsBachsCathedral		= bid("J.S. Bach's Cathedral",	400, 	0);
+		this.KingRichardsCrusade 	= bid("King Richard's Crusade",	300, 	0);
+		this.LeonardosWorkshop 		= bid("Leonardo's Workshop",	400, 	0);
+		this.Lighthouse 			= bid("Lighthouse",				200, 	0);
+		this.MagellansExpedition 	= bid("Magellan's Expedition",	400, 	0);
+		this.ManhattanProject 		= bid("Manhattan Project",		600, 	0);
+		this.MarcoPolosEmbassy 		= bid("Marco's Polo's Embassy", 200, 	0);
+		this.MichelangelosChapel 	= bid("Michelangelo's Chapel", 	400, 	0);
+		this.Oracle					= bid("Oracle",					300, 	0);
+		this.Pyramids 				= bid("Pyramids",				200, 	0);
+		this.SetiProgram 			= bid("SETI Program",			600, 	0);
+		this.ShakespearesTheatre 	= bid("Shakespeare's Theatre",	300, 	0);
+		this.StatueOfLiberty 		= bid("Statue of Liberty",		400, 	0);
+		this.SunTzusWarAcademy 		= bid("Sun Tzu's War Academy", 	300, 	0);
+		this.UnitedNations 			= bid("United Nations",			600, 	0);
+		this.WomensSuffrage 		= bid("Women's Suffrage",		600, 	0);
 
 		this._All =
 		[
@@ -990,13 +1057,25 @@ class BaseIndustry
 		return canBuild;
 	}
 
-	toString()
+	toString(world, base)
 	{
+		var buildableInProgress = this.buildableInProgress(world, base);
+
+		var buildableDetails = "";
+		if (buildableInProgress == null)
+		{
+			buildableDetails = "[nothing]";
+		}
+		else
+		{
+			buildableDetails =
+				buildableInProgress.name
+				+ this.industryStockpiled
+				+ buildableInProgress.defn(world).industryToBuild;
+		}
+
 		var returnValue =
-			"Building: "
-			+ this.buildableInProgressName
-			+ this.industryStockpiled
-			+ "/?"; // todo
+			"Building: " + buildableDetails;
 
 		return returnValue;
 	}
@@ -1332,7 +1411,7 @@ class BaseLandUsage
 
 		var distanceMax = this.offsetDimensionMax();
 		var territoryDiameterInCells = distanceMax * 2 + 1;
-		var cellSizeInChars = Coords.fromXY(12, 6);
+		var cellSizeInChars = Coords.fromXY(14, 6);
 		var territorySizeInChars = cellSizeInChars.clone().multiplyScalar
 		(
 			territoryDiameterInCells
@@ -1351,115 +1430,152 @@ class BaseLandUsage
 				offset.x = x;
 				cellPosInCellsFromUpperLeft.x = offset.x + distanceMax;
 
-				var offsetAbsoluteSumOfDimensions =
-					offset.clone().absolute().sumOfDimensions();
-				var offsetIsInRange =
+				this.toStringVisualForWorldAndBase_Cell
 				(
-					offsetAbsoluteSumOfDimensions < distanceMax * 2
+					world,
+					base,
+					offset,
+					distanceMax,
+					cellPosInChars,
+					cellPosInCellsFromUpperLeft,
+					cellSizeInChars,
+					cellPosInCells,
+					territoryAsLines
 				);
-
-				cellPosInChars.overwriteWith
-				(
-					cellPosInCellsFromUpperLeft
-				).multiply
-				(
-					cellSizeInChars
-				);
-
-				var cellAsLines = [];
-
-				if (offsetIsInRange)
-				{
-					var horizontalBorder =
-						"+".padEnd(cellSizeInChars.x, "-") + "+";
-					cellAsLines.push(horizontalBorder);
-
-					cellPosInCells.overwriteWith(offset).add(base.pos);
-					var cell = map.cellAtPosInCells(cellPosInCells);
-					var cellTerrainCode = cell.terrainCode;
-					var cellTerrain = cell.terrain(world);
-					var cellTerrainAbbreviation = cellTerrain.abbreviation;
-					var resourceSpecialPresent = cell.resourceSpecialPresent();
-					var resourceSpecialPresentName =
-					(
-						resourceSpecialPresent == null
-						? ""
-						: resourceSpecialPresent.name
-					);
-					var riverIndicator = (cell.hasRiver() ? "r" : "");
-					var cellTerrainAsString =
-						cellTerrainCode
-						+ " " + cellTerrainAbbreviation
-						+ " " + resourceSpecialPresentName
-						+ " " + riverIndicator;
-
-					cellAsLines.push
-					(
-						"|" + cellTerrainAsString.padEnd(cellSizeInChars.x - 1, " ") + "|"
-					);
-
-					var cellImprovements =
-						(cell.hasRailroads() ? "R " : (cell.hasRoads() ? "r " : ""))
-						+ (cell.hasFarmland() ? "I " : (cell.hasIrrigation() ? "i " : ""));
-						+ (cell.hasFortress() ? "F" : "");
-					cellAsLines.push
-					(
-						"|" + cellImprovements.padEnd(cellSizeInChars.x - 1, " ") + "|"
-					);
-
-					var cellResourcesProduced = cell.resourcesProduced(world, base);
-					var food = cellResourcesProduced.food;
-					var industry = cellResourcesProduced.industry;
-					var trade = cellResourcesProduced.trade;
-					var resourcesProduced =
-						(food > 0 ? "f" + food + " " : "")
-						+ (industry > 0 ? "i" + industry + " " : "")
-						+ (trade > 0 ? "t" + trade + " " : "");
-
-					cellAsLines.push
-					(
-						"|" + resourcesProduced.padEnd(cellSizeInChars.x - 1, " ") + "|"
-					);
-
-					var cellIsInUse = this.offsetsInUse.some(x => x.equals(offset));
-					var isInUseFlag = (cellIsInUse ? "In Use" : "");
-					cellAsLines.push
-					(
-						"|" + isInUseFlag.padEnd(cellSizeInChars.x - 1, " ") + "|"
-					);
-
-					cellAsLines.push
-					(
-						"|".padEnd(cellSizeInChars.x, " ") + "|"
-					);
-
-				}
-				else if (x == -distanceMax)
-				{
-					cellAsLines.push(
-						"".padEnd(cellSizeInChars.x, " ")
-					);
-
-					for (var i = 0; i < cellSizeInChars.y - 1; i++)
-					{
-						cellAsLines.push
-						(
-							"".padEnd(cellSizeInChars.x, " ")
-						);
-					}
-				}
-
-				StringHelper.copyStringsIntoStringsAtPos
-				(
-					cellAsLines, territoryAsLines, cellPosInChars
-				);
-
 			}
 		}
 
 		var territoryAsString = territoryAsLines.join("\n");
 
 		return territoryAsString;
+	}
+	
+	toStringVisualForWorldAndBase_Cell
+	(
+		world,
+		base,
+		offset,
+		distanceMax,
+		cellPosInChars,
+		cellPosInCellsFromUpperLeft,
+		cellSizeInChars,
+		cellPosInCells,
+		territoryAsLines
+	)
+	{
+		var offsetAbsoluteSumOfDimensions =
+			offset.clone().absolute().sumOfDimensions();
+		var offsetIsInRange =
+		(
+			offsetAbsoluteSumOfDimensions < distanceMax * 2
+		);
+
+		cellPosInChars.overwriteWith
+		(
+			cellPosInCellsFromUpperLeft
+		).multiply
+		(
+			cellSizeInChars
+		);
+
+		var cellAsLines = [];
+
+		if
+		(
+			offsetIsInRange == false
+			&& Math.abs(offset.x) == distanceMax
+		)
+		{
+			cellAsLines.push(
+				"".padEnd(cellSizeInChars.x, " ")
+			);
+
+			for (var i = 0; i < cellSizeInChars.y - 1; i++)
+			{
+				cellAsLines.push
+				(
+					"".padEnd(cellSizeInChars.x, " ")
+				);
+			}
+		}
+		else
+		{
+			var horizontalBorder =
+				"+".padEnd(cellSizeInChars.x, "-") + "+";
+			cellAsLines.push(horizontalBorder);
+
+			cellPosInCells.overwriteWith(offset).add(base.pos);
+			var cell = world.map.cellAtPosInCells(cellPosInCells);
+			var cellTerrainCode = cell.terrainCode;
+			var cellTerrain = cell.terrain(world);
+			var cellTerrainName = cellTerrain.name;
+			var cellTerrainAsString =
+				cellTerrainName
+				+ " (" + cellTerrainCode + ")"
+
+			cellAsLines.push
+			(
+				"|" + cellTerrainAsString.padEnd(cellSizeInChars.x - 1, " ") + "|"
+			);
+
+			var riverIndicator = (cell.hasRiver() ? "River" : "");
+			var resourceSpecialPresent = cell.resourceSpecialPresent();
+			var resourceSpecialPresentName =
+			(
+				resourceSpecialPresent == null
+				? ""
+				: resourceSpecialPresent.name
+			);
+			var cellTerrainFeaturesAsString =
+				resourceSpecialPresentName
+				+ " " + riverIndicator;
+
+			cellAsLines.push
+			(
+				"|" + cellTerrainFeaturesAsString.padEnd(cellSizeInChars.x - 1, " ") + "|"
+			);
+
+			var cellImprovements =
+				(cell.hasRailroads() ? "RRs " : (cell.hasRoads() ? "Rds " : ""))
+				+ (cell.hasFarmland() ? "Frm " : (cell.hasIrrigation() ? "Irr " : ""));
+				+ (cell.hasFortress() ? "Frt" : "");
+			cellAsLines.push
+			(
+				"|" + cellImprovements.padEnd(cellSizeInChars.x - 1, " ") + "|"
+			);
+
+			var cellResourcesProduced = cell.resourcesProduced(world, base);
+			var food = cellResourcesProduced.food;
+			var industry = cellResourcesProduced.industry;
+			var trade = cellResourcesProduced.trade;
+			var resourcesProduced =
+				(food > 0 ? "f" + food + " " : "")
+				+ (industry > 0 ? "i" + industry + " " : "")
+				+ (trade > 0 ? "t" + trade + " " : "");
+
+			cellAsLines.push
+			(
+				"|" + resourcesProduced.padEnd(cellSizeInChars.x - 1, " ") + "|"
+			);
+
+			var cellIsInUse = this.offsetsInUse.some(x => x.equals(offset));
+			var isInUseFlag = (cellIsInUse ? "In Use" : "");
+			cellAsLines.push
+			(
+				"|" + isInUseFlag.padEnd(cellSizeInChars.x - 1, " ") + "|"
+			);
+
+			cellAsLines.push
+			(
+				"|".padEnd(cellSizeInChars.x, " ") + "|"
+			);
+
+		}
+
+		StringHelper.copyStringsIntoStringsAtPos
+		(
+			cellAsLines, territoryAsLines, cellPosInChars
+		);
 	}
 
 	turnUpdate(world, base)

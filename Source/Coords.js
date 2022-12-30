@@ -198,6 +198,11 @@ class Coords
 		return this.x + "," + this.y + "," + this.z;
 	}
 
+	toStringXY()
+	{
+		return this.x + "," + this.y;
+	}
+
 	wrapXTrimYToMax(max)
 	{
 		while (this.x < 0)
