@@ -182,12 +182,13 @@ class BaseLandUsage
 		if (offsetWithValueMaxSoFar == null)
 		{
 			// Perhaps because there's more people than land.
-			base.demographics.entertainerAdd();
+			base.laborerWorstReassignAsEntertainerForWorld(world);
 		}
 		else
 		{
 			this.offsetInUseAdd(offsetWithValueMaxSoFar);
 		}
+
 	}
 
 	offsetDimensionMax()

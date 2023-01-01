@@ -362,10 +362,15 @@ class TestFixtureMain
 		var difficultyLevel = world.difficultyLevel();
 
 		// Verify that the city is not experiencing unrest yet.
-		Assert.isFalse(base.isExperiencingUnrest(world) );
+		Assert.isFalse(base.attitudeIsUnrest(world) );
+
+		var laborerCountBefore = base.demographics.laborerCount();
 
 		// Wait for the population to grow until new citizens are disconent.
-		while (base.population() <= difficultyLevel.basePopulationBeforeDiscontent)
+		var basePopulationBeforeDiscontent =
+			difficultyLevel.basePopulationBeforeDiscontent;
+
+		while (base.population() <= basePopulationBeforeDiscontent)
 		{
 			this.waitNTurnsForPopulationOfBaseInWorldToGrowByOne
 			(
@@ -373,22 +378,39 @@ class TestFixtureMain
 			);
 		}
 
-		// Verify that the city is now experiencing unrest.
-		Assert.isTrue(base.isExperiencingUnrest(world) );
+		// Verify that the city's new citizen was auto-assigned as an entertainer,
+		// rather than as a laborer.
+		Assert.areEqual(1, base.demographics.entertainerCount);
+		Assert.areEqual(basePopulationBeforeDiscontent, base.demographics.laborerCount());
+
+		// Reassign the auto-assigned entertainer back to a laborer.
+		base.specialistReassignAsLaborer(world);
+
+		// Verify that the entertainer is gone, and the city is now experiencing unrest.
+		Assert.areEqual(0, base.demographics.entertainerCount);
+		Assert.isTrue(base.attitudeIsUnrest(world) );
 
 		// Verify that production is halted due to unrest.
 		Assert.isTrue(base.industryThisTurnNet(world) <= 0);
 
-		// Reassign a worker as an entertainer and verify that they add happiness.
+		// Reassign a laborer as an entertainer and verify that they add happiness.
 		Assert.areEqual(0, base.luxuriesThisTurn(world) );
 		var populationHappyBeforeEntertainer = base.populationHappy(world);
 		var populationDiscontentBeforeEntertainer = base.populationDiscontent(world);
-		base.laborerWorstReassignAsEntertainer(world);
+		base.laborerWorstReassignAsEntertainerForWorld(world);
 		Assert.areEqual(2, base.luxuriesThisTurn(world) );
 		var populationHappyAfterEntertainer = base.populationHappy(world);
 		var populationDiscontentAfterEntertainer = base.populationDiscontent(world);
-		Assert.areEqual(populationDiscontentAfterEntertainer, populationDiscontentBeforeEntertainer);
-		Assert.areEqual(populationHappyAfterEntertainer, populationHappyBeforeEntertainer + 1);
+		Assert.areEqual
+		(
+			populationDiscontentAfterEntertainer,
+			populationDiscontentBeforeEntertainer
+		);
+		Assert.areEqual
+		(
+			populationHappyAfterEntertainer,
+			populationHappyBeforeEntertainer + 1
+		);
 
 		// Build a military unit and verify that martial law mitigates discontent.
 		var unitDefns = UnitDefn.Instances();

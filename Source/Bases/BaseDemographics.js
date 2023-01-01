@@ -20,11 +20,28 @@ class BaseDemographics
 		return new BaseDemographics(1, null, null, null);
 	}
 
+	isValidForBase(base)
+	{
+		var laborerCount = this.laborerCount();
+		var specialistCount = this.specialistCount();
+		var workerCount = laborerCount + specialistCount;
+		var isValid = (workerCount == this.population);
+		return isValid;
+	}
+
+	validateForBase(base)
+	{
+		if (this.isValidForBase(base) == false)
+		{
+			throw new Error("Invalid work assignment for base: " + base.name);
+		}
+	}
+
 	toStringDetails(world, base)
 	{
 		var returnValue = "";
 
-		if (this.isExperiencingUnrest(world, base))
+		if (this.attitudeIsUnrest(world, base))
 		{
 			returnValue += "UNREST! ";
 		}
@@ -49,7 +66,30 @@ class BaseDemographics
 
 	// Population.
 
-	isExperiencingUnrest(world, base)
+	attitudeIsEuphoria(world, base)
+	{
+		var discontentPopulationCount =
+			this.populationDiscontent(world, base);
+
+		var happyPopulationCount =
+			this.populationHappy(world, base);
+
+		var contentPopulationCount =
+			this.population
+			- happyPopulationCount
+			- discontentPopulationCount;
+
+		var returnValue =
+		(
+			this.population >= 3
+			&& discontentPopulationCount == 0
+			&& happyPopulationCount >= contentPopulationCount
+		);
+
+		return returnValue;
+	}
+
+	attitudeIsUnrest(world, base)
 	{
 		var discontentPopulationCount =
 			this.populationDiscontent(world, base);
@@ -216,9 +256,10 @@ class BaseDemographics
 
 	// Specialists.
 
-	entertainerAdd()
+	entertainerAddForBase(base)
 	{
 		this.entertainerCount++;
+		this.validateForBase(base);
 	}
 
 	entertainerReassignAsScientist()
@@ -249,7 +290,7 @@ class BaseDemographics
 		this.taxCollectorCount++;
 	}
 
-	specialistReassignAsLaborer()
+	specialistRemove()
 	{
 		if (this.entertainerCount > 0)
 		{

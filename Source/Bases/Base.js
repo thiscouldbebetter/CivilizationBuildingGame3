@@ -198,48 +198,19 @@ class Base
 
 		var foodThisTurnNet = this.foodThisTurnNet(world);
 		this.foodStockpiled += foodThisTurnNet;
-		var foodNeededToGrow = this.foodNeededToGrow();
-		if (this.foodStockpiled < 0)
-		{
-			this.populationAdd(-1);
-			if (this.population() <= 0)
-			{
-				world.baseRemove(this);
-			}
-			this.landUsage.offsetRemoveWorst(world, this);
-		}
-		else if (this.foodStockpiled >= foodNeededToGrow)
-		{
-			if (this.populationCanGrow())
-			{
-				this.foodStockpiled = foodNeededToGrow;
-
-				this.populationAdd(1);
-
-				var granary = BaseImprovementDefn.Instances().Granary;
-				var hasGranary = this.hasImprovement(granary);
-				if (hasGranary)
-				{
-					this.foodStockpiled = this.foodNeededToGrow() / 2;
-				}
-				else
-				{
-					this.foodStockpiled = 0;
-				}
-
-				this.landUsage.offsetChooseOptimumFromAvailable
-				(
-					world, this
-				);
-			}
-		}
+		this.populationGrowOrShrink(world);
 	}
 
 	// Demographics.
 
-	isExperiencingUnrest(world)
+	attitudeIsEuphoria(world)
 	{
-		return this.demographics.isExperiencingUnrest(world, this);
+		return this.demographics.attitudeIsEuphoria(world, this);
+	}
+
+	attitudeIsUnrest(world)
+	{
+		return this.demographics.attitudeIsUnrest(world, this);
 	}
 
 	population()
@@ -257,6 +228,53 @@ class Base
 		return this.demographics.populationCanGrow(this);
 	}
 
+	populationGrow(world)
+	{
+		var foodNeededToGrow = this.foodNeededToGrow();
+		this.foodStockpiled = foodNeededToGrow;
+
+		this.populationAdd(1);
+
+		var granary = BaseImprovementDefn.Instances().Granary;
+		var hasGranary = this.hasImprovement(granary);
+		if (hasGranary)
+		{
+			this.foodStockpiled = this.foodNeededToGrow() / 2;
+		}
+		else
+		{
+			this.foodStockpiled = 0;
+		}
+
+		if (this.attitudeIsUnrest(world))
+		{
+			this.demographics.entertainerAddForBase(this);
+		}
+		else
+		{
+			this.landUsage.offsetChooseOptimumFromAvailable
+			(
+				world, this
+			);
+		}
+	}
+
+	populationGrowOrShrink(world)
+	{
+		var foodNeededToGrow = this.foodNeededToGrow();
+		if (this.foodStockpiled < 0)
+		{
+			this.populationShrink(world);
+		}
+		else if (this.foodStockpiled >= foodNeededToGrow)
+		{
+			if (this.populationCanGrow())
+			{
+				this.populationGrow(world);
+			}
+		}
+	}
+
 	populationHappy(world)
 	{
 		return this.demographics.populationHappy(world, this);
@@ -267,20 +285,36 @@ class Base
 		return this.demographics.populationDiscontent(world, this);
 	}
 
+	populationShrink(world)
+	{
+		this.populationAdd(-1);
+		if (this.population() <= 0)
+		{
+			world.baseRemove(this);
+		}
+		this.landUsage.offsetRemoveWorst(world, this);
+	}
+
 	whileDiscontentReassignLaborersAsEntertainers(world)
 	{
 		// hack
 		// It may not always be possible to restore order with just entertainers.
-		while (this.isExperiencingUnrest(world))
+		while (this.attitudeIsUnrest(world))
 		{
-			this.laborerWorstReassignAsEntertainer(world);
+			this.laborerWorstReassignAsEntertainerForWorld(world);
 		}
 	}
 
-	laborerWorstReassignAsEntertainer(world)
+	laborerWorstReassignAsEntertainerForWorld(world)
 	{
 		this.landUsage.offsetRemoveWorst(world, this);
-		this.demographics.entertainerAdd();
+		this.demographics.entertainerAddForBase(this);
+	}
+
+	specialistReassignAsLaborer(world)
+	{
+		this.demographics.specialistRemove();
+		this.landUsage.offsetChooseOptimumFromAvailable(world, this);
 	}
 
 	// Improvements.
@@ -389,8 +423,8 @@ class Base
 		var industryWastedDueToCorruption = 0; // todo
 		var costToSupportUnits = this.industryNeededToSupportUnits(world);
 		var net = gross - costToSupportUnits;
-		var isExperiencingUnrest = this.isExperiencingUnrest(world);
-		if (net > 0 && isExperiencingUnrest )
+		var attitudeIsUnrest = this.attitudeIsUnrest(world);
+		if (net > 0 && attitudeIsUnrest )
 		{
 			net = 0;
 		}
@@ -412,6 +446,7 @@ class Base
 		// todo - This isn't really optimum.
 		this.demographics.specialistsReassignAllAsLaborers();
 		this.landUsage.optimize(world, this);
+		this.whileDiscontentReassignLaborersAsEntertainers(world);
 	}
 
 	luxuriesPerEntertainer()
