@@ -1,12 +1,12 @@
 
 class UnitDefnCombat
 {
-	constructor(attack, defense, damagePerHit, integrityMax)
+	constructor(attack, defense, integrityMaxOver10, damagePerHit)
 	{
 		this.attack = attack;
 		this.defense = defense;
+		this.integrityMax = integrityMaxOver10 * 10;
 		this.damagePerHit = damagePerHit;
-		this.integrityMax = integrityMax;
 	}
 
 	unitAttackDefender(attacker, defender, world)

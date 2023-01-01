@@ -63,6 +63,16 @@ class UnitActivityDefn_Instances
 		this.RestAfterMove 				= uad("RestAfterMove", 		null, 				this.restAfterMove);
 		this.Sleep 						= uad("Sleep", 				null, 				this.sleep);
 
+		this.CaravanEstablishTradeRoute	= uad("Establish Trade Route",null,				this.caravanEstablishTradeRoute);
+		this.CaravanHelpBuildWonder 	= uad("Help Build Wonder", 	null,				this.caravanHelpBuildWonder);
+
+		this.DiplomatBribeUnit			= uad("Bribe Unit",			null,				this.diplomatBribeUnit);
+		this.DiplomatEstablishEmbassy 	= uad("Establish Embassy", 	null, 				this.diplomatEstablishEmbassy);
+		this.DiplomatInciteRevolt 		= uad("Incite Revolt", 		null, 				this.diplomatInciteRevolt);
+		this.DiplomatInvestigateBase 	= uad("Investigate City", 	null, 				this.diplomatInvestigateBase);
+		this.DiplomatSabotageProduction = uad("Sabotage Production",null, 				this.diplomatSabotageProduction);
+		this.DiplomatTechnologySteal	= uad("Steal Technology", 	null, 				this.diplomatStealTechnology);
+
 		this.SettlersBuildFort 			= uad("Build Fort", 		movesToComplete3, 	this.settlersBuildFort);
 		this.SettlersBuildIrrigation 	= uad("Build Irrigation", 	movesToComplete3, 	this.settlersBuildIrrigation);
 		this.SettlersBuildMines 		= uad("Build Mines", 		movesToComplete3, 	this.settlersBuildMines);
@@ -70,6 +80,11 @@ class UnitActivityDefn_Instances
 		this.SettlersClearForest 		= uad("Clear Forest", 		movesToComplete3, 	this.settlersClearForest);
 		this.SettlersPlantForest 		= uad("Plant Forest", 		movesToComplete3, 	this.settlersPlantForest);
 		this.SettlersStartCity 			= uad("Start City", 		null, 				this.settlersStartCity);
+
+		this.SpyPlantNuclearDevice 		= uad("Plant Nuclear Device",null, 				this.spyPlantNuclearDevice);
+		this.SpyPoisonWaterSupply 		= uad("Poison Water Supply",null,				this.spyPoisonWaterSupply);
+		this.SpySabotageUnit			= uad("Sabotage Unit", 		null, 				this.spySabotageUnit);
+		this.SpySubvertBase 			= uad("Subvert Base", 		null, 				this.spySubvertBase);
 
 		// Convenience activities.
 		this._SettlersBuildAll 			= uad("Build All", 			null, 				this.settlersBuildAll);
@@ -84,6 +99,16 @@ class UnitActivityDefn_Instances
 			this.RestAfterMove,
 			this.Sleep,
 
+			this.CaravanEstablishTradeRoute,
+			this.CaravanHelpBuildWonder,
+
+			this.DiplomatBribeUnit,
+			this.DiplomatEstablishEmbassy,
+			this.DiplomatInciteRevolt,
+			this.DiplomatInvestigateBase,
+			this.DiplomatSabotageProduction,
+			this.DiplomatTechnologySteal,
+
 			this.SettlersBuildFort,
 			this.SettlersBuildIrrigation,
 			this.SettlersBuildMines,
@@ -91,6 +116,11 @@ class UnitActivityDefn_Instances
 			this.SettlersClearForest,
 			this.SettlersPlantForest,
 			this.SettlersStartCity,
+
+			this.SpyPlantNuclearDevice,
+			this.SpyPoisonWaterSupply,
+			this.SpySabotageUnit,
+			this.SpySubvertBase,
 
 			this._SettlersBuildAll
 		];
@@ -119,10 +149,7 @@ class UnitActivityDefn_Instances
 	move(universe, world, owner, unit)
 	{
 		var activity = unit.activity();
-		var directionToMove = activity.variableValueByName
-		(
-			UnitActivityVariableNames.Direction()
-		);
+		var directionToMove = activity.direction();
 		var costToMoveInThirds =
 			unit.costToMoveInDirectionInThirds(directionToMove, world);
 		var movesRemainingInThirds = unit.moveThirdsThisTurn();
@@ -239,6 +266,51 @@ class UnitActivityDefn_Instances
 	{
 		unit._isSleeping = true;
 		owner.unitSelectNextIdle();
+	}
+
+	// Caravan.
+
+	caravanEstablishTradeRoute(universe, world, owner, unit)
+	{
+		// todo
+	}
+
+	caravanHelpBuildWonder(universe, world, owner, unit)
+	{
+		// todo
+	}
+
+
+	// Diplomat.
+
+	diplomatBribeUnit(universe, world, owner, unit)
+	{
+		// todo
+	}
+
+	diplomatEstablishEmbassy(universe, world, owner, unit)
+	{
+		// todo
+	}
+
+	diplomatInciteRevolt(universe, world, owner, unit)
+	{
+		// todo
+	}
+
+	diplomatInvestigateBase(universe, world, owner, unit)
+	{
+		// todo
+	}
+
+	diplomatSabotageProduction(universe, world, owner, unit)
+	{
+		// todo
+	}
+
+	diplomatTechnologySteal(universe, world, owner, unit)
+	{
+		// todo
 	}
 
 	// Settlers.
@@ -364,6 +436,29 @@ class UnitActivityDefn_Instances
 		owner.unitRemove(unit);
 		owner.unitSelectNextIdle();
 	}
+
+	// Spy.
+
+	spyPlantNuclearDevice(universe, world, owner, unit)
+	{
+		// todo
+	}
+
+	spyPoisonWaterSupply(universe, world, owner, unit)
+	{
+		// todo
+	}
+
+	spySabotageUnit(universe, world, owner, unit)
+	{
+		// todo
+	}
+
+	spySubvertBase(universe, world, owner, unit)
+	{
+		// todo
+	}
+
 }
 
 class UnitActivityVariableNames

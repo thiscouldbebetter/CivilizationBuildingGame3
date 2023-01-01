@@ -31,6 +31,14 @@ class UnitActivity
 
 	// Variable convenience accessors.
 
+	direction()
+	{
+		return this.variableValueByName
+		(
+			UnitActivityVariableNames.Direction()
+		);
+	}
+
 	targetPos()
 	{
 		return this.variableValueByName(UnitActivityVariableNames.TargetPos() );
