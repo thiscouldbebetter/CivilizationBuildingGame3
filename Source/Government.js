@@ -94,12 +94,12 @@ class Government_Instances
 			
 		// 						name				tax 	fps, 	mart'l law,	corruption		support
 		this.Anarchy 		= g("Anarchy", 			.6, 	1,		0,			cpudfcTodo, 	supportPastBaseSize(1) )
-		this.Communism 		= g("Communism",		.8, 	2,		3,			cpudfcTodo, 	supportPastUnitCount(3, 1) );
-		this.Democracy 		= g("Democracy", 		1, 		2,		0,			cpudfcTodo, 	supportPastUnitCount(0, 1) );
+		this.Communism 		= g("Communism",		.8, 	2,		3,			cpudfcTodo, 	supportPastUnitCount(1, 3) );
+		this.Democracy 		= g("Democracy", 		1, 		2,		0,			cpudfcTodo, 	supportPastUnitCount(1, 0) );
 		this.Despotism 		= g("Despotism", 		.6, 	1, 		2,			cpudfcTodo, 	supportPastBaseSize(1) );
-		this.Fundamentalism = g("Fundamentalism", 	.8, 	2, 		3,			cpudfcTodo, 	supportPastUnitCount(10, 1) );
-		this.Monarchy 		= g("Monarchy", 		.7, 	1, 		3,			cpudfcTodo, 	supportPastUnitCount(3, 1) );
-		this.Republic 		= g("Republic", 		.8, 	2, 		1,			cpudfcTodo, 	supportPastUnitCount(0, 1) );
+		this.Fundamentalism = g("Fundamentalism", 	.8, 	2, 		3,			cpudfcTodo, 	supportPastUnitCount(1, 10) );
+		this.Monarchy 		= g("Monarchy", 		.7, 	1, 		3,			cpudfcTodo, 	supportPastUnitCount(1, 3) );
+		this.Republic 		= g("Republic", 		.8, 	2, 		1,			cpudfcTodo, 	supportPastUnitCount(1, 0) );
 
 		this._All =
 		[

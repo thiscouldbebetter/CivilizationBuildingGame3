@@ -118,8 +118,12 @@ class UnitDefnMovement
 			(world, unitMoving, cellFrom, cellTo) => // cost
 			{
 				var cellToTerrain = cellTo.terrain(world);
-				var cellToTerrainIsOcean = (cellToTerrain.name == "Ocean");
-				var costToMove = (cellToTerrainIsOcean ? 1 : Number.POSITIVE_INFINITY);
+				var cellToTerrainIsOceanOrBase =
+				(
+					cellToTerrain.name == "Ocean"
+					|| cellTo.hasBase()
+				);
+				var costToMove = (cellToTerrainIsOceanOrBase ? 1 : Number.POSITIVE_INFINITY);
 				var costToMoveInThirds = costToMove *= 3;
 				return costToMoveInThirds;
 			}

@@ -22,7 +22,14 @@ class BaseDemographics
 
 	toStringDetails(world, base)
 	{
-		var returnValue =
+		var returnValue = "";
+
+		if (this.isExperiencingUnrest(world, base))
+		{
+			returnValue += "UNREST! ";
+		}
+
+		returnValue +=
 			"Population: " + this.population
 			+ ", Happy: " + this.populationHappy(world, base)
 			+ ", Content: " + this.populationContent(world, base)
@@ -41,6 +48,19 @@ class BaseDemographics
 	}
 
 	// Population.
+
+	isExperiencingUnrest(world, base)
+	{
+		var discontentPopulationCount =
+			this.populationDiscontent(world, base);
+
+		var happyPopulationCount =
+			this.populationHappy(world, base);
+
+		var returnValue = (discontentPopulationCount > happyPopulationCount);
+
+		return returnValue;
+	}
 
 	populationAdd(populationChange)
 	{

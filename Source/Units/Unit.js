@@ -11,10 +11,113 @@ class Unit
 		this.baseSupportingId = null;
 		this._moveThirdsThisTurn = null;
 		this.movesThisTurnClear();
-		this.isSleeping = false;
+		this._isSleeping = false;
 
 		this._cellToPos = Coords.create();
 	}
+
+	baseSupporting(world)
+	{
+		return world.baseById(this.baseSupportingId);
+	}
+
+	baseSupportingSet(base)
+	{
+		this.baseSupportingId = base.id;
+		base.unitSupport(this);
+	}
+
+	category()
+	{
+		return SelectableCategory.Instances().Units;
+	}
+
+	defn(world)
+	{
+		return world.defns.unitDefnByName(this.defnName);
+	}
+
+	integritySubtractDamage(damage, world)
+	{
+		this.defn(world).combat.integritySubtractDamageFromUnit(damage, this);
+	}
+
+	isAwake()
+	{
+		return (this.isSleeping() == false);
+	}
+
+	isIdle()
+	{
+		return (this.hasMovesThisTurn() && this.isAwake());
+	}
+
+	isMilitary(world)
+	{
+		return (this.defn(world).combat.attack > 0);
+	}
+
+	isSleeping()
+	{
+		return this._isSleeping;
+	}
+
+	initialize(world)
+	{
+		this.turnUpdate(world);
+	}
+
+	isInBaseSupporting(world)
+	{
+		return this.baseSupporting(world).pos.equals(this.pos);
+	}
+
+	owner(world)
+	{
+		return world.ownerByName(this.ownerName);
+	}
+
+	ownerSet(owner)
+	{
+		this.ownerName = owner.name;
+	}
+
+	sleep(world)
+	{
+		var activityDefns = UnitActivityDefn.Instances();
+		this.activityDefnStartForWorld(activityDefns.Sleep, world);
+	}
+
+	toStringDetails(world)
+	{
+		var defn = this.defn(world);
+
+		var lines =
+		[
+			"ID: " + this.id,
+			"Type: " + this.defnName,
+			"Position: " + this.pos.toString(),
+			"Moves: " + this.movesThisTurn() + "/" + defn.movement.movesPerTurn(),
+			defn.combat.toString()
+		];
+		var linesJoined = lines.join("\n");
+		return linesJoined;
+	}
+
+	toStringForList()
+	{
+		return this.id + ": " + this.defnName + " @" + this.pos.toString();
+	}
+
+	turnUpdate(world)
+	{
+		var defn = this.defn(world);
+		this.moveThirdsThisTurnSet(defn.movement.moveThirdsPerTurn);
+		var owner = this.owner(world);
+		this.activityUpdate(null, world);
+	}
+
+	// Activity.
 
 	activity()
 	{
@@ -77,135 +180,17 @@ class Unit
 		}
 	}
 
-	baseSupporting(world)
-	{
-		return world.baseById(this.baseSupportingId);
-	}
-
-	baseSupportingSet(base)
-	{
-		this.baseSupportingId = base.id;
-		base.unitSupport(this);
-	}
-
-	category()
-	{
-		return SelectableCategory.Instances().Units;
-	}
-
-	defn(world)
-	{
-		return world.defns.unitDefnByName(this.defnName);
-	}
-
-	hasMovesThisTurn()
-	{
-		return (this.moveThirdsThisTurn() > 0);
-	}
-
-	integritySubtractDamage(damage, world)
-	{
-		this.defn(world).combat.integritySubtractDamageFromUnit(damage, this);
-	}
-
-	isIdle()
-	{
-		return (this.hasMovesThisTurn() && this.isSleeping == false);
-	}
-
-	isMilitary(world)
-	{
-		return (this.defn(world).combat.attack > 0);
-	}
-
-	initialize(world)
-	{
-		this.turnUpdate(world);
-	}
-
-	isInBaseSupporting(world)
-	{
-		return this.baseSupporting(world).pos.equals(this.pos);
-	}
-
-	moveStartTowardPosInWorld(targetPos, world)
-	{
-		var activityDefns = UnitActivityDefn.Instances();
-		this.activityDefnStartForWorldWithVariableNameAndValue
-		(
-			activityDefns.MoveTo,
-			world,
-			UnitActivityVariableNames.TargetPos(),
-			targetPos
-		);
-	}
-
-	moveThirdsThisTurn()
-	{
-		return this._moveThirdsThisTurn;
-	}
-
-	moveThirdsThisTurnSet(value)
-	{
-		this._moveThirdsThisTurn = value;
-	}
-
-	movesThisTurnClear()
-	{
-		this.moveThirdsThisTurnSet(0);
-	}
-
-	owner(world)
-	{
-		return world.ownerByName(this.ownerName);
-	}
-
-	ownerSet(owner)
-	{
-		this.ownerName = owner.name;
-	}
-
-	sleep(world)
-	{
-		var activityDefns = UnitActivityDefn.Instances();
-		this.activityDefnStartForWorld(activityDefns.Sleep, world);
-	}
-
-	toStringDetails(world)
-	{
-		var defn = this.defn(world);
-
-		var lines =
-		[
-			"ID: " + this.id,
-			"Type: " + this.defnName,
-			"Position: " + this.pos.toString(),
-			"Moves: " + this.movesThisTurn() + "/" + defn.movement.movesPerTurn(),
-			defn.combat.toString()
-		];
-		var linesJoined = lines.join("\n");
-		return linesJoined;
-	}
-
-	toStringForList()
-	{
-		return this.id + ": " + this.defnName + " @" + this.pos.toString();
-	}
-
-	turnUpdate(world)
-	{
-		var defn = this.defn(world);
-		this.moveThirdsThisTurnSet(defn.movement.moveThirdsPerTurn);
-		var owner = this.owner(world);
-		this.activityUpdate(null, world);
-	}
-
 	// Movement.
 
 	attackDefender(defender, world)
 	{
 		var defn = this.defn(world);
 		defn.unitAttackDefender(this, defender);
+	}
+
+	canCarryPassengers(world)
+	{
+		return (this.defn(world).passengersMax > 0);
 	}
 
 	canMoveInDirection(directionToMove, world)
@@ -255,6 +240,16 @@ class Unit
 		return costToMoveInThirds;
 	}
 
+	hasMovesThisTurn()
+	{
+		return (this.moveThirdsThisTurn() > 0);
+	}
+
+	isGround(world)
+	{
+		return this.defn(world).isGround(world);
+	}
+
 	moveInDirection(directionToMove, world)
 	{
 		var activityDefns = UnitActivityDefn.Instances();
@@ -266,9 +261,36 @@ class Unit
 		);
 	}
 
+	moveStartTowardPosInWorld(targetPos, world)
+	{
+		var activityDefns = UnitActivityDefn.Instances();
+		this.activityDefnStartForWorldWithVariableNameAndValue
+		(
+			activityDefns.MoveTo,
+			world,
+			UnitActivityVariableNames.TargetPos(),
+			targetPos
+		);
+	}
+
+	moveThirdsThisTurn()
+	{
+		return this._moveThirdsThisTurn;
+	}
+
+	moveThirdsThisTurnSet(value)
+	{
+		this._moveThirdsThisTurn = value;
+	}
+
 	movesThisTurn()
 	{
 		return this.moveThirdsThisTurn() / 3;
+	}
+
+	movesThisTurnClear()
+	{
+		this.moveThirdsThisTurnSet(0);
 	}
 
 	ownerMapKnowledgeUpdate(world)

@@ -8,7 +8,8 @@ class UnitDefn
 		movement,
 		combat,
 		actionsAvailableNames,
-		symbol
+		symbol,
+		passengersMax
 	)
 	{
 		this.name = name;
@@ -17,32 +18,12 @@ class UnitDefn
 		this.combat = combat;
 		this.actionsAvailableNames = actionsAvailableNames;
 		this.symbol = symbol;
+		this.passengersMax = passengersMax || 0;
 	}
 
 	static byName(name)
 	{
 		return UnitDefn.Instances().byName(name);
-	}
-
-	static construct
-	(
-		name,
-		industryToBuild,
-		movement,
-		combat,
-		actionsAvailableNames,
-		symbol
-	)
-	{
-		return new UnitDefn
-		(
-			name,
-			industryToBuild,
-			movement,
-			combat,
-			actionsAvailableNames,
-			symbol
-		);
 	}
 
 	static Instances()
@@ -69,7 +50,7 @@ class UnitDefn
 		world.unitAdd(unit);
 	}
 
-	isGroundUnit(world)
+	isGround(world)
 	{
 		return this.movement.isGround(world);
 	}
@@ -117,8 +98,8 @@ class UnitDefn_Instances
 			ads.Disband
 		].map(x => x.name);
 
-		var ud = UnitDefn.construct;
-		var c = UnitDefnCombat.construct; // attack, defense, integrityMax
+		var ud = (a, b, c, d, e, f, g) => new UnitDefn(a, b, c, d, e, f, g);
+		var c = (a, b, c) => new UnitDefnCombat(a, b, c); // attack, defense, integrityMax
 		var udTodo =
 			() =>
 			{
@@ -129,7 +110,7 @@ class UnitDefn_Instances
 			};
 
 		// Taken from https://civilization.fandom.com/wiki/List_of_units_in_Civ2.
-		// 						name,						cost,	move, 	combat, 	actns, 	symbol
+		// 						name,						cost,	move, 	combat, 	actns, 	symbol, passengers
 		this.AegisCruiser		= ud("AEGIS Cruiser", 		100,	mo(8),	c(8,8,3),	a0,		"Aeg");
 		this.AlpineTroops		= ud("Alpine Troops",		50,		mg1r,	c(5,5,2),	a0,		"Alp");
 		this.Archers 			= ud("Archers", 			30, 	mg1,	c(3,2,1), 	a0, 	"Arc");
@@ -139,7 +120,7 @@ class UnitDefn_Instances
 		this.Bomber				= ud("Bomber",				120,	ma(8),	c(12,1,2),	a0,		"Bom");
 		this.Cannon				= ud("Cannon", 				40,		mg1,	c(8,1,2),	a0,		"Can");
 		this.Caravan			= ud("Caravan",				50,		mg1,	c(0,1,1),	a0,		"Cvn");
-		this.Caravel			= ud("Caravel",				40,		mo(3),	c(2,1,1),	a0,		"Cvl");
+		this.Caravel			= ud("Caravel",				40,		mo(3),	c(2,1,1),	a0,		"Cvl", 	3);
 		this.Carrier			= ud("Carrier",				160,	mo(5),	c(1,9,4),	a0,		"Crr");
 		this.Catapult			= ud("Catapult",			40,		mg1,	c(6,1,1),	a0,		"Cat");
 		this.Cavalry			= ud("Cavalry",				60,		mg2,	c(8,3,2),	a0,		"Cav");
@@ -156,8 +137,8 @@ class UnitDefn_Instances
 		this.Fanatics			= ud("Fanatics", 			20,		mg1,	c(4,4,2),	a0,		"Fan");
 		this.Fighter			= ud("Fighter", 			60,		ma(10),	c(4,3,2),	a0,		"Fig");
 		this.Freight			= ud("Freight", 			50,		mg2,	c(0,1,1),	a0,		"Fre");
-		this.Frigate			= ud("Frigate", 			50,		mo(4),	c(4,2,2),	a0,		"Fri");
-		this.Galleon			= ud("Galleon", 			40,		mo(4),	c(0,2,2),	a0,		"Gal");
+		this.Frigate			= ud("Frigate", 			50,		mo(4),	c(4,2,2),	a0,		"Fri", 	2);
+		this.Galleon			= ud("Galleon", 			40,		mo(4),	c(0,2,2),	a0,		"Gal", 	4);
 		this.Helicopter			= ud("Helicopter", 			100,	ma(6),	c(10,3,2),	a0,		"Hel");
 		this.Horsemen			= ud("Horsemen", 			20,		mg2,	c(2,1,1),	a0,		"Hor");
 		this.Howitzer			= ud("Howitzer", 			70,		mg2,	c(12,2,3),	a0,		"How");
@@ -178,8 +159,8 @@ class UnitDefn_Instances
 		this.StealthBomber		= ud("Stealth Bomber", 		160,	ma(12),	c(14,5,2),	a0,		"SBo");
 		this.StealthFighter		= ud("Stealth Fighter", 	80,		ma(14),	c(8,4,2),	a0,		"SFi");
 		this.Submarine			= ud("Submarine", 			60,		mo(3),	c(10,2,3),	a0,		"Sub");
-		this.Transport			= ud("Transport", 			50,		mo(5),	c(0,3,3),	a0,		"Tra");
-		this.Trireme			= ud("Trireme",				40,		mo(3),	c(1,1,1),	a0,		"Tri");
+		this.Transport			= ud("Transport", 			50,		mo(5),	c(0,3,3),	a0,		"Tra", 	8);
+		this.Trireme			= ud("Trireme",				40,		mo(3),	c(1,1,1),	a0,		"Tri", 	2);
 		this.Warriors 			= ud("Warriors", 			10, 	mg1, 	c(1,1,1),	a0,		"War");
 
 		this._All =

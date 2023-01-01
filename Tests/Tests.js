@@ -643,7 +643,7 @@ class TestFixtureMain
 		}
 
 		// Build some troops to load onto the ship.
-		var capacityOfTrireme = 3;
+		var capacityOfTrireme = unitDefns.Trireme.passengersMax;
 		var troopsToBuildCount = capacityOfTrireme + 1;
 		for (var i = 0; i < troopsToBuildCount; i++)
 		{
@@ -662,13 +662,15 @@ class TestFixtureMain
 		var directions = Direction.Instances();
 		unitShip.moveInDirection(directions.West, world);
 		Assert.areNotEqual(unitShip.pos, base.pos);
-		unitsSupported = base.unitsSupported(world);
-		var unitWarriors = unitsSupported.find(x => x.defnName = unitDefns.Warriors.name);
-		Assert.areEqual(unitWarriors.pos, unitShip.pos);
+		var unitsPresentInShipCell =
+			world.map.cellAtPosInCells(unitShip.pos).unitsPresent(world);
+		Assert.areEqual(capacityOfTrireme + 1, unitsPresentInShipCell.length);
+		Assert.isTrue(unitsPresentInShipCell.indexOf(unitShip) >= 0);
+		Assert.isTrue(unitsPresentInShipCell.some(x => x.defnName == unitDefns.Warriors.name));
 
 		// See if the ship can move onto an unoccupied land square,
 		// which it shouldn't.
-		Assert.isFalse(unitShip.canMoveInDirection(directions.SouthEast, world));
+		Assert.isFalse(unitShip.canMoveInDirection(directions.Southeast, world));
 
 		// However, it should be able to move back onto the base.
 		Assert.isTrue(unitShip.canMoveInDirection(directions.East, world));
@@ -679,7 +681,7 @@ class TestFixtureMain
 		{ 
 			world.turnAdvance();
 		}
-		Assert.isTrue(world.units.contains(unitShip));
+		Assert.isTrue(world.units.indexOf(unitShip) >= 0);
 
 		// todo
 		// sail to opposite shore, unload troops,

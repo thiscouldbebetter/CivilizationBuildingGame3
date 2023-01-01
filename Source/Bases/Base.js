@@ -104,7 +104,6 @@ class Base
 
 	toStringDetails(world)
 	{
-
 		var demographics =
 			"Demographics: "
 			+ this.demographics.toStringDetails(world, this);
@@ -149,12 +148,22 @@ class Base
 			+ this.moneyThisTurnGross(world) + " to taxes, "
 			+ this.moneyThisTurnNet(world) + " after expenses";
 
+		var improvementsPresent = this.improvementsPresent();
+
 		var improvements =
 			"Improvements: "
-			+ this.improvementsPresent().map
+			+
 			(
-				x => x.name + " (" + x.costPerTurn + ")"
-			).join(", ");
+				improvementsPresent.length == 0
+				? "[none]"
+				:
+				(
+					improvementsPresent.map
+					(
+						x => x.name + " (" + x.costPerTurn + ")"
+					).join(", ")
+				)
+			);
 
 		var landUsage =
 			this.landUsage.toStringVisualForWorldAndBase(world, this);
@@ -230,15 +239,7 @@ class Base
 
 	isExperiencingUnrest(world)
 	{
-		var discontentPopulationCount =
-			this.populationDiscontent(world, this);
-
-		var happyPopulationCount =
-			this.populationHappy(world, this);
-
-		var returnValue = (discontentPopulationCount > happyPopulationCount);
-
-		return returnValue;
+		return this.demographics.isExperiencingUnrest(world, this);
 	}
 
 	population()
@@ -560,7 +561,7 @@ class Base
 			{
 				var defn = x.defn(world);
 				var isGroundMilitary =
-					(defn.isMilitary() && defn.isGroundUnit(world) );
+					(defn.isMilitary() && defn.isGround(world) );
 				return isGroundMilitary;
 			}
 		);

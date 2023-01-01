@@ -9,11 +9,6 @@ class UnitDefnCombat
 		this.integrityMax = integrityMax;
 	}
 
-	static construct(attack, defense, integrityMax)
-	{
-		return new UnitDefnCombat(attack, defense, integrityMax);
-	}
-
 	unitAttackDefender(attacker, defender, world)
 	{
 		var attackerDefn = this.defn(world);

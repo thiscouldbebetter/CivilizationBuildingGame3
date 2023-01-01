@@ -733,7 +733,7 @@ class OwnerMapKnowledge
 			var isSelected = (unit == unitSelected);
 			var borderColorName =
 			(
-				isSelected && (unit.isSleeping == false)
+				isSelected && unit.isAwake()
 				? "White"
 				: "Gray"
 			);
@@ -744,7 +744,7 @@ class OwnerMapKnowledge
 				fillColorName, borderColorName
 			);
 
-			if (unit.isSleeping)
+			if (unit.isSleeping())
 			{
 				display.drawCircle
 				(

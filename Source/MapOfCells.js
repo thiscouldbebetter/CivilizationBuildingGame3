@@ -171,6 +171,11 @@ class MapOfCellsCell
 		return returnValue;
 	}
 
+	hasBase()
+	{
+		return (this.basePresentId != null);
+	}
+
 	hasFarmland()
 	{
 		return (this.hasImprovement(MapOfCellsCellImprovement.Instances().Farmland) );
@@ -336,12 +341,58 @@ class MapOfCellsCell
 		return unitsNotAlliedWithOwnerPresent;
 	}
 
+	unitsPresentOwnedBySameOwnerAsUnit(unit, world)
+	{
+		var unitsPresent = this.unitsPresent(world);
+		var unitsOwnedBySameOwnerPresent = unitsPresent.filter
+		(
+			x =>
+			(
+				x.id != unit.id
+				&& x.ownerName == unit.ownerName
+			)
+		);
+		return unitsOwnedBySameOwnerPresent;
+	}
+
+	unitsPresentQualifiedToBePassengersOnUnit(unit, world)
+	{
+		var unitsOwnedBySameOwnerPresent =
+			this.unitsPresentOwnedBySameOwnerAsUnit(unit, world);
+		var unitsQualifiedToBePassengers =
+			unitsOwnedBySameOwnerPresent.filter
+			(
+				x => x.isGround(world) && x.isSleeping()
+			);
+		return unitsQualifiedToBePassengers;
+	}
+
 	value(world, base)
 	{
-		var returnValue =
-			this.resourcesProduced(world, base).sumOfResourceQuantities();
+		var foodThisTurnNet = base.foodThisTurnNet(world);
+		var industryThisTurnNet = base.industryThisTurnNet(world);
+		var moneyThisTurnNet = base.moneyThisTurnNet(world);
 
-		return returnValue;
+		var foodWeight = (foodThisTurnNet >= 1 ? 0 : -foodThisTurnNet);
+		var industryWeight = (industryThisTurnNet >= 1 ? 0 : -industryThisTurnNet);
+		var tradeWeight = (moneyThisTurnNet >= 1 ? 0 : -moneyThisTurnNet);
+		var totalWeight = foodWeight + industryWeight + tradeWeight;
+
+		var resourcesProduced = this.resourcesProduced(world, base);
+
+		var cellValue =
+		(
+			totalWeight == 0
+			? resourcesProduced.sumOfResourceQuantities()
+			:
+			(
+				resourcesProduced.food * foodWeight
+				+ resourcesProduced.industry * industryWeight
+				+ resourcesProduced.trade * tradeWeight
+			)
+		);
+
+		return cellValue;
 	}
 
 }

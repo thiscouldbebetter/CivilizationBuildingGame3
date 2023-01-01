@@ -154,9 +154,36 @@ class UnitActivityDefn_Instances
 			}
 			else
 			{
-				unit.pos.overwriteWith(cellTo.pos);
-				cellFrom.unitRemove(this);
-				cellTo.unitAdd(this);
+				var unitsToMove = [ unit ];
+
+				if (unit.canCarryPassengers(world))
+				{
+					var possiblePassengersPresent =
+						cellFrom.unitsPresentQualifiedToBePassengersOnUnit
+						(
+							unit, world
+						);
+
+					if (possiblePassengersPresent.length > 0)
+					{
+						var unitDefn = unit.defn(world);
+						var passengersMax = unitDefn.passengersMax;
+						if (possiblePassengersPresent.length > passengersMax)
+						{
+							possiblePassengersPresent.length = passengersMax;
+							unitsToMove.push(...possiblePassengersPresent);
+						}
+					}
+				}
+
+				for (var i = 0; i < unitsToMove.length; i++)
+				{
+					var unitToMove = unitsToMove[i];
+					unitToMove.pos.overwriteWith(cellTo.pos);
+					cellFrom.unitRemove(unitToMove);
+					cellTo.unitAdd(unitToMove);
+				}
+
 				unit.ownerMapKnowledgeUpdate(world);
 			}
 		}
@@ -210,7 +237,7 @@ class UnitActivityDefn_Instances
 
 	sleep(universe, world, owner, unit)
 	{
-		unit.isSleeping = true;
+		unit._isSleeping = true;
 		owner.unitSelectNextIdle();
 	}
 
