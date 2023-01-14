@@ -11,19 +11,9 @@ class OwnerDiplomacy
 		return new OwnerDiplomacy();
 	}
 
-	relationshipByOwner(ownerOther)
-	{
-		if (this.relationshipsByOwnerName.has(ownerOther.name) == false)
-		{
-			var relationship = OwnerDiplomacyRelationship.default();
-			this.relationshipsByOwnerName.set(ownerOther.name, relationship);
-		}
-		return this.relationshipsByOwnerName.get(ownerOther.name);
-	}
-
 	ownerIsAttackable(ownerOther)
 	{
-		var relationship = this.relationshipByOwner(ownerOther);
+		var relationship = this.relationshipWithOwner(ownerOther);
 		var posture = relationship.posture();
 		isAttackable = posture.isAttackable();
 		return isAttackable;
@@ -31,9 +21,20 @@ class OwnerDiplomacy
 
 	ownerIsKnown(ownerOther)
 	{
-		var isUnknown =
-			this.relationshipByOwner(ownerOther).posture().isUnknown();
+		var relationship = this.relationshipWithOwner(ownerOther);
+		var posture = relationship.posture();
+		var isUnknown = posture.isUnknown();
 		return (isUnknown == false);
+	}
+
+	relationshipWithOwner(ownerOther)
+	{
+		if (this.relationshipsByOwnerName.has(ownerOther.name) == false)
+		{
+			var relationship = OwnerDiplomacyRelationship.default();
+			this.relationshipsByOwnerName.set(ownerOther.name, relationship);
+		}
+		return this.relationshipsByOwnerName.get(ownerOther.name);
 	}
 }
 
@@ -139,5 +140,32 @@ class OwnerDiplomacyRelationship
 	posture()
 	{
 		return OwnerDiplomacyPosture.byName(this.postureName);
+	}
+
+	postureSetTo(postureToSet)
+	{
+		this.postureName = postureToSet.name;
+	}
+
+	// Convenience methods.
+
+	postureSetToAlliance()
+	{
+		this.postureSetTo(OwnerDiplomacyPosture.Instances().Alliance);
+	}
+
+	postureSetToPeace()
+	{
+		this.postureSetTo(OwnerDiplomacyPosture.Instances().Peace);
+	}
+
+	postureSetToUncontacted()
+	{
+		this.postureSetTo(OwnerDiplomacyPosture.Instances().Uncontacted);
+	}
+
+	postureSetToWar()
+	{
+		this.postureSetTo(OwnerDiplomacyPosture.Instances().War);
 	}
 }

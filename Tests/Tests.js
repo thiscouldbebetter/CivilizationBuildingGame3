@@ -754,13 +754,11 @@ class TestFixtureMain
 		// Move the diplomat into neighboring territory.
 		var neighborBase = neighbor.bases[0];
 		var neighborBasePos = neighborBase.pos;
-		var neighborBaseOutskirts = neighborBasePos.clone().addXY(-1, 0);
+		var neighborBaseOutskirtsPos = neighborBasePos.clone().addXY(-1, 0);
 
-		unitDiplomat.moveStartTowardPosInWorld(neighborBasePos, world);
-
-		this.waitNTurnsForUnitInWorldToCompleteActivityDefn
+		this.waitNTurnsForUnitInWorldToMoveToPos
 		(
-			this.turnsToWaitMax, unitDiplomat, world, todo
+			this.turnsToWaitMax, unitDiplomat, world, neighborBaseOutskirtsPos
 		);
 
 		// Verify that diplomatic relations are established.
@@ -768,7 +766,8 @@ class TestFixtureMain
 		Assert.isTrue(isNeighborKnown);
 
 		// Make peace with the neighbor.
-		ownerDiplomacy.makePeaceWithOwner(neighbor); // todo - Shouldn't be this easy.
+		var relationship = ownerDiplomacy.relationshipWithOwner(neighbor);
+		relationship.postureSetToPeace(); // todo - Shouldn't be this easy.
 
 		// Verify that the diplomat can move around the neighbor's zone of control.
 
@@ -777,10 +776,29 @@ class TestFixtureMain
 		// Verify that the embassy is established.
 	}
 
-	payFromStart_13_War()
+	playFromStart_13_War()
 	{
 		// Select a military unit.
-		// Move it into enemy territory.
+		// Move it into peaceful neighbor's territory.
+		// Verify that the unit cannot move into neighbor's zones of control.
+		// Sneak-attack one of the neighbor's unit.
+		// Verify that the neighbor's unit was destroyed.
+		// Verify that the neighbor is now hostile.
+		// Verify that the aggressor's reputation has suffered.
+		// Verify that the enemy's zone of control are now gone.
+		// Verify that the enemy has a defender.
+		// Make sure that the enemy has more than one base.
+		// Attack the defended base.
+		// Verify that the defender was destroyed.
+		// Attack the now defenseless base.
+		// Verify that the base was conquered.
+		// Offer peace.
+		// Verify that the peace offer was accepted.
+		// Declare war again.
+		// Move to the enemy's other base.
+		// Attack the undefended, single-population second base.
+		// Verify that the base is destroyed.
+		// Verify that the enemy owner has been completely destroyed.
 	}
 
 	playFromStart_14_ResearchAllAndBuildStarship()
@@ -998,4 +1016,27 @@ class TestFixtureMain
 		Assert.isTrue(turnsToWaitExpected < turnsToWaitMax);
 		world.turnAdvanceMultiple(turnsToWaitExpected);
 	}
+
+	waitNTurnsForUnitInWorldToMoveToPos
+	(
+		turnsToWaitMax, unit, world, targetPos
+	)
+	{
+		unit.moveStartTowardPosInWorld(targetPos, world);
+
+		var unitPos = unit.pos;
+		var displacementToTarget = Coords.create();
+
+		var i;
+		for (var i = 0; i < turnsToWaitMax; i++)
+		{
+			world.turnAdvance();
+			displacementToTarget.overwriteWith(targetPos).subtract(unitPos);
+			var distanceToTarget = displacementToTarget.magnitude();
+			var isAtDestination = (distanceToTarget == 0);
+		}
+
+		Assert.isTrue(i >= turnsToWaitMax);
+	}
+
 }
