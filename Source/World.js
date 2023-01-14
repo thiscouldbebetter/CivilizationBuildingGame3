@@ -104,6 +104,7 @@ class World
 				OwnerIncomeAllocation.default(), // incomeAllocation,
 				OwnerResearch.default(),
 				OwnerMapKnowledge.default(),
+				OwnerDiplomacy.default(),
 				NotificationLog.create(),
 				[], // bases
 				[

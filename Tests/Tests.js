@@ -28,7 +28,9 @@ class TestFixtureMain
 		this.playFromStart_9_BaseGrowthLimiters();
 		this.playFromStart_10_Granary();
 		this.playFromStart_11_Ships();
-		this.playFromStart_12_ResearchAllAndBuildStarship();
+		this.playFromStart_12_Diplomacy();
+		this.playFromStart_13_War();
+		this.playFromStart_14_ResearchAllAndBuildStarship();
 	}
 
 	playFromStart_1_Startup()
@@ -53,6 +55,9 @@ class TestFixtureMain
 		var unitDefns = UnitDefn.Instances();
 		var unitDefnSettlers = unitDefns.Settlers;
 		Assert.areEqual(unitDefnSettlers.name, unit.defnName);
+
+		// Verify that at least one neighbor exists.
+		Assert.isTrue(world.owners.length > 1);
 	}
 
 	playFromStart_2_UnitMovement()
@@ -108,6 +113,13 @@ class TestFixtureMain
 		// Make sure the current owner has changed.
 		var ownerAfterEndingTurn = world.ownerCurrent();
 		Assert.areNotEqual(ownerAfterEndingTurn, ownerBeforeEndingTurn);
+
+		// Have the second owner's settlers found a city.
+		var unitSettlers = ownerAfterEndingTurn.units[0];
+		Assert.isNotNull(unitSettlers);
+		var activityDefns = UnitActivityDefn.Instances();
+		unitSettlers.activityDefnStartForWorld(activityDefns.SettlersStartCity, world);
+		Assert.isTrue(ownerAfterEndingTurn.bases.length > 0);
 
 		// End the second owner's turn, which ends the round.
 		var turnsBeforeEndingRound = world.turnsSoFar;
@@ -711,7 +723,67 @@ class TestFixtureMain
 		// end turn away from shore, die.
 	}
 
-	playFromStart_12_ResearchAllAndBuildStarship()
+	playFromStart_12_Diplomacy()
+	{
+		var world = this.world;
+		var owner = world.owners[0];
+		var base = owner.bases[0];
+
+		var unitDefns = UnitDefn.Instances();
+
+		// Choose a neighbor.
+		var neighbor = world.owners[1];
+
+		// Verify that there are no diplomatic relations with the neighbor yet.
+		var ownerDiplomacy = owner.diplomacy;
+		var isNeighborKnown = ownerDiplomacy.ownerIsKnown(neighbor);
+		Assert.isFalse(isNeighborKnown);
+
+		// Build a diplomat.
+		this.waitNTurnsForBaseInWorldToBuildUnitDefn
+		(
+			this.turnsToWaitMax, base, world, unitDefns.Diplomat
+		);
+
+		var unitDiplomat = base.unitsSupported(world).find
+		(
+			x => x.defn(world) == unitDefns.Diplomat
+		);
+		Assert.isNotNull(unitDiplomat);
+
+		// Move the diplomat into neighboring territory.
+		var neighborBase = neighbor.bases[0];
+		var neighborBasePos = neighborBase.pos;
+		var neighborBaseOutskirts = neighborBasePos.clone().addXY(-1, 0);
+
+		unitDiplomat.moveStartTowardPosInWorld(neighborBasePos, world);
+
+		this.waitNTurnsForUnitInWorldToCompleteActivityDefn
+		(
+			this.turnsToWaitMax, unitDiplomat, world, todo
+		);
+
+		// Verify that diplomatic relations are established.
+		isNeighborKnown = ownerDiplomacy.ownerIsKnown(neighbor);
+		Assert.isTrue(isNeighborKnown);
+
+		// Make peace with the neighbor.
+		ownerDiplomacy.makePeaceWithOwner(neighbor); // todo - Shouldn't be this easy.
+
+		// Verify that the diplomat can move around the neighbor's zone of control.
+
+		// Establish an embassy.
+
+		// Verify that the embassy is established.
+	}
+
+	payFromStart_13_War()
+	{
+		// Select a military unit.
+		// Move it into enemy territory.
+	}
+
+	playFromStart_14_ResearchAllAndBuildStarship()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();
@@ -732,12 +804,39 @@ class TestFixtureMain
 		var technologies = Technology.Instances();
 		Assert.areEqual(technologies._All.length, techsKnown.length);
 
-		// Build a starship, launch it, and wait for it to reach destination.
+		// Verify that we can't launch the starship because it doesn't exist.
+		var starshipStatus = owner.starshipStatus;
+		var canLaunch = starshipStatus.canLaunch();
+		Assert.isFalse(canLaunch);
+
+		// Build a starship.
 		this.waitNTurnsForBaseInWorldToBuildStarshipParts
 		(
 			this.turnsToWaitMax, base, world
 		);
+
+		// Verify that the completed starship can launch.
+		canLaunch = starshipStatus.canLaunch();
+		Assert.isTrue(canLaunch);
+
+		// Launch the starship.
+		starshipStatus.launch(world);
+
+		// Wait one turn and make sure we haven't won.
+		this.waitNTurns(1, world);
+		var hasWon = owner.hasWon(world);
+		Assert.isFalse(hasWon);
+
+		// Wait for the starship to reach the destination.
+		var turnsToReachDestination =
+			starshipStatus.turnsToReachDestinationTotal();
+		this.waitNTurns(turnsToReachDestination, world);
+
+		hasWon = owner.hasWon(world);
+		Assert.isTrue(hasWon);
 	}
+
+	// Helper methods.
 
 	waitNTurns(turnsToWait, world)
 	{
