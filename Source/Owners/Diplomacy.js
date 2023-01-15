@@ -15,7 +15,7 @@ class OwnerDiplomacy
 	{
 		var relationship = this.relationshipWithOwner(ownerOther);
 		var posture = relationship.posture();
-		isAttackable = posture.isAttackable();
+		var isAttackable = posture.isAttackable();
 		return isAttackable;
 	}
 
@@ -31,7 +31,8 @@ class OwnerDiplomacy
 	{
 		if (this.relationshipsByOwnerName.has(ownerOther.name) == false)
 		{
-			var relationship = OwnerDiplomacyRelationship.default();
+			var relationship =
+				OwnerDiplomacyRelationship.fromOwnerOther(ownerOther);
 			this.relationshipsByOwnerName.set(ownerOther.name, relationship);
 		}
 		return this.relationshipsByOwnerName.get(ownerOther.name);
@@ -122,19 +123,26 @@ class OwnerDiplomacyPosture_Instances
 
 class OwnerDiplomacyRelationship
 {
-	constructor(posture)
+	constructor(ownerOther, posture)
 	{
+		this.ownerOtherName = ownerOther.name;
 		this.postureName = posture.name;
 
 		// todo - Intelligence, reputation.
 	}
 
-	static default()
+	static fromOwnerOther(ownerOther)
 	{
 		return new OwnerDiplomacyRelationship
 		(
+			ownerOther,
 			OwnerDiplomacyPosture.Instances().Unknown
 		);
+	}
+
+	ownerOther(world)
+	{
+		return world.ownerByName(this.ownerOtherName);
 	}
 
 	posture()
@@ -142,30 +150,33 @@ class OwnerDiplomacyRelationship
 		return OwnerDiplomacyPosture.byName(this.postureName);
 	}
 
-	postureSetTo(postureToSet)
+	postureSetTo(postureToSet, world)
 	{
 		this.postureName = postureToSet.name;
+		var ownerOther = this.ownerOther(world);
+		var ownerOtherRelationship = ownerOther.relationshipWithOwner(ownerOther);
+		ownerOtherRelationship.postureName = postureToSet.name;
 	}
 
 	// Convenience methods.
 
-	postureSetToAlliance()
+	postureSetToAlliance(world)
 	{
-		this.postureSetTo(OwnerDiplomacyPosture.Instances().Alliance);
+		this.postureSetTo(OwnerDiplomacyPosture.Instances().Alliance, world);
 	}
 
-	postureSetToPeace()
+	postureSetToPeace(world)
 	{
-		this.postureSetTo(OwnerDiplomacyPosture.Instances().Peace);
+		this.postureSetTo(OwnerDiplomacyPosture.Instances().Peace, world);
 	}
 
-	postureSetToUncontacted()
+	postureSetToUncontacted(world)
 	{
-		this.postureSetTo(OwnerDiplomacyPosture.Instances().Uncontacted);
+		this.postureSetTo(OwnerDiplomacyPosture.Instances().Uncontacted, world);
 	}
 
-	postureSetToWar()
+	postureSetToWar(world)
 	{
-		this.postureSetTo(OwnerDiplomacyPosture.Instances().War);
+		this.postureSetTo(OwnerDiplomacyPosture.Instances().War, world);
 	}
 }

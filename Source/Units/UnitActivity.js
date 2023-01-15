@@ -33,10 +33,8 @@ class UnitActivity
 
 	direction()
 	{
-		return this.variableValueByName
-		(
-			UnitActivityVariableNames.Direction()
-		);
+		var variableNameDirection = UnitActivityVariableNames.Direction();
+		return this.variableValueByName(variableNameDirection);
 	}
 
 	targetPos()

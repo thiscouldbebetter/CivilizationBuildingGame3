@@ -580,6 +580,13 @@ class Base
 		this.unitsSupportedIds.push(unit.id);
 	}
 
+	unitSupportedLast(world)
+	{
+		var unitsSupported = this.unitsSupported(world);
+		var unit = unitsSupported[unitsSupported.length - 1];
+		return unit;
+	}
+
 	unitsPresent(world)
 	{
 		var mapCell = this.mapCellOccupied(world);
@@ -592,11 +599,11 @@ class Base
 		var unitsPresent = this.unitsPresent(world);
 		var returnValues = unitsPresent.filter
 		(
-			x =>
+			unit =>
 			{
-				var defn = x.defn(world);
+				var defn = unit.defn(world);
 				var isGroundMilitary =
-					(defn.isMilitary() && defn.isGround(world) );
+					(defn.isMilitary() && defn.isGround(world, unit) );
 				return isGroundMilitary;
 			}
 		);

@@ -28,12 +28,12 @@ class UnitDefnMovement
 		);
 	}
 
-	isGround(world)
+	isGround(world, unit)
 	{
 		var mapCell = UnitDefnMovement.mapCellGround();
 		var costToMove = this._costToMoveFromCellToCellInThirds
 		(
-			world, this, mapCell, mapCell
+			world, unit, mapCell, mapCell
 		);
 		var returnValue = (costToMove < Number.POSITIVE_INFINITY);
 		return returnValue;
@@ -73,20 +73,24 @@ class UnitDefnMovement
 				}
 				else
 				{
-					var unitMovingOwner = unitMoving.owner;
+					var unitMovingOwner = unitMoving.owner(world);
 					var isNonAlliedUnitPresent =
 						cellTo.unitNotAlliedWithOwnerIsPresent(unitMovingOwner, world);
 					if (isNonAlliedUnitPresent)
 					{
 						var unitsPresentNonAllied =
-							cellTo.unitsPresentNotAlliedWithOwner(owner, world);
+							cellTo.unitsPresentNotAlliedWithOwner(unitMovingOwner, world);
 						var unitNonAlliedFirst = unitsPresentNonAllied[0];
 						var unitNonAlliedOwner = unitNonAlliedFirst.owner(world);
 						var isUnitNonAlliedAnEnemy =
-							unitMovingOwner.isAtWarWith(unitNonAlliedOwner);
+							unitMovingOwner.ownerIsAttackable(unitNonAlliedOwner);
 						if (isUnitNonAlliedAnEnemy)
 						{
 							costToMoveInThirds = 3;
+						}
+						else if (unitMoving.hasActionsToSelectFromOnAttack(world))
+						{
+							costToMoveInThirds = 3; // todo
 						}
 						else
 						{

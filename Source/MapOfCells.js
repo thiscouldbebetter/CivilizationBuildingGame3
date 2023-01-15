@@ -373,7 +373,7 @@ class MapOfCellsCell
 		var unitsQualifiedToBePassengers =
 			unitsOwnedBySameOwnerPresent.filter
 			(
-				x => x.isGround(world) && x.isSleeping()
+				unit => unit.isGround(world) && unit.isSleeping()
 			);
 		return unitsQualifiedToBePassengers;
 	}

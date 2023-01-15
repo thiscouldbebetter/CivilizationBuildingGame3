@@ -65,9 +65,6 @@ class TestFixtureMain
 		var world = this.world;
 		var owner = world.ownerCurrent();
 		var unit = owner.unitSelected();
-		var directions = Direction.Instances();
-		var east = directions.East;
-		var west = directions.West;
 
 		// Verify that the unit has moves initially.
 		Assert.isTrue(unit.movesThisTurn() > 0);
@@ -79,8 +76,7 @@ class TestFixtureMain
 
 		// Move the unit.
 		var unitPosBeforeMove = unit.pos.clone();
-		var directionToMove = east;
-		unit.moveInDirection(directionToMove, world);
+		unit.moveInDirectionEast(world);
 
 		// Make sure the unit has used up its moves.
 		Assert.isFalse(unit.hasMovesThisTurn());
@@ -88,7 +84,7 @@ class TestFixtureMain
 		// Make sure the unit's position has changed by the correct offset.
 		var unitPosAfterMove = unit.pos.clone();
 		var offsetMoved = unitPosAfterMove.clone().subtract(unitPosBeforeMove);
-		Assert.isTrue(offsetMoved.equals(directionToMove.offset));
+		Assert.isTrue(offsetMoved.equals(Direction.Instances().East.offset));
 
 		// Make sure that more cells are known.
 		var cellsKnownCountAfterMove = cellsKnownIndices.size;
@@ -220,14 +216,8 @@ class TestFixtureMain
 		var base = owner.bases[0];
 		var unit = owner.unitSelected();
 
-		var directions = Direction.Instances();
-		var east = directions.East;
-		var north = directions.North;
-		var south = directions.South;
-		var west = directions.West;
-
 		// Move the settler one cell, irrigate, and verify.
-		unit.moveInDirection(east, world);
+		unit.moveInDirectionEast(world);
 		world.turnAdvance();
 		var activityDefns = UnitActivityDefn.Instances();
 		this.waitNTurnsForUnitInWorldToCompleteActivityDefn
@@ -259,27 +249,28 @@ class TestFixtureMain
 
 		// Move the settlers back into the city and out again,
 		// then make sure a third of a move remains.
-		unit.moveInDirection(west, world);
-		unit.moveInDirection(east, world);
+		unit.moveInDirectionWest(world);
+		unit.moveInDirectionEast(world);
 		Assert.isTrue(unit.hasMovesThisTurn());
 		Assert.areEqual(1, unit.moveThirdsThisTurn());
 
 		// Try to move the unit off the road,
 		// but it can't, because it only has 1/3 move left. 
 		var unitPosBeforeMoveAttempt = unit.pos.clone();
-		unit.moveInDirection(east, world);
+		unit.moveInDirectionEast(world);
 		Assert.isTrue(unit.pos.equals(unitPosBeforeMoveAttempt) );
 
 		// End the turn and try again, it should work now.
 		world.turnAdvance();
 		unitPosBeforeMoveAttempt = unit.pos.clone();
-		unit.moveInDirection(east, world);
+		unit.moveInDirectionEast(world);
 		Assert.isFalse(unit.pos.equals(unitPosBeforeMoveAttempt) );
 
 		// Improve some more land (to make enough to make later tests feasible).
+		var d = Direction.Instances();
 		var directionsToMove =
 		[
-			north, north, west, west, west, south
+			d.North, d.North, d.West, d.West, d.West, d.South
 		];
 		directionsToMove.forEach(direction =>
 		{
@@ -694,7 +685,7 @@ class TestFixtureMain
 		// Move the ship out of the base,
 		// and verify that the max amount of sleeping troops came with it.
 		var directions = Direction.Instances();
-		unitShip.moveInDirection(directions.West, world);
+		unitShip.moveInDirectionWest(world);
 		Assert.areNotEqual(unitShip.pos, base.pos);
 		var unitsPresentInShipCell =
 			world.map.cellAtPosInCells(unitShip.pos).unitsPresent(world);
@@ -704,10 +695,10 @@ class TestFixtureMain
 
 		// See if the ship can move onto an unoccupied land square,
 		// which it shouldn't.
-		Assert.isFalse(unitShip.canMoveInDirection(directions.Southeast, world));
+		Assert.isFalse(unitShip.canMoveInDirectionSoutheast(world));
 
 		// However, it should be able to move back onto the base.
-		Assert.isTrue(unitShip.canMoveInDirection(directions.East, world));
+		Assert.isTrue(unitShip.canMoveInDirectionEast(world));
 
 		// It also shouldn't get lost at sea, as long as it stays next to land.
 		var turnsToWait = 10;
@@ -739,6 +730,15 @@ class TestFixtureMain
 		var isNeighborKnown = ownerDiplomacy.ownerIsKnown(neighbor);
 		Assert.isFalse(isNeighborKnown);
 
+		// Have the neighbor build a military unit, and move it outside of town.
+		var neighborBase = neighbor.bases[0];
+		this.waitNTurnsForBaseInWorldToBuildUnitDefn
+		(
+			this.turnsToWaitMax, neighborBase, world, unitDefns.Warriors
+		);
+		var unitWarriors = neighborBase.unitSupportedLast(world);
+		unitWarriors.moveInDirectionWest(world);
+
 		// Build a diplomat.
 		this.waitNTurnsForBaseInWorldToBuildUnitDefn
 		(
@@ -752,9 +752,8 @@ class TestFixtureMain
 		Assert.isNotNull(unitDiplomat);
 
 		// Move the diplomat into neighboring territory.
-		var neighborBase = neighbor.bases[0];
 		var neighborBasePos = neighborBase.pos;
-		var neighborBaseOutskirtsPos = neighborBasePos.clone().addXY(-1, 0);
+		var neighborBaseOutskirtsPos = neighborBasePos.clone().addXY(-2, 0);
 
 		this.waitNTurnsForUnitInWorldToMoveToPos
 		(
@@ -767,9 +766,23 @@ class TestFixtureMain
 
 		// Make peace with the neighbor.
 		var relationship = ownerDiplomacy.relationshipWithOwner(neighbor);
-		relationship.postureSetToPeace(); // todo - Shouldn't be this easy.
+		relationship.postureSetToPeace(world); // todo - Shouldn't be this easy.
 
 		// Verify that the diplomat can move around the neighbor's zone of control.
+		var canIgnoreEnemyZoneOfControl =
+			unitDiplomat.canMoveInDirectionNortheast(world);
+		Assert.isTrue(canIgnoreEnemyZoneOfControl);
+
+		// Move into the unit and verify that it prompts for an action.
+		unitDiplomat.moveInDirectionEast(world);
+		Assert.isTrue(owner.isWaitingForActionSelection());
+
+		// Select the action to bribe the unit.
+		unitDiplomat.actionSelectDiplomatBribeUnit(world);
+
+		// Verify that the unit has switched allegiance.
+		var unitWarriorsOwner = unitWarriors.owner(world);
+		Assert.areEqual(owner, unitWarriorsOwner);
 
 		// Establish an embassy.
 
@@ -778,10 +791,29 @@ class TestFixtureMain
 
 	playFromStart_13_War()
 	{
-		// Select a military unit.
+		var world = this.world;
+		var owner = world.owners[0];
+		var base = owner.bases[0];
+
+		// Create a military unit.
+		this.waitNTurnsForBaseInWorldToBuildUnitDefn
+		(
+			this.turnsToWaitMax, base, world, unitDefns.Warriors
+		);
+		var unitWarriors = base.unitSupportedLast();
+
 		// Move it into peaceful neighbor's territory.
+		var neighborBase = neighbor.bases[0];
+		var neighborBasePos = neighborBase.pos;
+		var neighborBaseOutskirtsPos = neighborBasePos.clone().addXY(-1, 0);
+
+		this.waitNTurnsForUnitInWorldToMoveToPos
+		(
+			this.turnsToWaitMax, unitWarriors, world, neighborBaseOutskirtsPos
+		);
+
 		// Verify that the unit cannot move into neighbor's zones of control.
-		// Sneak-attack one of the neighbor's unit.
+		// Sneak-attack one of the neighbor's units.
 		// Verify that the neighbor's unit was destroyed.
 		// Verify that the neighbor is now hostile.
 		// Verify that the aggressor's reputation has suffered.

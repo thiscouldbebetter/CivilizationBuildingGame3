@@ -55,6 +55,7 @@ class UnitActivityDefn_Instances
 		var movesToComplete3 = new Map( [ [ UnitActivityVariableNames.MovesToComplete(), 3 ] ] );
 
 		// 									  name,					vars, 				perform
+		this.ActionSelect 				= uad("ActionSelect", 		null, 				this.actionSelect);
 		this.Disband 					= uad("Disband", 			null, 				this.disband);
 		this.Fortify 					= uad("Fortify", 			null, 				this.fortify);
 		this.Move 						= uad("Move",				null, 				this.move);
@@ -91,6 +92,7 @@ class UnitActivityDefn_Instances
 
 		this._All =
 		[
+			this.ActionSelect,
 			this.Disband,
 			this.Fortify,
 			this.Move,
@@ -135,6 +137,11 @@ class UnitActivityDefn_Instances
 
 	// Performs.
 
+	actionSelect(universe, world, owner, unit)
+	{
+		// todo
+	}
+
 	disband(universe, world, owner, unit)
 	{
 		owner.unitRemove(unit);
@@ -170,14 +177,22 @@ class UnitActivityDefn_Instances
 
 			var unitMovingOwner = unit.owner(world);
 			var isEnemyUnitPresent =
-				cellTo.unitNotAlliedWithOwnerIsPresent(unitMovingOwner);
+				cellTo.unitNotAlliedWithOwnerIsPresent(unitMovingOwner, world);
 
 			if (isEnemyUnitPresent)
 			{
-				// todo - Log to output.
-				var defender =
-					cellTo.unitsNotAlliedWithOwner(unitMovingOwner)[0];
-				unit.attackDefender(defender, world);
+				var isMilitary = unit.isMilitary(world);
+				if (isMilitary)
+				{
+					// todo - Log to output.
+					var defender =
+						cellTo.unitsNotAlliedWithOwner(unitMovingOwner)[0];
+					unit.attackDefender(defender, world);
+				}
+				else if (unit.hasActionsToSelectFromOnAttack(world))
+				{
+					unit.actionPromptForSelection(world);
+				}
 			}
 			else
 			{
@@ -215,8 +230,11 @@ class UnitActivityDefn_Instances
 			}
 		}
 
-		// todo - Handle single-move units moving onto multi-move terrain.
-		unit.activityClear(); 
+		if (unit.isWaitingForActionSelection() == false)
+		{
+			// todo - Handle single-move units moving onto multi-move terrain.
+			unit.activityClear(); 
+		}
 	}
 
 	moveTo(universe, world, owner, unit)
@@ -246,9 +264,10 @@ class UnitActivityDefn_Instances
 			}
 			else
 			{
+				var variableNameDirection = UnitActivityVariableNames.Direction();
 				activity.variableSetByNameAndValue
 				(
-					UnitActivityVariableNames.Direction(), directionToCellNext
+					variableNameDirection, directionToCellNext
 				);
 				unit.moveInDirection(directionToCellNext, world);
 				unit.activitySet(activity); // .move() clears it.

@@ -409,7 +409,7 @@ class OwnerMapKnowledge
 						ownerDiplomacy.relationshipWithOwner
 						(
 							ownerOther
-						).postureSetToUncontacted();
+						).postureSetToUncontacted(world);
 					}
 				}
 			}

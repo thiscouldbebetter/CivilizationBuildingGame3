@@ -70,6 +70,13 @@ class Owner
 		this.unitSelectNextIdle();
 	}
 
+	isWaitingForActionSelection()
+	{
+		var unitSelected = this.unitSelected();
+		var isWaiting = unitSelected.isWaitingForActionSelection();
+		return isWaiting;
+	}
+
 	notifyByMessageForWorld(message, world)
 	{
 		this.notificationLog.notifyByMessageForWorld(message, world);
@@ -123,6 +130,18 @@ class Owner
 	baseRemove(base)
 	{
 		this.bases.splice(this.bases.indexOf(base), 1);
+	}
+
+	// Diplomacy.
+
+	ownerIsAttackable(ownerOther)
+	{
+		return this.diplomacy.ownerIsAttackable(ownerOther);
+	}
+
+	relationshipWithOwner(ownerOther)
+	{
+		return this.diplomacy.relationshipWithOwner(this);
 	}
 
 	// Government.

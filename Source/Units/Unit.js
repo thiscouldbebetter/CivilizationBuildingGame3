@@ -119,6 +119,22 @@ class Unit
 
 	// Activity.
 
+	actionPromptForSelection(world)
+	{
+		var activityDefnActionSelect = UnitActivityDefn.Instances().ActionSelect;
+		this.activityDefnStartForWorld(activityDefnActionSelect, world);
+	}
+
+	actionSelect(actionToSelect, world)
+	{
+		this.activityDefnStart(actionToSelect);
+	}
+
+	actionSelectDipomatBribeUnit(world)
+	{
+		this.actionSelect(UnitActivityDefn.Instances().DipomatBribeUnit, world);
+	}
+
 	activity()
 	{
 		return this._activity;
@@ -156,13 +172,11 @@ class Unit
 		activityDefn, world, variableValuesByName
 	)
 	{
-		this.activitySet
+		var activity = new UnitActivity
 		(
-			new UnitActivity
-			(
-				activityDefn.name, variableValuesByName
-			)
+			activityDefn.name, variableValuesByName
 		);
+		this.activitySet(activity);
 		this.activityUpdate(null, world);
 	}
 
@@ -178,6 +192,22 @@ class Unit
 			var owner = this.owner(world);
 			this._activity.perform(universe, world, owner, this);
 		}
+	}
+
+	hasActionsToSelectFromOnAttack(world)
+	{
+		var unitDefns = UnitDefn.Instances();
+		var unitDefn = this.defn(world);
+		var hasActions = (unitDefn == unitDefns.Diplomat || defn == unitDefns.Spy);
+		return hasActions;
+	}
+
+	isWaitingForActionSelection()
+	{
+		var activity = this.activity();
+		var activityDefn = activity.defn();
+		var isWaiting = (activityDefn == UnitActivityDefn.Instances().ActionSelect);
+		return isWaiting;
 	}
 
 	// Movement.
@@ -200,6 +230,15 @@ class Unit
 		var canMove = (costToMoveInThirds <= this.movesThisTurn());
 		return canMove;
 	}
+
+	canMoveInDirectionEast(world) { return this.canMoveInDirection(Direction.Instances().East, world); }
+	canMoveInDirectionNorth(world) { return this.canMoveInDirection(Direction.Instances().North, world); }
+	canMoveInDirectionNortheast(world) { return this.canMoveInDirection(Direction.Instances().Northeast, world); }
+	canMoveInDirectionNorthwest(world) { return this.canMoveInDirection(Direction.Instances().Northwest, world); }
+	canMoveInDirectionSouth(world) { return this.canMoveInDirection(Direction.Instances().South, world); }
+	canMoveInDirectionSoutheast(world) { return this.canMoveInDirection(Direction.Instances().Southeast, world); }
+	canMoveInDirectionSouthwest(world) { return this.canMoveInDirection(Direction.Instances().Southwest, world); }
+	canMoveInDirectionWest(world) { return this.canMoveInDirection(Direction.Instances().West, world); }
 
 	cellsFromAndToForDirectionAndWorld(directionToMove, world)
 	{
@@ -247,19 +286,30 @@ class Unit
 
 	isGround(world)
 	{
-		return this.defn(world).isGround(world);
+		return this.defn(world).isGround(world, this);
 	}
 
 	moveInDirection(directionToMove, world)
 	{
 		var activityDefns = UnitActivityDefn.Instances();
+		var variableNameDirection = UnitActivityVariableNames.Direction();
 		this.activityDefnStartForWorldWithVariableNameAndValue
 		(
 			activityDefns.Move,
 			world,
-			UnitActivityVariableNames.Direction(), directionToMove
+			variableNameDirection,
+			directionToMove
 		);
 	}
+
+	moveInDirectionEast(world) { this.moveInDirection(Direction.Instances().East, world); }
+	moveInDirectionNorth(world) { this.moveInDirection(Direction.Instances().North, world); }
+	moveInDirectionNortheast(world) { this.moveInDirection(Direction.Instances().Northeast, world); }
+	moveInDirectionNorthwest(world) { this.moveInDirection(Direction.Instances().Northwest, world); }
+	moveInDirectionSouth(world) { this.moveInDirection(Direction.Instances().South, world); }
+	moveInDirectionSoutheast(world) { this.moveInDirection(Direction.Instances().Southeast, world); }
+	moveInDirectionSouthwest(world) { this.moveInDirection(Direction.Instances().Southwest, world); }
+	moveInDirectionWest(world) { this.moveInDirection(Direction.Instances().West, world); }
 
 	moveStartTowardPosInWorld(targetPos, world)
 	{
