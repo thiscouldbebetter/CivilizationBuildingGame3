@@ -101,7 +101,7 @@ class World
 				ownerName,
 				ownerColorName,
 				ownerIntelligence,
-				OwnerIncomeAllocation.default(), // incomeAllocation,
+				OwnerFinances.default(),
 				OwnerResearch.default(),
 				OwnerMapKnowledge.default(),
 				OwnerDiplomacy.default(),

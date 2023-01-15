@@ -599,7 +599,7 @@ class TestFixtureMain
 			this.turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
 		);
 		var foodNeededToGrow = base.foodNeededToGrow();
-		Assert.isTrue(base.foodStockpiled >= (foodNeededToGrow / 2) );
+		Assert.isTrue(base.foodStockpiled() >= (foodNeededToGrow / 2) );
 	}
 
 	playFromStart_11_Ships()
@@ -1026,7 +1026,7 @@ class TestFixtureMain
 		var basePopulationBefore = base.population();
 		var foodNeededToGrow = base.foodNeededToGrow();
 		var foodAdditionalNeededToGrow =
-			foodNeededToGrow - base.foodStockpiled;
+			foodNeededToGrow - base.foodStockpiled();
 		var foodPerTurn = base.foodThisTurnNet(world);
 		var turnsToWait = Math.ceil(foodAdditionalNeededToGrow / foodPerTurn);
 		Assert.isTrue(turnsToWait < turnsToWaitMax);

@@ -20,7 +20,7 @@ class Base
 		this.ownerName = ownerName;
 		this.demographics = demographics || BaseDemographics.fromPopulation(1);
 		this.landUsage = landUsage || BaseLandUsage.default();
-		this.foodStockpiled = foodStockpiled || 0;
+		this.foodStockpiledSet(foodStockpiled || 0);
 		this.industry = industry || BaseIndustry.default();
 
 		this.improvementsPresentNames = improvementsPresentNames || [];
@@ -117,7 +117,7 @@ class Base
 			+ foodGross + " produced, "
 			+ foodConsumed + " consumed, "
 			+ foodNet + " netted, " 
-			+ this.foodStockpiled + " stored, "
+			+ this.foodStockpiled() + " stored, "
 			+ this.foodNeededToGrow() + " to grow";
 
 		var industryGross = this.industryThisTurnGross(world);
@@ -197,8 +197,12 @@ class Base
 		this.industry.turnUpdate(world, this);
 
 		var foodThisTurnNet = this.foodThisTurnNet(world);
-		this.foodStockpiled += foodThisTurnNet;
+		this.foodStockpiledAdd(foodThisTurnNet);
 		this.populationGrowOrShrink(world);
+
+		var moneyThisTurnNet = this.moneyThisTurnNet(world);
+		var owner = this.owner(world);
+		owner.moneyStockpiledAdd(moneyThisTurnNet, world);
 	}
 
 	// Demographics.
@@ -231,7 +235,7 @@ class Base
 	populationGrow(world)
 	{
 		var foodNeededToGrow = this.foodNeededToGrow();
-		this.foodStockpiled = foodNeededToGrow;
+		this.foodStockpiledSet(foodNeededToGrow);
 
 		this.populationAdd(1);
 
@@ -239,11 +243,11 @@ class Base
 		var hasGranary = this.hasImprovement(granary);
 		if (hasGranary)
 		{
-			this.foodStockpiled = this.foodNeededToGrow() / 2;
+			this.foodStockpiledSet(this.foodNeededToGrow() / 2);
 		}
 		else
 		{
-			this.foodStockpiled = 0;
+			this.foodStockpiledSet(0);
 		}
 
 		if (this.attitudeIsUnrest(world))
@@ -262,11 +266,12 @@ class Base
 	populationGrowOrShrink(world)
 	{
 		var foodNeededToGrow = this.foodNeededToGrow();
-		if (this.foodStockpiled < 0)
+		var foodStockpiled = this.foodStockpiled();
+		if (foodStockpiled < 0)
 		{
 			this.populationShrink(world);
 		}
-		else if (this.foodStockpiled >= foodNeededToGrow)
+		else if (foodStockpiled >= foodNeededToGrow)
 		{
 			if (this.populationCanGrow())
 			{
@@ -381,6 +386,21 @@ class Base
 	foodNeededToGrowPerPopulation()
 	{
 		return 16; // ?
+	}
+
+	foodStockpiled()
+	{
+		return this._foodStockpiled;
+	}
+
+	foodStockpiledAdd(foodToAdd)
+	{
+		this.foodStockpiledSet(this.foodStockpiled() + foodToAdd);
+	}
+
+	foodStockpiledSet(value)
+	{
+		this._foodStockpiled = value;
 	}
 
 	foodThisTurnGross(world)

@@ -139,7 +139,7 @@ class UnitActivityDefn_Instances
 
 	actionSelect(universe, world, owner, unit)
 	{
-		// todo
+		owner.unitSelect(unit);
 	}
 
 	disband(universe, world, owner, unit)
@@ -170,10 +170,8 @@ class UnitActivityDefn_Instances
 			var cellFrom = cellsFromAndTo[0];
 			var cellTo = cellsFromAndTo[1];
 
-			unit.moveThirdsThisTurnSet
-			(
-				unit.moveThirdsThisTurn() - costToMoveInThirds
-			);
+			var moveThirdsThisTurnRemaining =
+				unit.moveThirdsThisTurn() - costToMoveInThirds;
 
 			var unitMovingOwner = unit.owner(world);
 			var isEnemyUnitPresent =
@@ -181,9 +179,11 @@ class UnitActivityDefn_Instances
 
 			if (isEnemyUnitPresent)
 			{
-				var isMilitary = unit.isMilitary(world);
-				if (isMilitary)
+				var unitIsMilitary = unit.isMilitary(world);
+				if (unitIsMilitary)
 				{
+					unitIsMilitary.moveThirdsThisTurnSet(moveThirdsThisTurnRemaining);
+
 					// todo - Log to output.
 					var defender =
 						cellTo.unitsNotAlliedWithOwner(unitMovingOwner)[0];
@@ -191,11 +191,14 @@ class UnitActivityDefn_Instances
 				}
 				else if (unit.hasActionsToSelectFromOnAttack(world))
 				{
+					// Don't consume the moves yet.
 					unit.actionPromptForSelection(world);
 				}
 			}
 			else
 			{
+				unit.moveThirdsThisTurnSet(moveThirdsThisTurnRemaining);
+
 				var unitsToMove = [ unit ];
 
 				if (unit.canCarryPassengers(world))
@@ -304,7 +307,35 @@ class UnitActivityDefn_Instances
 
 	diplomatBribeUnit(universe, world, owner, unit)
 	{
-		// todo
+		var unitDiplomat = unit;
+		var activity = unitDiplomat.activity;
+		var direction = activity.direction();
+		var unitDiplomatPos = unitDiplomat.pos;
+		var cellContainingUnitsToBribePos = unitDiplomatPos.clone().add(direction.offset);
+		var cellContainingUnitsToBribe =
+			world.map.cellAtPosInCells(cellContainingUnitsToBribePos);
+		var unitsToBribe = cellContainingUnitsToBribe.unitsPresent(world);
+		var costToBribeUnitsSoFar = 0;
+		var costToBribePerIndustryToBuild = 10; // todo
+		unitsToBribe.forEach
+		(
+			unitToBribe =>
+			{
+				var unitToBribeDefn = unitToBribe.defn(world);
+				var costToBribeUnit =
+					unitToBribeDefn.industryToBuild
+					* costToBribePerIndustryToBuild;
+				costToBribeUnitsSoFar += costToBribeUnit;
+			}
+		)
+		// todo - Confirmation prompt.
+		var moneyAvailable = owner.moneyStockpiled();
+		if (costToBribeUnitsSoFar < moneyInTreasury)
+		{
+			owner.moneyStockpiledSubtract(costToBribeUnitsSoFar);
+			unitsToBribe.forEach(x => x.ownerSet(owner));
+			// todo - Diplomatic effects?
+		}
 	}
 
 	diplomatEstablishEmbassy(universe, world, owner, unit)

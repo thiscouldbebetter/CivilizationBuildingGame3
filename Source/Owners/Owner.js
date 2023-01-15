@@ -6,7 +6,7 @@ class Owner
 		name,
 		colorName,
 		intelligence,
-		incomeAllocation,
+		finances,
 		research,
 		mapKnowledge,
 		diplomacy,
@@ -18,7 +18,7 @@ class Owner
 		this.name = name;
 		this.colorName = colorName;
 		this.intelligence = intelligence;
-		this.incomeAllocation = incomeAllocation;
+		this.finances = finances;
 		this.research = research;
 		this.mapKnowledge = mapKnowledge;
 		this.diplomacy = diplomacy;
@@ -144,6 +144,33 @@ class Owner
 		return this.diplomacy.relationshipWithOwner(this);
 	}
 
+	// Finances.
+
+	luxuriesRate()
+	{
+		return this.finances.incomeAllocation.luxuriesFraction;
+	}
+
+	moneyStockpiled()
+	{
+		return this.finances.moneyStockpiled();
+	}
+
+	moneyStockpiledAdd(moneyToAdd, world)
+	{
+		this.finances.moneyStockpiledAdd(moneyToAdd, world, this);
+	}
+
+	researchRate()
+	{
+		return this.finances.incomeAllocation.researchFraction;
+	}
+
+	taxRate()
+	{
+		return this.finances.incomeAllocation.moneyFraction;
+	}
+
 	// Government.
 
 	corruptionPerUnitDistanceFromCapital()
@@ -225,23 +252,6 @@ class Owner
 		return this.research.governmentsKnown();
 	}
 
-	// Income allocation.
-
-	luxuriesRate()
-	{
-		return this.incomeAllocation.luxuriesFraction;
-	}
-
-	researchRate()
-	{
-		return this.incomeAllocation.researchFraction;
-	}
-
-	taxRate()
-	{
-		return this.incomeAllocation.moneyFraction;
-	}
-
 	// Research.
 
 	buildablesKnownNames()
@@ -311,6 +321,11 @@ class Owner
 		return this.selection.selectableSelected(this);
 	}
 
+	unitSelect(unitToSelect)
+	{
+		return this.selection.unitSelect(this, unitToSelect);
+	}
+
 	unitSelectById(idToSelect)
 	{
 		return this.selection.unitSelectById(this, idSelect);
@@ -362,6 +377,78 @@ class Owner
 	{
 		this.units.splice(this.units.indexOf(unit), 1);
 	}
+}
+
+class OwnerFinances
+{
+	constructor(moneyStockpiled, incomeAllocation)
+	{
+		this._moneyStockpiled = moneyStockpiled;
+		this.incomeAllocation = incomeAllocation;
+	}
+	
+	static default()
+	{
+		return new OwnerFinances(0, OwnerIncomeAllocation.default());
+	}
+
+	moneyStockpiled()
+	{
+		return this._moneyStockpiled;
+	}
+
+	moneyStockpiledAdd(moneyToAdd, world, owner)
+	{
+		this._moneyStockpiled += moneyToAdd;
+
+		var bases = owner.bases;
+		var salePricePerIndustryToBuild = 1; // todo
+
+		while (this._moneyStockpiled < 0)
+		{
+			// Negative money is not allowed.  Have to sell some things.
+			var areThereAnyImprovementsLeftToSell =
+				bases.some(x => x.improvementsPresent().length > 0);
+
+			if (areThereAnyImprovementsLeftToSell == false)
+			{
+				this._moneyStockpiled = 0;
+				break;
+			}
+			else
+			{
+				var baseMoneyThisTurnNetMinSoFar = bases[0].moneyThisTurnNet(world);
+				var baseWithBiggestDeficitSoFar = bases[0];
+
+				for (var i = 1; i < bases.length; i++)
+				{
+					var base = bases[i];
+					var baseMoneyThisTurnNet = base.moneyThisTurnNet(world);
+					if (baseMoneyThisTurnNet < baseMoneyThisTurnNetMinSoFar)
+					{
+						baseMoneyThisTurnNetMinSoFar = baseMoneyThisTurnNet;
+						baseWithBiggestDeficitSoFar = base;
+					}
+				}
+
+				var improvements = baseWithBiggestDeficitSoFar.improvementsPresent();
+				var improvementToSell = improvements[improvements.length - 1];
+				var improvementSalePrice =
+					improvementToSell.industryToBuild * salePricePerIndustryToBuild;
+				this._moneyStockpiled += improvementSalePrice;
+			}
+		}
+	}
+
+	moneyStockpiledSubtract(moneyToSubtract)
+	{
+		if (this._moneyStockpiled < moneyToSubtract)
+		{
+			throw new Error("Cannot subtract more money than stockpiled.");
+		}
+		this._moneyStockpiled -= moneyToAdd;
+	}
+
 }
 
 class OwnerIncomeAllocation
@@ -635,6 +722,11 @@ class OwnerSelection
 		this.unitSelectedIndex = null;
 
 		return this;
+	}
+
+	unitSelect(owner, unitToSelect)
+	{
+		this.unitSelectById(owner, unitToSelect.id);
 	}
 
 	unitSelectById(owner, idToSelect)

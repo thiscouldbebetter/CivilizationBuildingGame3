@@ -82,6 +82,12 @@ class Unit
 		this.ownerName = owner.name;
 	}
 
+	select(world)
+	{
+		var owner = this.owner(world);
+		owner.unitSelect(this);
+	}
+
 	sleep(world)
 	{
 		var activityDefns = UnitActivityDefn.Instances();
@@ -127,12 +133,12 @@ class Unit
 
 	actionSelect(actionToSelect, world)
 	{
-		this.activityDefnStart(actionToSelect);
+		this.activityDefnStartForWorld(actionToSelect, world);
 	}
 
-	actionSelectDipomatBribeUnit(world)
+	actionSelectDiplomatBribeUnit(world)
 	{
-		this.actionSelect(UnitActivityDefn.Instances().DipomatBribeUnit, world);
+		this.actionSelect(UnitActivityDefn.Instances().DiplomatBribeUnit, world);
 	}
 
 	activity()
