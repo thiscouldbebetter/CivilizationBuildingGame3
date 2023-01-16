@@ -37,11 +37,6 @@ class Unit
 		return world.defns.unitDefnByName(this.defnName);
 	}
 
-	integritySubtractDamage(damage, world)
-	{
-		this.defn(world).combat.integritySubtractDamageFromUnit(damage, this);
-	}
-
 	isAwake()
 	{
 		return (this.isSleeping() == false);
@@ -50,11 +45,6 @@ class Unit
 	isIdle()
 	{
 		return (this.hasMovesThisTurn() && this.isAwake());
-	}
-
-	isMilitary(world)
-	{
-		return (this.defn(world).combat.attack > 0);
 	}
 
 	isSleeping()
@@ -127,13 +117,21 @@ class Unit
 
 	actionPromptForSelection(world)
 	{
+		var activityMove = this.activity();
 		var activityDefnActionSelect = UnitActivityDefn.Instances().ActionSelect;
-		this.activityDefnStartForWorld(activityDefnActionSelect, world);
+		this.activityDefnStartForWorldWithVariables
+		(
+			activityDefnActionSelect, world, activityMove.variableValuesByName
+		);
 	}
 
 	actionSelect(actionToSelect, world)
 	{
-		this.activityDefnStartForWorld(actionToSelect, world);
+		var activityPromptForSelection = this.activity();
+		this.activityDefnStartForWorldWithVariables
+		(
+			actionToSelect, world, activityPromptForSelection.variableValuesByName
+		);
 	}
 
 	actionSelectDiplomatBribeUnit(world)
@@ -159,6 +157,15 @@ class Unit
 	activityDefnStartForWorld(activityDefn, world)
 	{
 		this.activityDefnStartForWorldWithVariables(activityDefn, world, null);
+	}
+
+	activityDefnStartForWorldWithDirection(activityDefn, world, direction)
+	{
+		this.activityDefnStartForWorldWithVariableNameAndValue
+		(
+			activityDefn, world,
+			UnitActivityVariableNames.Direction(), direction
+		);
 	}
 
 	activityDefnStartForWorldWithVariableNameAndValue
@@ -216,13 +223,57 @@ class Unit
 		return isWaiting;
 	}
 
-	// Movement.
+	// Combat.
 
-	attackDefender(defender, world)
+	attackUnit(unitDefender, world)
+	{
+		var attackerDefnCombat = this.defn(world).combat;
+		var defenderDefnCombat = unitDefender.defn(world).combat;
+
+		var attackStrength = this.attackStrength(world);
+		var defenseStrength = unitDefender.defenseStrength(world);
+
+		var sumOfStrengths = attackStrength + defenseStrength;
+		var attackRoll = Math.random() * sumOfStrengths;
+		if (attackRoll <= attackStrength)
+		{
+			var damageInflicted = attackerDefnCombat.damagePerHit;
+			unitDefender.integritySubtractDamage(damageInflicted, world);
+		}
+		else
+		{
+			var damageInflicted = defenderDefnCombat.damagePerHit;
+			this.integritySubtractDamage(damageInflicted, world);
+		}
+	}
+
+	attackStrength(world)
+	{
+		var defn = this.defn(world)
+		var returnValue = defn.combat.attackStrength;
+		// todo - Bonus for veteran status.
+		return returnValue;
+	}
+
+	defenseStrength(world)
 	{
 		var defn = this.defn(world);
-		defn.unitAttackDefender(this, defender);
+		var returnValue = defn.combat.attackStrength;
+		// todo - Bonuses for fortification, improvements.
+		return returnValue;
 	}
+
+	integritySubtractDamage(damage, world)
+	{
+		this.defn(world).combat.integritySubtractDamageFromUnit(damage, this);
+	}
+
+	isMilitary(world)
+	{
+		return (this.defn(world).combat.attackStrength > 0);
+	}
+
+	// Movement.
 
 	canCarryPassengers(world)
 	{

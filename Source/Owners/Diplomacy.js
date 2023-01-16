@@ -123,11 +123,11 @@ class OwnerDiplomacyPosture_Instances
 
 class OwnerDiplomacyRelationship
 {
-	constructor(ownerOther, posture)
+	constructor(ownerOther, posture, embassyHasBeenEstablished)
 	{
 		this.ownerOtherName = ownerOther.name;
 		this.postureName = posture.name;
-
+		this.embassyHasBeenEstablished = embassyHasBeenEstablished;
 		// todo - Intelligence, reputation.
 	}
 
@@ -136,7 +136,8 @@ class OwnerDiplomacyRelationship
 		return new OwnerDiplomacyRelationship
 		(
 			ownerOther,
-			OwnerDiplomacyPosture.Instances().Unknown
+			OwnerDiplomacyPosture.Instances().Unknown,
+			false // embassyHasBeenEstablished
 		);
 	}
 

@@ -796,13 +796,20 @@ class TestFixtureMain
 		var base = owner.bases[0];
 
 		// Create a military unit.
+		var unitDefns = UnitDefn.Instances();
 		this.waitNTurnsForBaseInWorldToBuildUnitDefn
 		(
 			this.turnsToWaitMax, base, world, unitDefns.Warriors
 		);
-		var unitWarriors = base.unitSupportedLast();
+		var unitWarriors = base.unitSupportedLast(world);
 
-		// Move it into peaceful neighbor's territory.
+		// Select a neighbor and make peace with them.
+		var neighbor = world.owners[1];
+		var relationshipWithNeighbor = owner.diplomacy.relationshipWithOwner(neighbor);
+		var ownerDiplomacy = relationshipWithNeighbor.postureSetToPeace(world); // todo - Too easy.
+		Assert.isTrue(relationshipWithNeighbor.posture().isPeace());
+
+		// Move the military unit into the neighbor's territory.
 		var neighborBase = neighbor.bases[0];
 		var neighborBasePos = neighborBase.pos;
 		var neighborBaseOutskirtsPos = neighborBasePos.clone().addXY(-1, 0);

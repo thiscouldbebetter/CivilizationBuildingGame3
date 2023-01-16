@@ -155,15 +155,17 @@ class UnitActivityDefn_Instances
 
 	move(universe, world, owner, unit)
 	{
-		var activity = unit.activity();
+		var unitMoving = unit;
+
+		var activity = unitMoving.activity();
 		var directionToMove = activity.direction();
 		var costToMoveInThirds =
 			unit.costToMoveInDirectionInThirds(directionToMove, world);
-		var movesRemainingInThirds = unit.moveThirdsThisTurn();
+		var movesRemainingInThirds = unitMoving.moveThirdsThisTurn();
 
 		if (costToMoveInThirds <= movesRemainingInThirds)
 		{
-			var cellsFromAndTo = unit.cellsFromAndToForDirectionAndWorld
+			var cellsFromAndTo = unitMoving.cellsFromAndToForDirectionAndWorld
 			(
 				directionToMove, world
 			);
@@ -171,23 +173,28 @@ class UnitActivityDefn_Instances
 			var cellTo = cellsFromAndTo[1];
 
 			var moveThirdsThisTurnRemaining =
-				unit.moveThirdsThisTurn() - costToMoveInThirds;
+				unitMoving.moveThirdsThisTurn() - costToMoveInThirds;
 
-			var unitMovingOwner = unit.owner(world);
+			var unitMovingOwner = unitMoving.owner(world);
 			var isEnemyUnitPresent =
 				cellTo.unitNotAlliedWithOwnerIsPresent(unitMovingOwner, world);
 
 			if (isEnemyUnitPresent)
 			{
-				var unitIsMilitary = unit.isMilitary(world);
-				if (unitIsMilitary)
+				var unitMovingIsMilitary = unitMoving.isMilitary(world);
+				if (unitMovingIsMilitary)
 				{
-					unitIsMilitary.moveThirdsThisTurnSet(moveThirdsThisTurnRemaining);
+					unitMoving.moveThirdsThisTurnSet(moveThirdsThisTurnRemaining);
 
 					// todo - Log to output.
-					var defender =
-						cellTo.unitsNotAlliedWithOwner(unitMovingOwner)[0];
-					unit.attackDefender(defender, world);
+
+					var unitsDefending =
+						cellTo.unitsPresentNotAlliedWithOwner(unitMovingOwner, world);
+
+					// todo - Choose strongest defender.
+					var unitDefender = unitsDefending[0];
+
+					unitMoving.attackUnit(unitDefender, world);
 				}
 				else if (unit.hasActionsToSelectFromOnAttack(world))
 				{
@@ -308,7 +315,7 @@ class UnitActivityDefn_Instances
 	diplomatBribeUnit(universe, world, owner, unit)
 	{
 		var unitDiplomat = unit;
-		var activity = unitDiplomat.activity;
+		var activity = unitDiplomat.activity();
 		var direction = activity.direction();
 		var unitDiplomatPos = unitDiplomat.pos;
 		var cellContainingUnitsToBribePos = unitDiplomatPos.clone().add(direction.offset);
@@ -330,37 +337,155 @@ class UnitActivityDefn_Instances
 		)
 		// todo - Confirmation prompt.
 		var moneyAvailable = owner.moneyStockpiled();
-		if (costToBribeUnitsSoFar < moneyInTreasury)
+		if (costToBribeUnitsSoFar > moneyAvailable)
 		{
+			// todo - Notify.
+		}
+		else
+		{
+			// todo - Confirm?
 			owner.moneyStockpiledSubtract(costToBribeUnitsSoFar);
 			unitsToBribe.forEach(x => x.ownerSet(owner));
 			// todo - Diplomatic effects?
+
+			UnitActivityDefn.Instances().move(universe, world, owner, unit);
 		}
 	}
 
 	diplomatEstablishEmbassy(universe, world, owner, unit)
 	{
-		// todo
+		var unitDiplomat = unit;
+		var activity = unitDiplomat.activity();
+		var direction = activity.direction();
+		var unitDiplomatPos = unitDiplomat.pos;
+		var cellContainingBaseToEstablishEmbassyInPos =
+			unitDiplomatPos.clone().add(direction.offset);
+		var cellContainingBaseToEstablishEmbassyIn =
+			world.map.cellAtPosInCells(cellContainingBaseToEstablishEmbassyInPos);
+		var baseToEstablishEmbassyIn =
+			cellContainingBaseToEstablishEmbassyIn.basePresent(world);
+		var ownerOther = base.owner(world);
+		var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther); 
+		diplomaticRelations.embassyHasBeenEstablished = true;
 	}
 
 	diplomatInciteRevolt(universe, world, owner, unit)
 	{
-		// todo
+		var unitDiplomat = unit;
+		var activity = unitDiplomat.activity();
+		var direction = activity.direction();
+		var unitDiplomatPos = unitDiplomat.pos;
+		var cellContainingBaseToInciteRevoltInPos =
+			unitDiplomatPos.clone().add(direction.offset);
+		var cellContainingBaseToInciteRevoltIn =
+			world.map.cellAtPosInCells(cellContainingBaseToInciteRevoltInPos);
+		var baseToInciteRevoltIn =
+			cellContainingBaseToInciteRevoltIn.basePresent(world);
+		var baseValue = base.value(world);
+		var moneyPerValueToInciteRevolt = 10;
+		var moneyToInciteRevolt = moneyPerValueToInciteRevolt;
+		var ownerOther = base.owner(world);
+		var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther); 
+		diplomaticRelations.postureSetToWar();
 	}
 
 	diplomatInvestigateBase(universe, world, owner, unit)
 	{
-		// todo
+		var unitDiplomat = unit;
+		var activity = unitDiplomat.activity();
+		var direction = activity.direction();
+		var unitDiplomatPos = unitDiplomat.pos;
+		var cellContainingBaseToInvestigatePos =
+			unitDiplomatPos.clone().add(direction.offset);
+		var cellContainingBaseToInvestigate =
+			world.map.cellAtPosInCells(cellContainingBaseToInciteRevoltInPos);
+		var baseToInvestigate =
+			cellContainingBaseToInvestigate.basePresent(world);
+		var chanceOfSuccess = .8; // todo
+		var wasSuccessful = (Math.random() < chanceOfSuccess);
+		if (wasSuccessful)
+		{
+			// todo - Add snapshot of base to intelligence.
+		}
+		else
+		{
+			// todo - Notify.
+		}
 	}
 
 	diplomatSabotageProduction(universe, world, owner, unit)
 	{
-		// todo
+		var unitDiplomat = unit;
+		var activity = unitDiplomat.activity();
+		var direction = activity.direction();
+		var unitDiplomatPos = unitDiplomat.pos;
+		var cellContainingBaseToSabotagePos =
+			unitDiplomatPos.clone().add(direction.offset);
+		var cellContainingBaseToSabotage =
+			world.map.cellAtPosInCells(cellContainingBaseToSabotagePos);
+		var baseToSabotage =
+			cellContainingBaseToSabotage.basePresent(world);
+
+		var chanceOfSuccess = .5; // todo
+		var wasSuccessful = (Math.random() < chanceOfSuccess);
+		var wasDiplomatLost;
+		if (wasSuccessful == false)
+		{
+			// todo - Notify of failure.
+			wasDiplomatLost = true;
+		}
+		else
+		{
+			baseToSabotage.buildableInProgressClear();
+			var chanceOfLossGivenSuccess = .5; // todo
+			wasDiplomatLost = (Math.random() < chanceOfLossGivenSuccess);
+		}
+
+		if (wasDiplomatLost)
+		{
+			world.unitRemove(unitDiplomat);
+		}
+
+		var ownerOther = base.owner(world);
+		var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther); 
+		diplomaticRelations.postureSetToWar();
 	}
 
 	diplomatTechnologySteal(universe, world, owner, unit)
 	{
-		// todo
+		var unitDiplomat = unit;
+		var activity = unitDiplomat.activity();
+		var direction = activity.direction();
+		var unitDiplomatPos = unitDiplomat.pos;
+		var cellContainingBaseToStealTechnologyFromPos =
+			unitDiplomatPos.clone().add(direction.offset);
+		var cellContainingBaseToStealTechnologyFrom =
+			world.map.cellAtPosInCells(cellContainingBaseToStealTechnologyFrom);
+		var baseToStealTechnologyFrom =
+			cellContainingBaseToStealTechnologyFrom.basePresent(world);
+
+		var chanceOfSuccess = .5; // todo
+		var wasSuccessful = (Math.random() < chanceOfSuccess);
+		var wasDiplomatLost;
+		if (wasSuccessful == false)
+		{
+			// todo - Notify of failure.
+			wasDiplomatLost = true;
+		}
+		else
+		{
+			var chanceOfLossGivenSuccess = .5; // todo
+			wasDiplomatLost = (Math.random() < chanceOfLossGivenSuccess);
+		}
+
+		if (wasDiplomatLost)
+		{
+			world.unitRemove(unitDiplomat);
+		}
+
+		var ownerOther = base.owner(world);
+		var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther); 
+		diplomaticRelations.postureSetToWar();
 	}
 
 	// Settlers.

@@ -161,6 +161,11 @@ class Owner
 		this.finances.moneyStockpiledAdd(moneyToAdd, world, this);
 	}
 
+	moneyStockpiledSubtract(moneyToSubtract, world)
+	{
+		this.finances.moneyStockpiledSubtract(moneyToSubtract, world, this);
+	}
+
 	researchRate()
 	{
 		return this.finances.incomeAllocation.researchFraction;
@@ -446,7 +451,7 @@ class OwnerFinances
 		{
 			throw new Error("Cannot subtract more money than stockpiled.");
 		}
-		this._moneyStockpiled -= moneyToAdd;
+		this._moneyStockpiled -= moneyToSubtract;
 	}
 
 }
