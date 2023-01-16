@@ -262,6 +262,11 @@ class BaseDemographics
 		this.validateForBase(base);
 	}
 
+	entertainerReassignAsLaborer()
+	{
+		this.entertainerCount--;
+	}
+
 	entertainerReassignAsScientist()
 	{
 		this.entertainerCount--;

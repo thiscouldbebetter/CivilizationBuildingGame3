@@ -37,11 +37,6 @@ class Unit
 		return world.defns.unitDefnByName(this.defnName);
 	}
 
-	integritySubtractDamage(damage, world)
-	{
-		this.defn(world).combat.integritySubtractDamageFromUnit(damage, this);
-	}
-
 	isAwake()
 	{
 		return (this.isSleeping() == false);
@@ -50,11 +45,6 @@ class Unit
 	isIdle()
 	{
 		return (this.hasMovesThisTurn() && this.isAwake());
-	}
-
-	isMilitary(world)
-	{
-		return (this.defn(world).combat.attack > 0);
 	}
 
 	isSleeping()
@@ -80,6 +70,12 @@ class Unit
 	ownerSet(owner)
 	{
 		this.ownerName = owner.name;
+	}
+
+	select(world)
+	{
+		var owner = this.owner(world);
+		owner.unitSelect(this);
 	}
 
 	sleep(world)
@@ -119,6 +115,30 @@ class Unit
 
 	// Activity.
 
+	actionPromptForSelection(world)
+	{
+		var activityMove = this.activity();
+		var activityDefnActionSelect = UnitActivityDefn.Instances().ActionSelect;
+		this.activityDefnStartForWorldWithVariables
+		(
+			activityDefnActionSelect, world, activityMove.variableValuesByName
+		);
+	}
+
+	actionSelect(actionToSelect, world)
+	{
+		var activityPromptForSelection = this.activity();
+		this.activityDefnStartForWorldWithVariables
+		(
+			actionToSelect, world, activityPromptForSelection.variableValuesByName
+		);
+	}
+
+	actionSelectDiplomatBribeUnit(world)
+	{
+		this.actionSelect(UnitActivityDefn.Instances().DiplomatBribeUnit, world);
+	}
+
 	activity()
 	{
 		return this._activity;
@@ -139,6 +159,15 @@ class Unit
 		this.activityDefnStartForWorldWithVariables(activityDefn, world, null);
 	}
 
+	activityDefnStartForWorldWithDirection(activityDefn, world, direction)
+	{
+		this.activityDefnStartForWorldWithVariableNameAndValue
+		(
+			activityDefn, world,
+			UnitActivityVariableNames.Direction(), direction
+		);
+	}
+
 	activityDefnStartForWorldWithVariableNameAndValue
 	(
 		activityDefn, world, variableName, variableValue
@@ -156,13 +185,11 @@ class Unit
 		activityDefn, world, variableValuesByName
 	)
 	{
-		this.activitySet
+		var activity = new UnitActivity
 		(
-			new UnitActivity
-			(
-				activityDefn.name, variableValuesByName
-			)
+			activityDefn.name, variableValuesByName
 		);
+		this.activitySet(activity);
 		this.activityUpdate(null, world);
 	}
 
@@ -180,13 +207,73 @@ class Unit
 		}
 	}
 
-	// Movement.
+	hasActionsToSelectFromOnAttack(world)
+	{
+		var unitDefns = UnitDefn.Instances();
+		var unitDefn = this.defn(world);
+		var hasActions = (unitDefn == unitDefns.Diplomat || defn == unitDefns.Spy);
+		return hasActions;
+	}
 
-	attackDefender(defender, world)
+	isWaitingForActionSelection()
+	{
+		var activity = this.activity();
+		var activityDefn = activity.defn();
+		var isWaiting = (activityDefn == UnitActivityDefn.Instances().ActionSelect);
+		return isWaiting;
+	}
+
+	// Combat.
+
+	attackUnit(unitDefender, world)
+	{
+		var attackerDefnCombat = this.defn(world).combat;
+		var defenderDefnCombat = unitDefender.defn(world).combat;
+
+		var attackStrength = this.attackStrength(world);
+		var defenseStrength = unitDefender.defenseStrength(world);
+
+		var sumOfStrengths = attackStrength + defenseStrength;
+		var attackRoll = Math.random() * sumOfStrengths;
+		if (attackRoll <= attackStrength)
+		{
+			var damageInflicted = attackerDefnCombat.damagePerHit;
+			unitDefender.integritySubtractDamage(damageInflicted, world);
+		}
+		else
+		{
+			var damageInflicted = defenderDefnCombat.damagePerHit;
+			this.integritySubtractDamage(damageInflicted, world);
+		}
+	}
+
+	attackStrength(world)
+	{
+		var defn = this.defn(world)
+		var returnValue = defn.combat.attackStrength;
+		// todo - Bonus for veteran status.
+		return returnValue;
+	}
+
+	defenseStrength(world)
 	{
 		var defn = this.defn(world);
-		defn.unitAttackDefender(this, defender);
+		var returnValue = defn.combat.attackStrength;
+		// todo - Bonuses for fortification, improvements.
+		return returnValue;
 	}
+
+	integritySubtractDamage(damage, world)
+	{
+		this.defn(world).combat.integritySubtractDamageFromUnit(damage, this);
+	}
+
+	isMilitary(world)
+	{
+		return (this.defn(world).combat.attackStrength > 0);
+	}
+
+	// Movement.
 
 	canCarryPassengers(world)
 	{
@@ -200,6 +287,15 @@ class Unit
 		var canMove = (costToMoveInThirds <= this.movesThisTurn());
 		return canMove;
 	}
+
+	canMoveInDirectionEast(world) { return this.canMoveInDirection(Direction.Instances().East, world); }
+	canMoveInDirectionNorth(world) { return this.canMoveInDirection(Direction.Instances().North, world); }
+	canMoveInDirectionNortheast(world) { return this.canMoveInDirection(Direction.Instances().Northeast, world); }
+	canMoveInDirectionNorthwest(world) { return this.canMoveInDirection(Direction.Instances().Northwest, world); }
+	canMoveInDirectionSouth(world) { return this.canMoveInDirection(Direction.Instances().South, world); }
+	canMoveInDirectionSoutheast(world) { return this.canMoveInDirection(Direction.Instances().Southeast, world); }
+	canMoveInDirectionSouthwest(world) { return this.canMoveInDirection(Direction.Instances().Southwest, world); }
+	canMoveInDirectionWest(world) { return this.canMoveInDirection(Direction.Instances().West, world); }
 
 	cellsFromAndToForDirectionAndWorld(directionToMove, world)
 	{
@@ -247,19 +343,30 @@ class Unit
 
 	isGround(world)
 	{
-		return this.defn(world).isGround(world);
+		return this.defn(world).isGround(world, this);
 	}
 
 	moveInDirection(directionToMove, world)
 	{
 		var activityDefns = UnitActivityDefn.Instances();
+		var variableNameDirection = UnitActivityVariableNames.Direction();
 		this.activityDefnStartForWorldWithVariableNameAndValue
 		(
 			activityDefns.Move,
 			world,
-			UnitActivityVariableNames.Direction(), directionToMove
+			variableNameDirection,
+			directionToMove
 		);
 	}
+
+	moveInDirectionEast(world) { this.moveInDirection(Direction.Instances().East, world); }
+	moveInDirectionNorth(world) { this.moveInDirection(Direction.Instances().North, world); }
+	moveInDirectionNortheast(world) { this.moveInDirection(Direction.Instances().Northeast, world); }
+	moveInDirectionNorthwest(world) { this.moveInDirection(Direction.Instances().Northwest, world); }
+	moveInDirectionSouth(world) { this.moveInDirection(Direction.Instances().South, world); }
+	moveInDirectionSoutheast(world) { this.moveInDirection(Direction.Instances().Southeast, world); }
+	moveInDirectionSouthwest(world) { this.moveInDirection(Direction.Instances().Southwest, world); }
+	moveInDirectionWest(world) { this.moveInDirection(Direction.Instances().West, world); }
 
 	moveStartTowardPosInWorld(targetPos, world)
 	{

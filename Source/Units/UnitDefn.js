@@ -50,9 +50,9 @@ class UnitDefn
 		world.unitAdd(unit);
 	}
 
-	isGround(world)
+	isGround(world, unit)
 	{
-		return this.movement.isGround(world);
+		return this.movement.isGround(world, unit);
 	}
 
 	isMilitary()

@@ -20,7 +20,7 @@ class Base
 		this.ownerName = ownerName;
 		this.demographics = demographics || BaseDemographics.fromPopulation(1);
 		this.landUsage = landUsage || BaseLandUsage.default();
-		this.foodStockpiled = foodStockpiled || 0;
+		this.foodStockpiledSet(foodStockpiled || 0);
 		this.industry = industry || BaseIndustry.default();
 
 		this.improvementsPresentNames = improvementsPresentNames || [];
@@ -117,7 +117,7 @@ class Base
 			+ foodGross + " produced, "
 			+ foodConsumed + " consumed, "
 			+ foodNet + " netted, " 
-			+ this.foodStockpiled + " stored, "
+			+ this.foodStockpiled() + " stored, "
 			+ this.foodNeededToGrow() + " to grow";
 
 		var industryGross = this.industryThisTurnGross(world);
@@ -137,6 +137,9 @@ class Base
 		var tradeGross = this.tradeThisTurnGross(world);
 		var tradeNet = this.tradeThisTurnNet(world);
 		var tradeLostToCorruption = tradeGross - tradeNet;
+		var moneyGross = this.moneyThisTurnGross(world);
+		var moneyNet = this.moneyThisTurnNet(world);
+		var moneyExpenses = moneyGross - moneyNet;
 
 		var trade =
 			"Trade: "
@@ -145,8 +148,9 @@ class Base
 			+ tradeNet + " netted, "
 			+ this.luxuriesThisTurnFromTrade(world) + " to luxuries, "
 			+ this.researchThisTurn(world) + " to research, "
-			+ this.moneyThisTurnGross(world) + " to taxes, "
-			+ this.moneyThisTurnNet(world) + " after expenses";
+			+ moneyGross + " in taxes, "
+			+ moneyExpenses + " in expenses, "
+			+ moneyNet + " after expenses.";
 
 		var improvementsPresent = this.improvementsPresent();
 
@@ -197,8 +201,12 @@ class Base
 		this.industry.turnUpdate(world, this);
 
 		var foodThisTurnNet = this.foodThisTurnNet(world);
-		this.foodStockpiled += foodThisTurnNet;
+		this.foodStockpiledAdd(foodThisTurnNet);
 		this.populationGrowOrShrink(world);
+
+		var moneyThisTurnNet = this.moneyThisTurnNet(world);
+		var owner = this.owner(world);
+		owner.moneyStockpiledAdd(moneyThisTurnNet, world);
 	}
 
 	// Demographics.
@@ -228,50 +236,52 @@ class Base
 		return this.demographics.populationCanGrow(this);
 	}
 
-	populationGrow(world)
+	populationGrowOrConstrain(world)
 	{
 		var foodNeededToGrow = this.foodNeededToGrow();
-		this.foodStockpiled = foodNeededToGrow;
+		this.foodStockpiledSet(foodNeededToGrow);
 
-		this.populationAdd(1);
+		if (this.populationCanGrow())
+		{
+			this.populationAdd(1);
+
+			if (this.attitudeIsUnrest(world))
+			{
+				this.demographics.entertainerAddForBase(this);
+			}
+			else
+			{
+				this.landUsage.offsetChooseOptimumFromAvailable
+				(
+					world, this
+				);
+			}
+		}
 
 		var granary = BaseImprovementDefn.Instances().Granary;
 		var hasGranary = this.hasImprovement(granary);
 		if (hasGranary)
 		{
-			this.foodStockpiled = this.foodNeededToGrow() / 2;
+			var foodNeededToGrowAgain = this.foodNeededToGrow();
+			this.foodStockpiledSet(foodNeededToGrowAgain / 2);
 		}
 		else
 		{
-			this.foodStockpiled = 0;
-		}
-
-		if (this.attitudeIsUnrest(world))
-		{
-			this.demographics.entertainerAddForBase(this);
-		}
-		else
-		{
-			this.landUsage.offsetChooseOptimumFromAvailable
-			(
-				world, this
-			);
+			this.foodStockpiledSet(0);
 		}
 	}
 
 	populationGrowOrShrink(world)
 	{
 		var foodNeededToGrow = this.foodNeededToGrow();
-		if (this.foodStockpiled < 0)
+		var foodStockpiled = this.foodStockpiled();
+		if (foodStockpiled < 0)
 		{
 			this.populationShrink(world);
 		}
-		else if (this.foodStockpiled >= foodNeededToGrow)
+		else if (foodStockpiled >= foodNeededToGrow)
 		{
-			if (this.populationCanGrow())
-			{
-				this.populationGrow(world);
-			}
+			this.populationGrowOrConstrain(world);
 		}
 	}
 
@@ -288,20 +298,21 @@ class Base
 	populationShrink(world)
 	{
 		this.populationAdd(-1);
+
 		if (this.population() <= 0)
 		{
 			world.baseRemove(this);
 		}
-		this.landUsage.offsetRemoveWorst(world, this);
-	}
-
-	whileDiscontentReassignLaborersAsEntertainers(world)
-	{
-		// hack
-		// It may not always be possible to restore order with just entertainers.
-		while (this.attitudeIsUnrest(world))
+		else
 		{
-			this.laborerWorstReassignAsEntertainerForWorld(world);
+			if (this.demographics.entertainerCount > 0)
+			{
+				this.demographics.entertainerReassignAsLaborer();
+			}
+			else
+			{
+				this.landUsage.offsetRemoveWorst(world, this);
+			}
 		}
 	}
 
@@ -315,6 +326,16 @@ class Base
 	{
 		this.demographics.specialistRemove();
 		this.landUsage.offsetChooseOptimumFromAvailable(world, this);
+	}
+
+	whileDiscontentReassignLaborersAsEntertainers(world)
+	{
+		// hack
+		// It may not always be possible to restore order with just entertainers.
+		while (this.attitudeIsUnrest(world))
+		{
+			this.laborerWorstReassignAsEntertainerForWorld(world);
+		}
 	}
 
 	// Improvements.
@@ -381,6 +402,21 @@ class Base
 	foodNeededToGrowPerPopulation()
 	{
 		return 16; // ?
+	}
+
+	foodStockpiled()
+	{
+		return this._foodStockpiled;
+	}
+
+	foodStockpiledAdd(foodToAdd)
+	{
+		this.foodStockpiledSet(this.foodStockpiled() + foodToAdd);
+	}
+
+	foodStockpiledSet(value)
+	{
+		this._foodStockpiled = value;
 	}
 
 	foodThisTurnGross(world)
@@ -580,6 +616,13 @@ class Base
 		this.unitsSupportedIds.push(unit.id);
 	}
 
+	unitSupportedLast(world)
+	{
+		var unitsSupported = this.unitsSupported(world);
+		var unit = unitsSupported[unitsSupported.length - 1];
+		return unit;
+	}
+
 	unitsPresent(world)
 	{
 		var mapCell = this.mapCellOccupied(world);
@@ -592,11 +635,11 @@ class Base
 		var unitsPresent = this.unitsPresent(world);
 		var returnValues = unitsPresent.filter
 		(
-			x =>
+			unit =>
 			{
-				var defn = x.defn(world);
+				var defn = unit.defn(world);
 				var isGroundMilitary =
-					(defn.isMilitary() && defn.isGround(world) );
+					(defn.isMilitary() && defn.isGround(world, unit) );
 				return isGroundMilitary;
 			}
 		);

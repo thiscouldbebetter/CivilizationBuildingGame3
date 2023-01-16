@@ -28,7 +28,9 @@ class TestFixtureMain
 		this.playFromStart_9_BaseGrowthLimiters();
 		this.playFromStart_10_Granary();
 		this.playFromStart_11_Ships();
-		this.playFromStart_12_ResearchAllAndBuildStarship();
+		this.playFromStart_12_Diplomacy();
+		this.playFromStart_13_War();
+		this.playFromStart_14_ResearchAllAndBuildStarship();
 	}
 
 	playFromStart_1_Startup()
@@ -53,6 +55,9 @@ class TestFixtureMain
 		var unitDefns = UnitDefn.Instances();
 		var unitDefnSettlers = unitDefns.Settlers;
 		Assert.areEqual(unitDefnSettlers.name, unit.defnName);
+
+		// Verify that at least one neighbor exists.
+		Assert.isTrue(world.owners.length > 1);
 	}
 
 	playFromStart_2_UnitMovement()
@@ -60,9 +65,6 @@ class TestFixtureMain
 		var world = this.world;
 		var owner = world.ownerCurrent();
 		var unit = owner.unitSelected();
-		var directions = Direction.Instances();
-		var east = directions.East;
-		var west = directions.West;
 
 		// Verify that the unit has moves initially.
 		Assert.isTrue(unit.movesThisTurn() > 0);
@@ -74,8 +76,7 @@ class TestFixtureMain
 
 		// Move the unit.
 		var unitPosBeforeMove = unit.pos.clone();
-		var directionToMove = east;
-		unit.moveInDirection(directionToMove, world);
+		unit.moveInDirectionEast(world);
 
 		// Make sure the unit has used up its moves.
 		Assert.isFalse(unit.hasMovesThisTurn());
@@ -83,7 +84,7 @@ class TestFixtureMain
 		// Make sure the unit's position has changed by the correct offset.
 		var unitPosAfterMove = unit.pos.clone();
 		var offsetMoved = unitPosAfterMove.clone().subtract(unitPosBeforeMove);
-		Assert.isTrue(offsetMoved.equals(directionToMove.offset));
+		Assert.isTrue(offsetMoved.equals(Direction.Instances().East.offset));
 
 		// Make sure that more cells are known.
 		var cellsKnownCountAfterMove = cellsKnownIndices.size;
@@ -108,6 +109,13 @@ class TestFixtureMain
 		// Make sure the current owner has changed.
 		var ownerAfterEndingTurn = world.ownerCurrent();
 		Assert.areNotEqual(ownerAfterEndingTurn, ownerBeforeEndingTurn);
+
+		// Have the second owner's settlers found a city.
+		var unitSettlers = ownerAfterEndingTurn.units[0];
+		Assert.isNotNull(unitSettlers);
+		var activityDefns = UnitActivityDefn.Instances();
+		unitSettlers.activityDefnStartForWorld(activityDefns.SettlersStartCity, world);
+		Assert.isTrue(ownerAfterEndingTurn.bases.length > 0);
 
 		// End the second owner's turn, which ends the round.
 		var turnsBeforeEndingRound = world.turnsSoFar;
@@ -208,14 +216,8 @@ class TestFixtureMain
 		var base = owner.bases[0];
 		var unit = owner.unitSelected();
 
-		var directions = Direction.Instances();
-		var east = directions.East;
-		var north = directions.North;
-		var south = directions.South;
-		var west = directions.West;
-
 		// Move the settler one cell, irrigate, and verify.
-		unit.moveInDirection(east, world);
+		unit.moveInDirectionEast(world);
 		world.turnAdvance();
 		var activityDefns = UnitActivityDefn.Instances();
 		this.waitNTurnsForUnitInWorldToCompleteActivityDefn
@@ -247,27 +249,28 @@ class TestFixtureMain
 
 		// Move the settlers back into the city and out again,
 		// then make sure a third of a move remains.
-		unit.moveInDirection(west, world);
-		unit.moveInDirection(east, world);
+		unit.moveInDirectionWest(world);
+		unit.moveInDirectionEast(world);
 		Assert.isTrue(unit.hasMovesThisTurn());
 		Assert.areEqual(1, unit.moveThirdsThisTurn());
 
 		// Try to move the unit off the road,
 		// but it can't, because it only has 1/3 move left. 
 		var unitPosBeforeMoveAttempt = unit.pos.clone();
-		unit.moveInDirection(east, world);
+		unit.moveInDirectionEast(world);
 		Assert.isTrue(unit.pos.equals(unitPosBeforeMoveAttempt) );
 
 		// End the turn and try again, it should work now.
 		world.turnAdvance();
 		unitPosBeforeMoveAttempt = unit.pos.clone();
-		unit.moveInDirection(east, world);
+		unit.moveInDirectionEast(world);
 		Assert.isFalse(unit.pos.equals(unitPosBeforeMoveAttempt) );
 
 		// Improve some more land (to make enough to make later tests feasible).
+		var d = Direction.Instances();
 		var directionsToMove =
 		[
-			north, north, west, west, west, south
+			d.North, d.North, d.West, d.West, d.West, d.South
 		];
 		directionsToMove.forEach(direction =>
 		{
@@ -595,8 +598,9 @@ class TestFixtureMain
 		(
 			this.turnsToWaitMax, base, world, true // isBaseExpectedToActuallyGrow
 		);
+		var foodStockpiled = base.foodStockpiled();
 		var foodNeededToGrow = base.foodNeededToGrow();
-		Assert.isTrue(base.foodStockpiled >= (foodNeededToGrow / 2) );
+		Assert.isTrue(foodStockpiled >= (foodNeededToGrow / 2) );
 	}
 
 	playFromStart_11_Ships()
@@ -682,7 +686,7 @@ class TestFixtureMain
 		// Move the ship out of the base,
 		// and verify that the max amount of sleeping troops came with it.
 		var directions = Direction.Instances();
-		unitShip.moveInDirection(directions.West, world);
+		unitShip.moveInDirectionWest(world);
 		Assert.areNotEqual(unitShip.pos, base.pos);
 		var unitsPresentInShipCell =
 			world.map.cellAtPosInCells(unitShip.pos).unitsPresent(world);
@@ -692,10 +696,10 @@ class TestFixtureMain
 
 		// See if the ship can move onto an unoccupied land square,
 		// which it shouldn't.
-		Assert.isFalse(unitShip.canMoveInDirection(directions.Southeast, world));
+		Assert.isFalse(unitShip.canMoveInDirectionSoutheast(world));
 
 		// However, it should be able to move back onto the base.
-		Assert.isTrue(unitShip.canMoveInDirection(directions.East, world));
+		Assert.isTrue(unitShip.canMoveInDirectionEast(world));
 
 		// It also shouldn't get lost at sea, as long as it stays next to land.
 		var turnsToWait = 10;
@@ -711,7 +715,133 @@ class TestFixtureMain
 		// end turn away from shore, die.
 	}
 
-	playFromStart_12_ResearchAllAndBuildStarship()
+	playFromStart_12_Diplomacy()
+	{
+		var world = this.world;
+		var owner = world.owners[0];
+		var base = owner.bases[0];
+
+		var unitDefns = UnitDefn.Instances();
+
+		// Choose a neighbor.
+		var neighbor = world.owners[1];
+
+		// Verify that there are no diplomatic relations with the neighbor yet.
+		var ownerDiplomacy = owner.diplomacy;
+		var isNeighborKnown = ownerDiplomacy.ownerIsKnown(neighbor);
+		Assert.isFalse(isNeighborKnown);
+
+		// Have the neighbor build a military unit, and move it outside of town.
+		var neighborBase = neighbor.bases[0];
+		this.waitNTurnsForBaseInWorldToBuildUnitDefn
+		(
+			this.turnsToWaitMax, neighborBase, world, unitDefns.Warriors
+		);
+		var unitWarriors = neighborBase.unitSupportedLast(world);
+		unitWarriors.moveInDirectionWest(world);
+
+		// Build a diplomat.
+		this.waitNTurnsForBaseInWorldToBuildUnitDefn
+		(
+			this.turnsToWaitMax, base, world, unitDefns.Diplomat
+		);
+
+		var unitDiplomat = base.unitsSupported(world).find
+		(
+			x => x.defn(world) == unitDefns.Diplomat
+		);
+		Assert.isNotNull(unitDiplomat);
+
+		// Move the diplomat into neighboring territory.
+		var neighborBasePos = neighborBase.pos;
+		var neighborBaseOutskirtsPos = neighborBasePos.clone().addXY(-2, 0);
+
+		this.waitNTurnsForUnitInWorldToMoveToPos
+		(
+			this.turnsToWaitMax, unitDiplomat, world, neighborBaseOutskirtsPos
+		);
+
+		// Verify that diplomatic relations are established.
+		isNeighborKnown = ownerDiplomacy.ownerIsKnown(neighbor);
+		Assert.isTrue(isNeighborKnown);
+
+		// Make peace with the neighbor.
+		var relationship = ownerDiplomacy.relationshipWithOwner(neighbor);
+		relationship.postureSetToPeace(world); // todo - Shouldn't be this easy.
+
+		// Verify that the diplomat can move around the neighbor's zone of control.
+		var canIgnoreEnemyZoneOfControl =
+			unitDiplomat.canMoveInDirectionNortheast(world);
+		Assert.isTrue(canIgnoreEnemyZoneOfControl);
+
+		// Move into the unit and verify that it prompts for an action.
+		unitDiplomat.moveInDirectionEast(world);
+		Assert.isTrue(owner.isWaitingForActionSelection());
+
+		// Select the action to bribe the unit.
+		unitDiplomat.actionSelectDiplomatBribeUnit(world);
+
+		// Verify that the unit has switched allegiance.
+		var unitWarriorsOwner = unitWarriors.owner(world);
+		Assert.areEqual(owner, unitWarriorsOwner);
+
+		// Establish an embassy.
+
+		// Verify that the embassy is established.
+	}
+
+	playFromStart_13_War()
+	{
+		var world = this.world;
+		var owner = world.owners[0];
+		var base = owner.bases[0];
+
+		// Create a military unit.
+		var unitDefns = UnitDefn.Instances();
+		this.waitNTurnsForBaseInWorldToBuildUnitDefn
+		(
+			this.turnsToWaitMax, base, world, unitDefns.Warriors
+		);
+		var unitWarriors = base.unitSupportedLast(world);
+
+		// Select a neighbor and make peace with them.
+		var neighbor = world.owners[1];
+		var relationshipWithNeighbor = owner.diplomacy.relationshipWithOwner(neighbor);
+		var ownerDiplomacy = relationshipWithNeighbor.postureSetToPeace(world); // todo - Too easy.
+		Assert.isTrue(relationshipWithNeighbor.posture().isPeace());
+
+		// Move the military unit into the neighbor's territory.
+		var neighborBase = neighbor.bases[0];
+		var neighborBasePos = neighborBase.pos;
+		var neighborBaseOutskirtsPos = neighborBasePos.clone().addXY(-1, 0);
+
+		this.waitNTurnsForUnitInWorldToMoveToPos
+		(
+			this.turnsToWaitMax, unitWarriors, world, neighborBaseOutskirtsPos
+		);
+
+		// Verify that the unit cannot move into neighbor's zones of control.
+		// Sneak-attack one of the neighbor's units.
+		// Verify that the neighbor's unit was destroyed.
+		// Verify that the neighbor is now hostile.
+		// Verify that the aggressor's reputation has suffered.
+		// Verify that the enemy's zone of control are now gone.
+		// Verify that the enemy has a defender.
+		// Make sure that the enemy has more than one base.
+		// Attack the defended base.
+		// Verify that the defender was destroyed.
+		// Attack the now defenseless base.
+		// Verify that the base was conquered.
+		// Offer peace.
+		// Verify that the peace offer was accepted.
+		// Declare war again.
+		// Move to the enemy's other base.
+		// Attack the undefended, single-population second base.
+		// Verify that the base is destroyed.
+		// Verify that the enemy owner has been completely destroyed.
+	}
+
+	playFromStart_14_ResearchAllAndBuildStarship()
 	{
 		var world = this.world;
 		var owner = world.ownerCurrent();
@@ -732,12 +862,39 @@ class TestFixtureMain
 		var technologies = Technology.Instances();
 		Assert.areEqual(technologies._All.length, techsKnown.length);
 
-		// Build a starship, launch it, and wait for it to reach destination.
+		// Verify that we can't launch the starship because it doesn't exist.
+		var starshipStatus = owner.starshipStatus;
+		var canLaunch = starshipStatus.canLaunch();
+		Assert.isFalse(canLaunch);
+
+		// Build a starship.
 		this.waitNTurnsForBaseInWorldToBuildStarshipParts
 		(
 			this.turnsToWaitMax, base, world
 		);
+
+		// Verify that the completed starship can launch.
+		canLaunch = starshipStatus.canLaunch();
+		Assert.isTrue(canLaunch);
+
+		// Launch the starship.
+		starshipStatus.launch(world);
+
+		// Wait one turn and make sure we haven't won.
+		this.waitNTurns(1, world);
+		var hasWon = owner.hasWon(world);
+		Assert.isFalse(hasWon);
+
+		// Wait for the starship to reach the destination.
+		var turnsToReachDestination =
+			starshipStatus.turnsToReachDestinationTotal();
+		this.waitNTurns(turnsToReachDestination, world);
+
+		hasWon = owner.hasWon(world);
+		Assert.isTrue(hasWon);
 	}
+
+	// Helper methods.
 
 	waitNTurns(turnsToWait, world)
 	{
@@ -877,7 +1034,7 @@ class TestFixtureMain
 		var basePopulationBefore = base.population();
 		var foodNeededToGrow = base.foodNeededToGrow();
 		var foodAdditionalNeededToGrow =
-			foodNeededToGrow - base.foodStockpiled;
+			foodNeededToGrow - base.foodStockpiled();
 		var foodPerTurn = base.foodThisTurnNet(world);
 		var turnsToWait = Math.ceil(foodAdditionalNeededToGrow / foodPerTurn);
 		Assert.isTrue(turnsToWait < turnsToWaitMax);
@@ -899,4 +1056,27 @@ class TestFixtureMain
 		Assert.isTrue(turnsToWaitExpected < turnsToWaitMax);
 		world.turnAdvanceMultiple(turnsToWaitExpected);
 	}
+
+	waitNTurnsForUnitInWorldToMoveToPos
+	(
+		turnsToWaitMax, unit, world, targetPos
+	)
+	{
+		unit.moveStartTowardPosInWorld(targetPos, world);
+
+		var unitPos = unit.pos;
+		var displacementToTarget = Coords.create();
+
+		var i;
+		for (var i = 0; i < turnsToWaitMax; i++)
+		{
+			world.turnAdvance();
+			displacementToTarget.overwriteWith(targetPos).subtract(unitPos);
+			var distanceToTarget = displacementToTarget.magnitude();
+			var isAtDestination = (distanceToTarget == 0);
+		}
+
+		Assert.isTrue(i >= turnsToWaitMax);
+	}
+
 }

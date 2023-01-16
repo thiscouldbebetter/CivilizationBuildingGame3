@@ -328,6 +328,17 @@ class MapOfCellsCell
 		this.unitsPresentIds.splice(this.unitsPresentIds.indexOf(unit.id), 1);
 	}
 
+	unitsOrBasesPresent(world)
+	{
+		var unitsOrBasesPresent = this.unitsPresent(world);
+		var basePresent = this.basePresent(world);
+		if (basePresent != null)
+		{
+			unitsOrBasesPresent.push(basePresent);
+		}
+		return unitsOrBasesPresent;
+	}
+
 	unitsPresent(world)
 	{
 		return (this.unitsPresentIds.map(x => world.unitById(x)));
@@ -362,7 +373,7 @@ class MapOfCellsCell
 		var unitsQualifiedToBePassengers =
 			unitsOwnedBySameOwnerPresent.filter
 			(
-				x => x.isGround(world) && x.isSleeping()
+				unit => unit.isGround(world) && unit.isSleeping()
 			);
 		return unitsQualifiedToBePassengers;
 	}
