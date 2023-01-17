@@ -42,6 +42,28 @@ class Owner
 		return returnValue;
 	}
 
+	cellsControlledWithPollutionCount(world)
+	{
+		var countSoFar = 0;
+
+		this.bases.forEach
+		(
+			base =>
+			{
+				var cellsControlled = base.mapCellsUsable(world);
+				cellsControlled.forEach
+				(
+					cell =>
+					{
+						countSoFar += (cell.hasPollution ? 1 : 0);
+					}
+				);
+			}
+		);
+
+		return countSoFar;
+	}
+
 	hasWon(world)
 	{
 		var hasConqueredWorld =
@@ -82,6 +104,46 @@ class Owner
 		this.notificationLog.notifyByMessageForWorld(message, world);
 	}
 
+	score()
+	{
+		var populationHappySoFar = 0;
+		var populationContentSoFar = 0;
+		this.bases.forEach
+		(
+			x =>
+			{
+				populationHappySoFar += x.populationHappy();
+				populationContentSoFar += x.populationContent();
+			}
+		)
+		var wonderCount = this.wondersControlled().length;
+		var cellsControlledWithPollutionCount =
+			this.cellsControlledWithPollutionCount();
+
+		var pointsPerPopulationHappy = 2;
+		var pointsPerPopulationContent = 1;
+		var pointsPerWonder = 20;
+		var pointsLostPerCellWithPollution = 10;
+
+		var pointsForPopulationHappy =
+			populationHappySoFar * pointsPerPopulationHappy;
+		var pointsForPopulationContent =
+			populationContentSoFar * pointsPerPopulationContent;
+		var pointsForWonders = wonderCount * pointsPerWonder;
+		var pointsLostToPollution =
+			cellsControlledWithPollutionCount * pointsLostPerCellWithPollution;
+
+		var pointsForCivilizedBehavior = 0; // todo
+
+		var scoreTotal =
+			pointsForPopulationHappy
+			+ pointsForPopulationContent
+			+ pointsForWonders
+			- pointsLostToPollution;
+
+		return scoreTotal;
+	}
+
 	turnUpdate(world)
 	{
 		var isAnarchy = this.governmentIsAnarchy();
@@ -113,6 +175,15 @@ class Owner
 		this.research.turnUpdate(world, this);
 
 		this.unitSelectNextIdle();
+	}
+
+	wondersControlled()
+	{
+		var wondersSoFar = [];
+		this.bases.forEach
+		(
+			x => wondersSoFar.push(...x.wondersPresent() )
+		);
 	}
 
 	// Bases.
@@ -259,9 +330,9 @@ class Owner
 
 	// Research.
 
-	buildablesKnownNames()
+	buildablesKnown()
 	{
-		return this.research.buildablesKnownNames();
+		return this.research.buildablesKnown();
 	}
 
 	canBuildBuildable(buildable)
@@ -525,7 +596,7 @@ class OwnerResearch
 		return new OwnerResearch(null, null, null);
 	}
 
-	buildablesKnownNames()
+	buildablesKnown()
 	{
 		var buildablesKnownNames = [];
 
@@ -535,7 +606,12 @@ class OwnerResearch
 			x => buildablesKnownNames.push(...x.buildablesAllowedNames)
 		);
 
-		return buildablesKnownNames;
+		var buildablesKnown = buildablesKnownNames.map
+		(
+			x => BaseBuildable.byName(x)
+		);
+
+		return buildablesKnown;
 	}
 
 	canBuildBuildable(buildable)

@@ -64,6 +64,16 @@ class MapOfCells
 		);
 	}
 
+	cellsWithPollutionCount()
+	{
+		var cellsWithPollutionCountSoFar = 0;
+		this.cells.forEach
+		(
+			x => cellsWithPollutionCountSoFar += (x.hasPollution ? 1 : 0)
+		);
+		return cellsWithPollutionCountSoFar;
+	}
+
 	draw(universe, world)
 	{
 		var display = universe.display;
@@ -120,6 +130,7 @@ class MapOfCellsCell
 		pos,
 		terrainCode,
 		resourceSpecialPresentCode,
+		hasPollution,
 		basePresentId,
 		improvementsPresentNames,
 		unitsPresentIds
@@ -128,6 +139,7 @@ class MapOfCellsCell
 		this.pos = pos;
 		this.terrainCode = terrainCode;
 		this.resourceSpecialPresentCode = resourceSpecialPresentCode;
+		this.hasPollution = hasPollution || false;
 		this.basePresentId = basePresentId;
 		this.improvementsPresentNames = improvementsPresentNames || [];
 		this.unitsPresentIds = unitsPresentIds || [];
@@ -140,13 +152,13 @@ class MapOfCellsCell
 		var terrainCode = codes[0];
 		var resourceSpecialCode = codes[1];
 		return new MapOfCellsCell(
-			pos, terrainCode, resourceSpecialCode, null, null, null
+			pos, terrainCode, resourceSpecialCode, null, null, null, null
 		);
 	}
 
 	static fromTerrainCode(terrainCode)
 	{
-		return new MapOfCellsCell(null, terrainCode, null, null, null, null);
+		return new MapOfCellsCell(null, terrainCode, null, null, null, null, null);
 	}
 
 	baseAdd(base)

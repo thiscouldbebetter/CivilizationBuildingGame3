@@ -37,6 +37,72 @@ class OwnerDiplomacy
 		}
 		return this.relationshipsByOwnerName.get(ownerOther.name);
 	}
+
+	// Reputation.
+
+	timesSneakAttacksExecuted()
+	{
+		var countSoFar = 0;
+		var ownerNames = this.relationshipsByOwnerName.keys;
+		ownerNames.forEach
+		(
+			ownerName =>
+			{
+				var relationship =
+					this.relationshipsByOwnerName.get(ownerName);
+				countSoFar += relationship.timesSneakAttacksExecuted;
+			}
+		);
+		return countSoFar;
+	}
+
+	timesWarDeclaredBeforeAgression()
+	{
+		var countSoFar = 0;
+		var ownerNames = this.relationshipsByOwnerName.keys;
+		ownerNames.forEach
+		(
+			ownerName =>
+			{
+				var relationship =
+					this.relationshipsByOwnerName.get(ownerName);
+				countSoFar += relationship.timesWarDeclaredBeforeAgression;
+			}
+		);
+		return countSoFar;
+	}
+
+	timesWarThreatened()
+	{
+		var countSoFar = 0;
+		var ownerNames = this.relationshipsByOwnerName.keys;
+		ownerNames.forEach
+		(
+			ownerName =>
+			{
+				var relationship =
+					this.relationshipsByOwnerName.get(ownerName);
+				countSoFar += relationship.timesWarThreatened;
+			}
+		);
+		return countSoFar;
+	}
+
+	turnsOfPeaceWithOwnersOther()
+	{
+		var countSoFar = 0;
+		var ownerNames = this.relationshipsByOwnerName.keys;
+		ownerNames.forEach
+		(
+			ownerName =>
+			{
+				var relationship =
+					this.relationshipsByOwnerName.get(ownerName);
+				countSoFar += relationship.turnsOfPeace;
+			}
+		);
+		return countSoFar;
+	}
 }
 
 class OwnerDiplomacyPosture
@@ -128,7 +194,14 @@ class OwnerDiplomacyRelationship
 		this.ownerOtherName = ownerOther.name;
 		this.postureName = posture.name;
 		this.embassyHasBeenEstablished = embassyHasBeenEstablished;
-		// todo - Intelligence, reputation.
+
+		// todo - Intelligence.
+
+		// Reputation.
+		this.timesSneakAttacksExecuted = 0;
+		this.timesWarDeclaredBeforeAgression = 0;
+		this.timesWarThreatened = 0;
+		this.turnsOfPeace = 0;
 	}
 
 	static fromOwnerOther(ownerOther)

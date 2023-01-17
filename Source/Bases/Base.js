@@ -32,23 +32,6 @@ class Base
 		return new Base(name, pos, ownerName, null, null, null, null, null);
 	}
 
-	buildableStart(buildableToBuild, world)
-	{
-		var owner = this.owner(world);
-		this.industry.buildableStart
-		(
-			buildableToBuild, world, owner, this
-		);
-	}
-
-	buildablesAvailableNames(world)
-	{
-		var owner = this.owner(world);
-		var buildablesKnownNames = owner.buildablesKnownNames(world);
-		var buildablesAvailableNames = buildablesKnownNames; // todo
-		return buildablesAvailableNames;
-	}
-
 	category()
 	{
 		return SelectableCategory.Instances().Bases;
@@ -77,11 +60,6 @@ class Base
 		return (this.isIdle() == false);
 	}
 
-	isIdle()
-	{
-		return (this.industry.buildableInProgressName == null);
-	}
-
 	mapCellOccupied(world)
 	{
 		return world.map.cellAtPosInCells(this.pos);
@@ -95,11 +73,6 @@ class Base
 	owner(world)
 	{
 		return world.owners.find(x => x.name == this.ownerName);
-	}
-
-	resourcesProducedThisTurn(world)
-	{
-		return this.landUsage.resourcesProducedThisTurn(world, this);
 	}
 
 	toStringDetails(world)
@@ -363,6 +336,75 @@ class Base
 		return this.improvementsPresentNames.map(x => BaseImprovementDefn.byName(x));
 	}
 
+	improvementsPresentWonders()
+	{
+		return this.improvementsPresent().filter(x => x.isWonder);
+	}
+
+	// Industry.
+
+	buildableInProgress(world)
+	{
+		return this.industry.buildableInProgress(world, this);
+	}
+
+	buildableInProgressBuild(world)
+	{
+		this.industry.buildableInProgressBuild(world, this);
+	}
+
+	buildableStart(buildableToBuild, world)
+	{
+		var owner = this.owner(world);
+		this.industry.buildableStart
+		(
+			buildableToBuild, world, owner, this
+		);
+	}
+
+	buildablesAvailable(world)
+	{
+		var owner = this.owner(world);
+		var buildablesKnown = owner.buildablesKnown(world);
+		var baseImprovementsPresent = this.improvementsPresent(world);
+		var buildablesAvailable = buildablesKnown.filter
+		(
+			buildable =>
+			{
+				var typeName = buildable.constructor.name;
+				var isAvailable =
+				(
+					typeName == UnitDefn.name
+					||
+					(
+						typeName == BaseImprovementDefn.name
+						&&
+						(
+							(
+								baseImprovementsPresent.some
+								(
+									i => i.name == buildable.name
+								) == false
+							)
+							&&
+							(
+								buildable.isWonder == false
+								|| world.wonderHasBeenBuilt(buildable)
+							)
+						)
+					)
+				);
+				return isAvailable
+			}
+		);
+		return buildablesAvailable;
+	}
+
+	isIdle()
+	{
+		return (this.industry.buildableInProgressName == null);
+	}
+
 	// Resources.
 
 	corruptionPerUnitDistanceFromCapital(world)
@@ -584,6 +626,11 @@ class Base
 			/ researchPlusLuxuriesRate
 		);
 		return researchThisTurn;
+	}
+
+	resourcesProducedThisTurn(world)
+	{
+		return this.landUsage.resourcesProducedThisTurn(world, this);
 	}
 
 	tradeThisTurnGross(world)

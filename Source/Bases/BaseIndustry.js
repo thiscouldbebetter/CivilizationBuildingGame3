@@ -47,6 +47,13 @@ class BaseIndustry
 		return returnValue;
 	}
 
+	buildableInProgressBuild(world, base)
+	{
+		var buildableInProgress = this.buildableInProgress(world, base);
+		buildableInProgress.build(world, base);
+		this.buildableInProgressClear();
+	}
+
 	buildableInProgressClear()
 	{
 		this.buildableInProgressName = null;
@@ -110,8 +117,7 @@ class BaseIndustry
 				var industryRequired = buildableInProgress.industryToBuild;
 				if (this.industryStockpiled >= industryRequired)
 				{
-					buildableInProgress.build(world, base);
-					this.buildableInProgressClear();
+					this.buildableInProgressBuild(world, base);
 				}
 			}
 		}

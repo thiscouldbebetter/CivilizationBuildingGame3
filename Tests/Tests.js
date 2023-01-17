@@ -561,13 +561,13 @@ class TestFixtureMain
 		var base = owner.bases[0];
 
 		// Make sure that the base can't build a granary before researching pottery.
-		var buildablesAvailableNames =
-			base.buildablesAvailableNames(world);
-		Assert.areNotEqual(0, buildablesAvailableNames.length);
+		var buildablesAvailable =
+			base.buildablesAvailable(world);
+		Assert.areNotEqual(0, buildablesAvailable.length);
 		var improvements = BaseImprovementDefn.Instances();
 		var improvementToBuild = improvements.Granary;
 		var canBuildImprovement =
-			buildablesAvailableNames.indexOf(improvementToBuild.name) >= 0;
+			buildablesAvailable.some(x => x.name == improvementToBuild.name);
 		Assert.isFalse(canBuildImprovement);
 
 		var technologies = Technology.Instances();
@@ -577,10 +577,9 @@ class TestFixtureMain
 		);
 
 		// Make sure that the base can build the improvement now.
-		buildablesAvailableNames =
-			base.buildablesAvailableNames(world);
+		buildablesAvailable = base.buildablesAvailable(world);
 		canBuildImprovement =
-			buildablesAvailableNames.indexOf(improvementToBuild.name) >= 0;
+			buildablesAvailable.some(x => x.name == improvementToBuild.name);
 		Assert.isTrue(canBuildImprovement);
 
 		// hack
@@ -591,6 +590,12 @@ class TestFixtureMain
 		(
 			this.turnsToWaitMax, base, world, improvementToBuild
 		);
+
+		// Make sure that a second copy of the improvement can't be built.
+		buildablesAvailable = base.buildablesAvailable(world);
+		canBuildImprovement =
+			buildablesAvailable.some(x => x.name == improvementToBuild.name);
+		Assert.isFalse(canBuildImprovement);
 
 		// Wait for the population to grow again,
 		// and make sure the granary saves half the food.

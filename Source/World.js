@@ -29,6 +29,8 @@ class World
 		}
 
 		this.ownerCurrentIndex = 0;
+
+		this.wondersBuilt = [];
 	}
 
 	static demo()
@@ -243,6 +245,11 @@ class World
 		this.units.splice(this.units.indexOf(unit), 1);
 		var cell = this.map.cellAtPosInCells(unit.pos);
 		cell.unitRemove(unit);
+	}
+
+	wonderHasBeenBuilt(baseImprovementDefnWonder)
+	{
+		return this.wondersBuilt.some(x => x.name == baseImprovementDefnWonder);
 	}
 }
 

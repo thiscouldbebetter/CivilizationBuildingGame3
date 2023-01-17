@@ -78,6 +78,7 @@ class UnitActivityDefn_Instances
 		this.SettlersBuildIrrigation 	= uad("Build Irrigation", 	movesToComplete3, 	this.settlersBuildIrrigation);
 		this.SettlersBuildMines 		= uad("Build Mines", 		movesToComplete3, 	this.settlersBuildMines);
 		this.SettlersBuildRoads 		= uad("Build Roads", 		movesToComplete1, 	this.settlersBuildRoads);
+		this.SettlersCleanPollution 	= uad("Clean Pollution", 	movesToComplete3, 	this.settlersCleanPollution);
 		this.SettlersClearForest 		= uad("Clear Forest", 		movesToComplete3, 	this.settlersClearForest);
 		this.SettlersPlantForest 		= uad("Plant Forest", 		movesToComplete3, 	this.settlersPlantForest);
 		this.SettlersStartCity 			= uad("Start City", 		null, 				this.settlersStartCity);

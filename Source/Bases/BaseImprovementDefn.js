@@ -1,11 +1,12 @@
 
 class BaseImprovementDefn
 {
-	constructor(name, industryToBuild, costPerTurn)
+	constructor(name, industryToBuild, costPerTurn, isWonder)
 	{
 		this.name = name;
 		this.industryToBuild = industryToBuild;
 		this.costPerTurn = costPerTurn;
+		this.isWonder = isWonder;
 	}
 
 	static Instances()
@@ -75,72 +76,74 @@ class BaseImprovementDefn_Instances
 {
 	constructor()
 	{
-		var bid = (n, i, c) => new BaseImprovementDefn(n, i, c);
+		var bid = (n, i, c, w) => new BaseImprovementDefn(n, i, c, w);
 
-		this.Airport 				= bid("Airport", 				160, 	3);
-		this.Aqueduct 				= bid("Aqueduct", 				80, 	2);
-		this.Bank 					= bid("Bank", 					120, 	3);
-		this.Barracks 				= bid("Barracks", 				40, 	1);
-		this.Capitalization 		= bid("Capitalization", 		null, 	null);
-		this.Cathedral 				= bid("Cathedral", 				120, 	3);
-		this.CityWalls 				= bid("City Walls", 			80, 	0);
-		this.CoastalFortress 		= bid("Coastal Fortress", 		80, 	1);
-		this.Colosseum				= bid("Colosseum", 				100, 	4);
-		this.Courthouse 			= bid("Courthouse", 			80, 	1);
-		this.Factory 				= bid("Factory", 				200, 	4);
-		this.Granary 				= bid("Granary", 				60, 	1);
-		this.Harbor 				= bid("Harbor",					60, 	1);
-		this.HydroPlant 			= bid("Hydro Plant", 			240, 	4);
-		this.Library 				= bid("Library", 				80, 	1);
-		this.ManufacturingPlant 	= bid("Manufacturing Plant", 	320, 	6);
-		this.Marketplace			= bid("Marketplace", 			80, 	1);
-		this.MassTransit			= bid("Mass Transit", 			160, 	4);
-		this.NuclearPlant			= bid("Nuclear Plant", 			160, 	2);
-		this.OffshorePlatform 		= bid("Offshore Platform", 		160, 	3);
-		this.Palace 				= bid("Palace", 				10, 	0);
-		this.PoliceStation 			= bid("Police Station", 		60, 	2);
-		this.PortFacility 			= bid("Port Facility", 			80, 	3);
-		this.PowerPlant 			= bid("Power Plant", 			160, 	4);
-		this.RecyclingCenter		= bid("Recycling Center", 		200, 	2);
-		this.ResearchLab			= bid("Research Lab", 			160, 	3);
-		this.SamMissileBattery 		= bid("SAM Missile Battery", 	100, 	2);
-		this.SdiDefense 			= bid("SDI Defense", 			200, 	4);
-		this.SewerSystem 			= bid("Sewer System", 			120, 	2);
-		this.SolarPlant				= bid("Solar Plant", 			320, 	4);
-		this.StockExchange 			= bid("Stock Exchange", 		160, 	4);
-		this.Superhighways			= bid("Superhighways",			200, 	5);
-		this.Supermarkets			= bid("Supermarkets",			80, 	3);
-		this.Temple 				= bid("Temple", 				40, 	1);
-		this.University 			= bid("University",				160, 	3);
+		// 									name, 					ind, 	cost, 	wonder
+		this.Airport 				= bid("Airport", 				160, 	3, 		false);
+		this.Aqueduct 				= bid("Aqueduct", 				80, 	2, 		false);
+		this.Bank 					= bid("Bank", 					120, 	3, 		false);
+		this.Barracks 				= bid("Barracks", 				40, 	1, 		false);
+		this.Capitalization 		= bid("Capitalization", 		null, 	null, 	false);
+		this.Cathedral 				= bid("Cathedral", 				120, 	3, 		false);
+		this.CityWalls 				= bid("City Walls", 			80, 	0, 		false);
+		this.CoastalFortress 		= bid("Coastal Fortress", 		80, 	1, 		false);
+		this.Colosseum				= bid("Colosseum", 				100, 	4, 		false);
+		this.Courthouse 			= bid("Courthouse", 			80, 	1, 		false);
+		this.Factory 				= bid("Factory", 				200, 	4, 		false);
+		this.Granary 				= bid("Granary", 				60, 	1, 		false);
+		this.Harbor 				= bid("Harbor",					60, 	1, 		false);
+		this.HydroPlant 			= bid("Hydro Plant", 			240, 	4, 		false);
+		this.Library 				= bid("Library", 				80, 	1, 		false);
+		this.ManufacturingPlant 	= bid("Manufacturing Plant", 	320, 	6, 		false);
+		this.Marketplace			= bid("Marketplace", 			80, 	1, 		false);
+		this.MassTransit			= bid("Mass Transit", 			160, 	4, 		false);
+		this.NuclearPlant			= bid("Nuclear Plant", 			160, 	2, 		false);
+		this.OffshorePlatform 		= bid("Offshore Platform", 		160, 	3, 		false);
+		this.Palace 				= bid("Palace", 				10, 	0, 		false);
+		this.PoliceStation 			= bid("Police Station", 		60, 	2, 		false);
+		this.PortFacility 			= bid("Port Facility", 			80, 	3, 		false);
+		this.PowerPlant 			= bid("Power Plant", 			160, 	4, 		false);
+		this.RecyclingCenter		= bid("Recycling Center", 		200, 	2, 		false);
+		this.ResearchLab			= bid("Research Lab", 			160, 	3, 		false);
+		this.SamMissileBattery 		= bid("SAM Missile Battery", 	100, 	2, 		false);
+		this.SdiDefense 			= bid("SDI Defense", 			200, 	4, 		false);
+		this.SewerSystem 			= bid("Sewer System", 			120, 	2, 		false);
+		this.SolarPlant				= bid("Solar Plant", 			320, 	4, 		false);
+		this.StockExchange 			= bid("Stock Exchange", 		160, 	4, 		false);
+		this.Superhighways			= bid("Superhighways",			200, 	5, 		false);
+		this.Supermarkets			= bid("Supermarkets",			80, 	3, 		false);
+		this.Temple 				= bid("Temple", 				40, 	1, 		false);
+		this.University 			= bid("University",				160, 	3, 		false);
 
-		this.AdamSmithsTradingCo 	= bid("Adam Smith's Trading Co",400, 	0);
-		this.ApolloProgram 			= bid("Apollo Program",			600, 	0);
-		this.Colossus 				= bid("Colossus",				200, 	0);
-		this.CopernicusObservatory 	= bid("Copernicus' Observatory",300, 	0);
-		this.CureForCancer 			= bid("Cure for Cancer",		600, 	0);
-		this.DarwinsVoyage 			= bid("Darwin's Voyage",		400, 	0);
-		this.EiffelTower 			= bid("Eiffel Tower",			300, 	0);
-		this.GreatLibrary 			= bid("Great Library",			300, 	0);
-		this.GreatWall 				= bid("GreatWall",				300, 	0);
-		this.HangingGardens 		= bid("HangingGardens",			200, 	0);
-		this.HooverDam 				= bid("Hoover Dam",				600, 	0);
-		this.IsaacNewtonsCollege 	= bid("Isaac Newton's College",	400, 	0);
-		this.JsBachsCathedral		= bid("J.S. Bach's Cathedral",	400, 	0);
-		this.KingRichardsCrusade 	= bid("King Richard's Crusade",	300, 	0);
-		this.LeonardosWorkshop 		= bid("Leonardo's Workshop",	400, 	0);
-		this.Lighthouse 			= bid("Lighthouse",				200, 	0);
-		this.MagellansExpedition 	= bid("Magellan's Expedition",	400, 	0);
-		this.ManhattanProject 		= bid("Manhattan Project",		600, 	0);
-		this.MarcoPolosEmbassy 		= bid("Marco's Polo's Embassy", 200, 	0);
-		this.MichelangelosChapel 	= bid("Michelangelo's Chapel", 	400, 	0);
-		this.Oracle					= bid("Oracle",					300, 	0);
-		this.Pyramids 				= bid("Pyramids",				200, 	0);
-		this.SetiProgram 			= bid("SETI Program",			600, 	0);
-		this.ShakespearesTheatre 	= bid("Shakespeare's Theatre",	300, 	0);
-		this.StatueOfLiberty 		= bid("Statue of Liberty",		400, 	0);
-		this.SunTzusWarAcademy 		= bid("Sun Tzu's War Academy", 	300, 	0);
-		this.UnitedNations 			= bid("United Nations",			600, 	0);
-		this.WomensSuffrage 		= bid("Women's Suffrage",		600, 	0);
+		// Wonders.
+		this.AdamSmithsTradingCo 	= bid("Adam Smith's Trading Co",400, 	0,		true);
+		this.ApolloProgram 			= bid("Apollo Program",			600, 	0,		true);
+		this.Colossus 				= bid("Colossus",				200, 	0,		true);
+		this.CopernicusObservatory 	= bid("Copernicus' Observatory",300, 	0,		true);
+		this.CureForCancer 			= bid("Cure for Cancer",		600, 	0,		true);
+		this.DarwinsVoyage 			= bid("Darwin's Voyage",		400, 	0,		true);
+		this.EiffelTower 			= bid("Eiffel Tower",			300, 	0,		true);
+		this.GreatLibrary 			= bid("Great Library",			300, 	0,		true);
+		this.GreatWall 				= bid("GreatWall",				300, 	0,		true);
+		this.HangingGardens 		= bid("HangingGardens",			200, 	0,		true);
+		this.HooverDam 				= bid("Hoover Dam",				600, 	0,		true);
+		this.IsaacNewtonsCollege 	= bid("Isaac Newton's College",	400, 	0,		true);
+		this.JsBachsCathedral		= bid("J.S. Bach's Cathedral",	400, 	0,		true);
+		this.KingRichardsCrusade 	= bid("King Richard's Crusade",	300, 	0,		true);
+		this.LeonardosWorkshop 		= bid("Leonardo's Workshop",	400, 	0,		true);
+		this.Lighthouse 			= bid("Lighthouse",				200, 	0,		true);
+		this.MagellansExpedition 	= bid("Magellan's Expedition",	400, 	0,		true);
+		this.ManhattanProject 		= bid("Manhattan Project",		600, 	0,		true);
+		this.MarcoPolosEmbassy 		= bid("Marco's Polo's Embassy", 200, 	0,		true);
+		this.MichelangelosChapel 	= bid("Michelangelo's Chapel", 	400, 	0,		true);
+		this.Oracle					= bid("Oracle",					300, 	0,		true);
+		this.Pyramids 				= bid("Pyramids",				200, 	0,		true);
+		this.SetiProgram 			= bid("SETI Program",			600, 	0,		true);
+		this.ShakespearesTheatre 	= bid("Shakespeare's Theatre",	300, 	0,		true);
+		this.StatueOfLiberty 		= bid("Statue of Liberty",		400, 	0,		true);
+		this.SunTzusWarAcademy 		= bid("Sun Tzu's War Academy", 	300, 	0,		true);
+		this.UnitedNations 			= bid("United Nations",			600, 	0,		true);
+		this.WomensSuffrage 		= bid("Women's Suffrage",		600, 	0,		true);
 
 		this._All =
 		[
