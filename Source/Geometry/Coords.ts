@@ -171,6 +171,16 @@ class Coords
 		return this;
 	}
 
+	normalize(): Coords
+	{
+		var magnitude = this.magnitude();
+		if (magnitude != null)
+		{
+			this.divideScalar(magnitude);
+		}
+		return this;
+	}
+
 	overwriteWith(other: Coords): Coords
 	{
 		this.x = other.x;
