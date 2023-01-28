@@ -3,46 +3,62 @@
 
 <h3>Civilization-Building Game - Automated Test Suite</h3>
 
-<script type="text/javascript" src="../Source/Bases/Base.js"></script>
-<script type="text/javascript" src="../Source/Bases/BaseBuildable.js"></script>
-<script type="text/javascript" src="../Source/Bases/BaseDemographics.js"></script>
-<script type="text/javascript" src="../Source/Bases/BaseImprovementDefn.js"></script>
-<script type="text/javascript" src="../Source/Bases/BaseIndustry.js"></script>
-<script type="text/javascript" src="../Source/Bases/BaseLandUsage.js"></script>
+<script type="text/javascript" src="../Source/Geometry/Coords.js"></script>
+<script type="text/javascript" src="../Source/Geometry/Direction.js"></script>
+<script type="text/javascript" src="../Source/Geometry/Disposition.js"></script>
+<script type="text/javascript" src="../Source/Geometry/Orientation.js"></script>
 
-<script type="text/javascript" src="../Source/Owners/Diplomacy.js"></script>
-<script type="text/javascript" src="../Source/Owners/Owner.js"></script>
-<script type="text/javascript" src="../Source/Owners/OwnerMapKnowledge.js"></script>
-<script type="text/javascript" src="../Source/Owners/Starship.js"></script>
+<script type="text/javascript" src="../Source/Model/Command.js"></script>
+<script type="text/javascript" src="../Source/Model/DifficultyLevel.js"></script>
+<script type="text/javascript" src="../Source/Model/Government.js"></script>
+<script type="text/javascript" src="../Source/Model/Notification.js"></script>
+<script type="text/javascript" src="../Source/Model/ResourceProduction.js"></script>
+<script type="text/javascript" src="../Source/Model/SelectableCategory.js"></script>
+<script type="text/javascript" src="../Source/Model/Technology.js"></script>
+<script type="text/javascript" src="../Source/Model/World.js"></script>
 
-<script type="text/javascript" src="../Source/Units/Unit.js"></script>
-<script type="text/javascript" src="../Source/Units/UnitActivity.js"></script>
-<script type="text/javascript" src="../Source/Units/UnitActivityDefn.js"></script>
-<script type="text/javascript" src="../Source/Units/UnitDefn.js"></script>
-<script type="text/javascript" src="../Source/Units/UnitDefnCombat.js"></script>
-<script type="text/javascript" src="../Source/Units/UnitDefnMovement.js"></script>
+<script type="text/javascript" src="../Source/Model/Bases/Base.js"></script>
+<script type="text/javascript" src="../Source/Model/Bases/BaseBuildable.js"></script>
+<script type="text/javascript" src="../Source/Model/Bases/BaseDemographics.js"></script>
+<script type="text/javascript" src="../Source/Model/Bases/BaseImprovementDefn.js"></script>
+<script type="text/javascript" src="../Source/Model/Bases/BaseIndustry.js"></script>
+<script type="text/javascript" src="../Source/Model/Bases/BaseLandUsage.js"></script>
+
+<script type="text/javascript" src="../Source/Model/Map/MapOfCells.js"></script>
+<script type="text/javascript" src="../Source/Model/Map/MapOfCellsCell.js"></script>
+<script type="text/javascript" src="../Source/Model/Map/MapOfCellsCellImprovement.js"></script>
+<script type="text/javascript" src="../Source/Model/Map/MapOfCellsCellResource.js"></script>
+<script type="text/javascript" src="../Source/Model/Map/MapOfCellsCellTerrain.js"></script>
+
+<script type="text/javascript" src="../Source/Model/Owners/Owner.js"></script>
+<script type="text/javascript" src="../Source/Model/Owners/OwnerFinances.js"></script>
+<script type="text/javascript" src="../Source/Model/Owners/OwnerIncomeAllocation.js"></script>
+<script type="text/javascript" src="../Source/Model/Owners/OwnerIntelligence.js"></script>
+<script type="text/javascript" src="../Source/Model/Owners/OwnerMapKnowledge.js"></script>
+<script type="text/javascript" src="../Source/Model/Owners/OwnerResearch.js"></script>
+<script type="text/javascript" src="../Source/Model/Owners/OwnerSelection.js"></script>
+<script type="text/javascript" src="../Source/Model/Owners/Starship.js"></script>
+
+<script type="text/javascript" src="../Source/Model/Owners/Diplomacy/OwnerDiplomacy.js"></script>
+<script type="text/javascript" src="../Source/Model/Owners/Diplomacy/OwnerDiplomacyPosture.js"></script>
+<script type="text/javascript" src="../Source/Model/Owners/Diplomacy/OwnerDiplomacyRelationship.js"></script>
+
+<script type="text/javascript" src="../Source/Model/Units/Unit.js"></script>
+<script type="text/javascript" src="../Source/Model/Units/UnitActivity.js"></script>
+<script type="text/javascript" src="../Source/Model/Units/UnitActivityDefn.js"></script>
+<script type="text/javascript" src="../Source/Model/Units/UnitDefn.js"></script>
+<script type="text/javascript" src="../Source/Model/Units/UnitDefnCombat.js"></script>
+<script type="text/javascript" src="../Source/Model/Units/UnitDefnMovement.js"></script>
+
+<script type="text/javascript" src="../Source/Utility/IdHelper.js"></script>
+<script type="text/javascript" src="../Source/Utility/StringHelper.js"></script>
 
 <script type="text/javascript" src="../Source/Camera.js"></script>
 <script type="text/javascript" src="../Source/Color.js"></script>
-<script type="text/javascript" src="../Source/Command.js"></script>
-<script type="text/javascript" src="../Source/Coords.js"></script>
-<script type="text/javascript" src="../Source/DifficultyLevel.js"></script>
-<script type="text/javascript" src="../Source/Direction.js"></script>
 <script type="text/javascript" src="../Source/DisplayCanvas.js"></script>
 <script type="text/javascript" src="../Source/DisplayText.js"></script>
-<script type="text/javascript" src="../Source/Disposition.js"></script>
-<script type="text/javascript" src="../Source/Government.js"></script>
-<script type="text/javascript" src="../Source/IdHelper.js"></script>
 <script type="text/javascript" src="../Source/InputHelper.js"></script>
-<script type="text/javascript" src="../Source/MapOfCells.js"></script>
-<script type="text/javascript" src="../Source/Orientation.js"></script>
-<script type="text/javascript" src="../Source/Notification.js"></script>
-<script type="text/javascript" src="../Source/ResourceProduction.js"></script>
-<script type="text/javascript" src="../Source/SelectableCategory.js"></script>
-<script type="text/javascript" src="../Source/StringHelper.js"></script>
-<script type="text/javascript" src="../Source/Technology.js"></script>
 <script type="text/javascript" src="../Source/Universe.js"></script>
-<script type="text/javascript" src="../Source/World.js"></script>
 
 <script type="text/javascript" src="Mocks.js"></script>
 <script type="text/javascript" src="TestFramework.js"></script>
