@@ -197,6 +197,12 @@ class Base
 		owner.moneyStockpiledAdd(moneyThisTurnNet, world);
 	}
 
+	value(world: World): number
+	{
+		var returnValue = 1; // todo
+		return returnValue;
+	}
+
 	// Demographics.
 
 	attitudeIsEuphoria(world: World): boolean
@@ -222,6 +228,11 @@ class Base
 	populationCanGrow(): boolean
 	{
 		return this.demographics.populationCanGrow(this);
+	}
+
+	populationContent(world: World): number
+	{
+		return this.demographics.populationContent(world, this);
 	}
 
 	populationGrowOrConstrain(world: World): void
@@ -369,6 +380,11 @@ class Base
 	buildableInProgressBuild(world: World): void
 	{
 		this.industry.buildableInProgressBuild(world, this);
+	}
+
+	buildableInProgressClear(): void
+	{
+		return this.industry.buildableInProgressClear();
 	}
 
 	buildableStart(buildableToBuild: any, world: World): void

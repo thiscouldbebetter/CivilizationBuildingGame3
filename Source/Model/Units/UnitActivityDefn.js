@@ -29,7 +29,7 @@ class UnitActivityDefn {
 }
 class UnitActivityDefn_Instances {
     constructor() {
-        var startNone = () => { };
+        // var startNone = () => {};
         var uad = (a, b, c) => new UnitActivityDefn(a, b, c);
         var movesToComplete1 = new Map([[UnitActivityVariableNames.MovesToComplete(), 1]]);
         var movesToComplete3 = new Map([[UnitActivityVariableNames.MovesToComplete(), 3]]);
@@ -39,6 +39,7 @@ class UnitActivityDefn_Instances {
         this.Fortify = uad("Fortify", null, this.fortify);
         this.Move = uad("Move", null, this.move);
         this.MoveTo = uad("MoveTo", null, this.moveTo);
+        this.NeedsInput = uad("NeedsInput", null, this.needsInput);
         this.Pass = uad("Pass", null, this.pass);
         this.RestAfterMove = uad("RestAfterMove", null, this.restAfterMove);
         this.Sleep = uad("Sleep", null, this.sleep);
@@ -49,7 +50,7 @@ class UnitActivityDefn_Instances {
         this.DiplomatInciteRevolt = uad("Incite Revolt", null, this.diplomatInciteRevolt);
         this.DiplomatInvestigateBase = uad("Investigate City", null, this.diplomatInvestigateBase);
         this.DiplomatSabotageProduction = uad("Sabotage Production", null, this.diplomatSabotageProduction);
-        this.DiplomatTechnologySteal = uad("Steal Technology", null, this.diplomatStealTechnology);
+        this.DiplomatTechnologySteal = uad("Steal Technology", null, this.diplomatTechnologySteal);
         this.SettlersBuildFort = uad("Build Fort", movesToComplete3, this.settlersBuildFort);
         this.SettlersBuildIrrigation = uad("Build Irrigation", movesToComplete3, this.settlersBuildIrrigation);
         this.SettlersBuildMines = uad("Build Mines", movesToComplete3, this.settlersBuildMines);
@@ -192,9 +193,15 @@ class UnitActivityDefn_Instances {
             }
         }
     }
+    needsInput(universe, world, owner, unit) {
+        // todo
+    }
     pass(universe, world, owner, unit) {
         unit.movesThisTurnClear();
         owner.unitSelectNextIdle();
+    }
+    restAfterMove(universe, world, owner, unit) {
+        // todo
     }
     sleep(universe, world, owner, unit) {
         unit._isSleeping = true;
@@ -231,7 +238,7 @@ class UnitActivityDefn_Instances {
         }
         else {
             // todo - Confirm?
-            owner.moneyStockpiledSubtract(costToBribeUnitsSoFar);
+            owner.moneyStockpiledSubtract(costToBribeUnitsSoFar, world);
             unitsToBribe.forEach(x => x.ownerSet(owner));
             // todo - Diplomatic effects?
             UnitActivityDefn.Instances().move(universe, world, owner, unit);
@@ -245,7 +252,7 @@ class UnitActivityDefn_Instances {
         var cellContainingBaseToEstablishEmbassyInPos = unitDiplomatPos.clone().add(direction.offset);
         var cellContainingBaseToEstablishEmbassyIn = world.map.cellAtPosInCells(cellContainingBaseToEstablishEmbassyInPos);
         var baseToEstablishEmbassyIn = cellContainingBaseToEstablishEmbassyIn.basePresent(world);
-        var ownerOther = base.owner(world);
+        var ownerOther = baseToEstablishEmbassyIn.owner(world);
         var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther);
         diplomaticRelations.embassyHasBeenEstablished = true;
     }
@@ -257,12 +264,14 @@ class UnitActivityDefn_Instances {
         var cellContainingBaseToInciteRevoltInPos = unitDiplomatPos.clone().add(direction.offset);
         var cellContainingBaseToInciteRevoltIn = world.map.cellAtPosInCells(cellContainingBaseToInciteRevoltInPos);
         var baseToInciteRevoltIn = cellContainingBaseToInciteRevoltIn.basePresent(world);
-        var baseValue = base.value(world);
-        var moneyPerValueToInciteRevolt = 10;
+        var baseValue = baseToInciteRevoltIn.value(world);
+        var baseValueMultiplier = 10;
+        var moneyPerValueToInciteRevolt = baseValue * baseValueMultiplier;
         var moneyToInciteRevolt = moneyPerValueToInciteRevolt;
-        var ownerOther = base.owner(world);
+        owner.finances.moneyStockpiledSubtract(moneyToInciteRevolt);
+        var ownerOther = baseToInciteRevoltIn.owner(world);
         var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther);
-        diplomaticRelations.postureSetToWar();
+        diplomaticRelations.postureSetToWar(world);
     }
     diplomatInvestigateBase(universe, world, owner, unit) {
         var unitDiplomat = unit;
@@ -270,7 +279,7 @@ class UnitActivityDefn_Instances {
         var direction = activity.direction();
         var unitDiplomatPos = unitDiplomat.pos;
         var cellContainingBaseToInvestigatePos = unitDiplomatPos.clone().add(direction.offset);
-        var cellContainingBaseToInvestigate = world.map.cellAtPosInCells(cellContainingBaseToInciteRevoltInPos);
+        var cellContainingBaseToInvestigate = world.map.cellAtPosInCells(cellContainingBaseToInvestigatePos);
         var baseToInvestigate = cellContainingBaseToInvestigate.basePresent(world);
         var chanceOfSuccess = .8; // todo
         var wasSuccessful = (Math.random() < chanceOfSuccess);
@@ -280,6 +289,7 @@ class UnitActivityDefn_Instances {
         else {
             // todo - Notify.
         }
+        console.log(baseToInvestigate);
     }
     diplomatSabotageProduction(universe, world, owner, unit) {
         var unitDiplomat = unit;
@@ -304,9 +314,9 @@ class UnitActivityDefn_Instances {
         if (wasDiplomatLost) {
             world.unitRemove(unitDiplomat);
         }
-        var ownerOther = base.owner(world);
+        var ownerOther = baseToSabotage.owner(world);
         var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther);
-        diplomaticRelations.postureSetToWar();
+        diplomaticRelations.postureSetToWar(world);
     }
     diplomatTechnologySteal(universe, world, owner, unit) {
         var unitDiplomat = unit;
@@ -314,7 +324,7 @@ class UnitActivityDefn_Instances {
         var direction = activity.direction();
         var unitDiplomatPos = unitDiplomat.pos;
         var cellContainingBaseToStealTechnologyFromPos = unitDiplomatPos.clone().add(direction.offset);
-        var cellContainingBaseToStealTechnologyFrom = world.map.cellAtPosInCells(cellContainingBaseToStealTechnologyFrom);
+        var cellContainingBaseToStealTechnologyFrom = world.map.cellAtPosInCells(cellContainingBaseToStealTechnologyFromPos);
         var baseToStealTechnologyFrom = cellContainingBaseToStealTechnologyFrom.basePresent(world);
         var chanceOfSuccess = .5; // todo
         var wasSuccessful = (Math.random() < chanceOfSuccess);
@@ -332,7 +342,7 @@ class UnitActivityDefn_Instances {
         }
         var ownerOther = baseToStealTechnologyFrom.owner(world);
         var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther);
-        diplomaticRelations.postureSetToWar();
+        diplomaticRelations.postureSetToWar(world);
     }
     // Settlers.
     settlersBuildAll(universe, world, owner, unit) {
@@ -392,6 +402,9 @@ class UnitActivityDefn_Instances {
         var map = world.map;
         var cell = map.cellAtPosInCells(unit.pos);
         cell.improvementAddRoads();
+    }
+    settlersCleanPollution(universe, world, owner, unit) {
+        // todo
     }
     settlersClearForest(universe, world, owner, unit) {
         //var map = world.map;

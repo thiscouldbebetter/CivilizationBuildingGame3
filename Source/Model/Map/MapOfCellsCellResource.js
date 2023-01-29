@@ -58,6 +58,7 @@ class MapOfCellsCellResource_Instances {
                 this.Ivory,
                 this.Oasis,
                 this.Oil,
+                this.Oil2,
                 this.Peat,
                 this.Pheasant,
                 this.Shield,

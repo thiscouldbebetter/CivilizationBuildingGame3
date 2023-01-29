@@ -18,7 +18,6 @@ class OwnerMapKnowledge {
         var cellSizeInPixelsHalf = cellSizeInPixels.clone().half();
         var cellPosInCells = Coords.create();
         var cellPosInPixels = Coords.create();
-        var mapSizeInPixels = mapSizeInCells.clone().multiply(cellSizeInPixels);
         var display = universe.display;
         display.drawBackground("Black");
         this.draw_1_CellsKnown(cellPosInCells, mapSizeInCells, mapComplete, cellPosInPixels, cellSizeInPixels, world, owner, display);
@@ -104,8 +103,6 @@ class OwnerMapKnowledge {
     }
     update(universe, world, owner) {
         this.cellsVisibleIndicesByIndex = new Map();
-        var map = world.map;
-        var mapSizeInCells = map.sizeInCells;
         var ownerViewerGroups = [
             owner.bases,
             owner.units
@@ -117,13 +114,10 @@ class OwnerMapKnowledge {
         }
     }
     update_Group(world, owner, ownerViewers, sightDistance) {
-        var map = world.map;
-        var mapSizeInCells = map.sizeInCells;
         var cellOffsetPos = this._cellOffsetPos;
         for (var i = 0; i < ownerViewers.length; i++) {
             var viewer = ownerViewers[i];
             var viewerPos = viewer.pos;
-            var cellsAdjacentPositions = [];
             for (var y = -sightDistance; y <= sightDistance; y++) {
                 cellOffsetPos.y = y;
                 for (var x = -sightDistance; x <= sightDistance; x++) {

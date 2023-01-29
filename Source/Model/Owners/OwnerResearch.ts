@@ -25,7 +25,7 @@ class OwnerResearch
 
 	buildablesKnown(): any[]
 	{
-		var buildablesKnownNames = [];
+		var buildablesKnownNames = new Array<string>();
 
 		var technologiesKnown = this.technologiesKnown();
 		technologiesKnown.forEach
@@ -54,7 +54,7 @@ class OwnerResearch
 
 	governmentsKnown(): Government[]
 	{
-		var governmentsKnown = [];
+		var governmentsKnown = new Array<Government>();
 		var techsKnown = this.technologiesKnown();
 		techsKnown.forEach
 		(

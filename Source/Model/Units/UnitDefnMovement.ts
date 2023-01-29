@@ -35,7 +35,7 @@ class UnitDefnMovement
 		unitMoving: Unit,
 		cellFrom: MapOfCellsCell,
 		cellTo: MapOfCellsCell
-	): void
+	): number
 	{
 		return this._costToMoveFromCellToCellInThirds
 		(

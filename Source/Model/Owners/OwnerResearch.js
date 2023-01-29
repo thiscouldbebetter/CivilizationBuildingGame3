@@ -10,7 +10,7 @@ class OwnerResearch {
         return new OwnerResearch(null, null, null);
     }
     buildablesKnown() {
-        var buildablesKnownNames = [];
+        var buildablesKnownNames = new Array();
         var technologiesKnown = this.technologiesKnown();
         technologiesKnown.forEach(x => buildablesKnownNames.push(...x.buildablesAllowedNames));
         var buildablesKnown = buildablesKnownNames.map(x => BaseBuildable.byName(x));
@@ -23,7 +23,7 @@ class OwnerResearch {
         return canBuild;
     }
     governmentsKnown() {
-        var governmentsKnown = [];
+        var governmentsKnown = new Array();
         var techsKnown = this.technologiesKnown();
         techsKnown.forEach(x => {
             if (x.governmentAllowedName != null) {

@@ -8,6 +8,8 @@ class Unit
 	id: number;
 	baseSupportingId: number;
 	integrity: number;
+
+	_activity: UnitActivity;
 	_moveThirdsThisTurn: number;
 	_isSleeping: boolean;
 	_cellToPos: Coords;
@@ -51,6 +53,11 @@ class Unit
 	defn(world: World): UnitDefn
 	{
 		return world.defns.unitDefnByName(this.defnName);
+	}
+
+	fortify(): void
+	{
+		// todo
 	}
 
 	isAwake(): boolean
@@ -125,7 +132,6 @@ class Unit
 	{
 		var defn = this.defn(world);
 		this.moveThirdsThisTurnSet(defn.movement.moveThirdsPerTurn);
-		var owner = this.owner(world);
 		this.activityUpdate(null, world);
 	}
 
@@ -238,7 +244,11 @@ class Unit
 	{
 		var unitDefns = UnitDefn.Instances();
 		var unitDefn = this.defn(world);
-		var hasActions = (unitDefn == unitDefns.Diplomat || defn == unitDefns.Spy);
+		var hasActions =
+		(
+			unitDefn == unitDefns.Diplomat
+			|| unitDefn == unitDefns.Spy
+		);
 		return hasActions;
 	}
 
@@ -361,7 +371,6 @@ class Unit
 		var cellFrom = cellsFromAndTo[0];
 		var cellTo = cellsFromAndTo[1];
 
-		var cellToTerrain = cellTo.terrain(world);
 		var defn = this.defn(world);
 
 		var costToMoveInThirds = defn.movement.costToMoveFromCellToCellInThirds
@@ -372,7 +381,7 @@ class Unit
 		return costToMoveInThirds;
 	}
 
-	hasMovesThisTurn(): number
+	hasMovesThisTurn(): boolean
 	{
 		return (this.moveThirdsThisTurn() > 0);
 	}
@@ -426,7 +435,7 @@ class Unit
 		this._moveThirdsThisTurn = value;
 	}
 
-	movesThisTurn(): void
+	movesThisTurn(): number
 	{
 		return this.moveThirdsThisTurn() / 3;
 	}

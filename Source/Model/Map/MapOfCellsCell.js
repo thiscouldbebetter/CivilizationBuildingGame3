@@ -88,7 +88,7 @@ class MapOfCellsCell {
         if (this.hasIrrigation()) {
             resources.food++; // todo - Depending on terrain.
         }
-        if (this.hasRivers) {
+        if (this.hasRiver) {
             resources.trade++;
         }
         if (this.hasRoads()) {
@@ -126,14 +126,16 @@ class MapOfCellsCell {
     }
     unitNotAlliedWithOwnerIsPresent(owner, world) {
         var unitsPresent = this.unitsPresent(world);
-        var unitNotAlliedWithOwnerIsPresent = unitsPresent.some(x => x.ownerName != owner.ownerName);
+        var unitNotAlliedWithOwnerIsPresent = unitsPresent.some(x => x.ownerName != owner.name);
         return unitNotAlliedWithOwnerIsPresent;
     }
     unitRemove(unit) {
         this.unitsPresentIds.splice(this.unitsPresentIds.indexOf(unit.id), 1);
     }
     unitsOrBasesPresent(world) {
-        var unitsOrBasesPresent = this.unitsPresent(world);
+        var unitsOrBasesPresent = new Array();
+        var unitsPresent = this.unitsPresent(world);
+        unitsOrBasesPresent.push(...unitsPresent);
         var basePresent = this.basePresent(world);
         if (basePresent != null) {
             unitsOrBasesPresent.push(basePresent);
@@ -141,11 +143,11 @@ class MapOfCellsCell {
         return unitsOrBasesPresent;
     }
     unitsPresent(world) {
-        return (this.unitsPresentIds.map(x => world.unitById(x)));
+        return this.unitsPresentIds.map((x) => world.unitById(x));
     }
     unitsPresentNotAlliedWithOwner(owner, world) {
         var unitsPresent = this.unitsPresent(world);
-        var unitsNotAlliedWithOwnerPresent = unitsPresent.filter(x => x.ownerName != owner.ownerName);
+        var unitsNotAlliedWithOwnerPresent = unitsPresent.filter(x => x.ownerName != owner.name);
         return unitsNotAlliedWithOwnerPresent;
     }
     unitsPresentOwnedBySameOwnerAsUnit(unit, world) {

@@ -1,8 +1,8 @@
 
 class OwnerDiplomacyRelationship
 {
-	ownerOther: Owner;
-	posture: OwnerDiplomacyPosture;
+	ownerOtherName: string;
+	postureName: string;
 	embassyHasBeenEstablished: boolean;
 
 	timesSneakAttacksExecuted: number;

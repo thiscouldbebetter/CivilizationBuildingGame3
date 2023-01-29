@@ -5,9 +5,12 @@ class MapOfCellsCell
 	terrainCode: string;
 	resourceSpecialPresentCode: string;
 	hasPollution: boolean;
-	basePresentId: string;
+	basePresentId: number;
 	improvementsPresentNames: string[];
-	unitsPresentIds: string[];
+	unitsPresentIds: number[];
+
+	_hasRiver: boolean;
+	_resourcesProducedThisTurn: ResourceProduction;
 
 	constructor
 	(
@@ -15,9 +18,9 @@ class MapOfCellsCell
 		terrainCode: string,
 		resourceSpecialPresentCode: string,
 		hasPollution: boolean,
-		basePresentId: string,
+		basePresentId: number,
 		improvementsPresentNames: string[],
-		unitsPresentIds: string[]
+		unitsPresentIds: number[]
 	)
 	{
 		this.pos = pos;
@@ -91,7 +94,7 @@ class MapOfCellsCell
 		return (this.hasImprovement(MapOfCellsCellImprovement.Instances().Fortress) );
 	}
 
-	hasImprovement(improvement: BaseImprovementDefn): boolean
+	hasImprovement(improvement: MapOfCellsCellImprovement): boolean
 	{
 		return (this.improvementsPresentNames.indexOf(improvement.name) >= 0);
 	}
@@ -121,7 +124,7 @@ class MapOfCellsCell
 		return (this.hasImprovement(MapOfCellsCellImprovement.Instances().Roads) );
 	}
 
-	improvementAdd(improvement: BaseImprovementDefn): void
+	improvementAdd(improvement: MapOfCellsCellImprovement): void
 	{
 		var improvementName = improvement.name;
 		if (this.improvementsPresentNames.indexOf(improvementName) == -1)
@@ -150,7 +153,7 @@ class MapOfCellsCell
 		this.improvementAdd(MapOfCellsCellImprovement.Instances().Roads);
 	}
 
-	resourcesProduced(world: World, base: Base): void
+	resourcesProduced(world: World, base: Base): ResourceProduction
 	{
 		var terrain = this.terrain(world);
 		var resources = this._resourcesProducedThisTurn.overwriteWith
@@ -163,7 +166,7 @@ class MapOfCellsCell
 			resources.food++; // todo - Depending on terrain.
 		}
 
-		if (this.hasRivers)
+		if (this.hasRiver)
 		{
 			resources.trade++;
 		}
@@ -224,7 +227,7 @@ class MapOfCellsCell
 	{
 		var unitsPresent = this.unitsPresent(world);
 		var unitNotAlliedWithOwnerIsPresent =
-			unitsPresent.some(x => x.ownerName != owner.ownerName);
+			unitsPresent.some(x => x.ownerName != owner.name);
 		return unitNotAlliedWithOwnerIsPresent;
 	}
 
@@ -235,7 +238,9 @@ class MapOfCellsCell
 
 	unitsOrBasesPresent(world: World): any[]
 	{
-		var unitsOrBasesPresent = this.unitsPresent(world);
+		var unitsOrBasesPresent = new Array<any>();
+		var unitsPresent = this.unitsPresent(world);
+		unitsOrBasesPresent.push(...unitsPresent);
 		var basePresent = this.basePresent(world);
 		if (basePresent != null)
 		{
@@ -246,7 +251,10 @@ class MapOfCellsCell
 
 	unitsPresent(world: World): Unit[]
 	{
-		return (this.unitsPresentIds.map(x => world.unitById(x)));
+		return this.unitsPresentIds.map
+		(
+			(x: number) => world.unitById(x)
+		);
 	}
 
 	unitsPresentNotAlliedWithOwner
@@ -256,7 +264,7 @@ class MapOfCellsCell
 	{
 		var unitsPresent = this.unitsPresent(world);
 		var unitsNotAlliedWithOwnerPresent =
-			unitsPresent.filter(x => x.ownerName != owner.ownerName);
+			unitsPresent.filter(x => x.ownerName != owner.name);
 		return unitsNotAlliedWithOwnerPresent;
 	}
 

@@ -3,7 +3,7 @@ class MapOfCellsCellResource
 {
 	name: string;
 	code: string;
-	terrain: MapOfCellsCellTerrain;
+	terrainCode: string;
 	resourcesProduced: ResourceProduction;
 
 	constructor
@@ -39,6 +39,31 @@ class MapOfCellsCellResource
 
 class MapOfCellsCellResource_Instances
 {
+	Buffalo: MapOfCellsCellResource;
+	Coal: MapOfCellsCellResource;
+	Fish: MapOfCellsCellResource;
+	Fruit: MapOfCellsCellResource;
+	Furs: MapOfCellsCellResource;
+	Game: MapOfCellsCellResource;
+	Gems: MapOfCellsCellResource;
+	Gold: MapOfCellsCellResource;
+	Iron: MapOfCellsCellResource;
+	Ivory: MapOfCellsCellResource;
+	Oasis: MapOfCellsCellResource;
+	Oil: MapOfCellsCellResource;
+	Oil2: MapOfCellsCellResource;
+	Peat: MapOfCellsCellResource;
+	Pheasant: MapOfCellsCellResource;
+	Shield: MapOfCellsCellResource;
+	Silk: MapOfCellsCellResource;
+	Spice: MapOfCellsCellResource;
+	Whales: MapOfCellsCellResource;
+	Wheat: MapOfCellsCellResource;
+	Wine: MapOfCellsCellResource;
+
+	_All: MapOfCellsCellResource[];
+	_AllByCode: Map<string, MapOfCellsCellResource>;
+
 	constructor()
 	{
 		var r = (n: string, c: string, tc: MapOfCellsCellTerrain, rp: ResourceProduction) =>
@@ -83,6 +108,7 @@ class MapOfCellsCellResource_Instances
 			this.Ivory,
 			this.Oasis,
 			this.Oil,
+			this.Oil2,
 			this.Peat,
 			this.Pheasant,
 			this.Shield,

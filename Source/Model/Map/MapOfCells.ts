@@ -92,7 +92,8 @@ class MapOfCells
 
 		var cameraCornerPositions =
 			camera.cornerPositionsClockwiseFromLowerRight();
-		var cellPosBounds = Coords.create().boundsOf(cameraCornerPositions);
+		var cellPosBounds =
+			Coords.create().boundsOf(cameraCornerPositions);
 		var cellPosMin = cellPosBounds.min;
 		var cellPosMax = cellPosBounds.max;
 
@@ -104,7 +105,7 @@ class MapOfCells
 			{
 				cellPosInCells.x = x;
 
-				camera.coordsTransformWorldToView
+				camera.coordsTransformFromWorldToView
 				(
 					cellPosInPixels.overwriteWith
 					(
@@ -117,7 +118,6 @@ class MapOfCells
 
 				var cell = this.cellAtPosInCells(cellPosInCells);
 				var cellTerrain = cell.terrain(world);
-				var cellTerrainSymbol = cellTerrain.symbol;
 				var cellTerrainColorName = cellTerrain.colorName;
 
 				display.drawRectangle

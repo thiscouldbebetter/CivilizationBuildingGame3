@@ -30,7 +30,7 @@ class SelectableCategory_Instances
 {
 	Bases: SelectableCategory;
 	Units: SelectableCategory;
-	_All: SelectableCategory;
+	_All: SelectableCategory[];
 	_AllByName: Map<string, SelectableCategory>;
 
 	constructor()
@@ -44,6 +44,17 @@ class SelectableCategory_Instances
 			this.Units
 		];
 
-		this._AllByName = new Map(this._All.map(x => [x.name, x] ) )
+		this._AllByName = new Map
+		(
+			this._All.map
+			(
+				(x: SelectableCategory) => [x.name, x]
+			)
+		);
+	}
+
+	byName(name: string): SelectableCategory
+	{
+		return this._AllByName.get(name);
 	}
 }

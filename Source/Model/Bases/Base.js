@@ -115,6 +115,10 @@ class Base {
         var owner = this.owner(world);
         owner.moneyStockpiledAdd(moneyThisTurnNet, world);
     }
+    value(world) {
+        var returnValue = 1; // todo
+        return returnValue;
+    }
     // Demographics.
     attitudeIsEuphoria(world) {
         return this.demographics.attitudeIsEuphoria(world, this);
@@ -130,6 +134,9 @@ class Base {
     }
     populationCanGrow() {
         return this.demographics.populationCanGrow(this);
+    }
+    populationContent(world) {
+        return this.demographics.populationContent(world, this);
     }
     populationGrowOrConstrain(world) {
         var foodNeededToGrow = this.foodNeededToGrow();
@@ -223,6 +230,9 @@ class Base {
     }
     buildableInProgressBuild(world) {
         this.industry.buildableInProgressBuild(world, this);
+    }
+    buildableInProgressClear() {
+        return this.industry.buildableInProgressClear();
     }
     buildableStart(buildableToBuild, world) {
         var owner = this.owner(world);

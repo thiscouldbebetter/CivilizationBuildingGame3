@@ -99,7 +99,7 @@ class OwnerSelection
 		return returnValue;
 	}
 
-	clear(): void
+	clear(): OwnerSelection
 	{
 		this.baseSelectedIndex = null;
 		this.unitSelectedIndex = null;

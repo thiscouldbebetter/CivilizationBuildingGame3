@@ -76,7 +76,9 @@ class MapOfCellsCellTerrain_Instances
 			return new MapOfCellsCellTerrain(a, b, c, d, e, f, g, h);
 		};
 
-		var rp = (food, industry, trade) => new ResourceProduction(food, industry, trade);
+		var rp =
+			(food: number, industry: number, trade: number) =>
+				new ResourceProduction(food, industry, trade);
 
 		var land = "Land";
 		var water = "Water";

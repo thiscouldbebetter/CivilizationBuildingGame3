@@ -102,7 +102,7 @@ class OwnerStarshipStatus
 		}
 	}
 
-	lossChancePerTurnOfFlight(): void
+	lossChancePerTurnOfFlight(): number
 	{
 		return 0; // todo
 	}
@@ -174,12 +174,12 @@ class OwnerStarshipStatus
 
 	// Clonable.
 
-	clone(): Starship
+	clone(): OwnerStarshipStatus
 	{
 		return OwnerStarshipStatus.create().overwriteWith(this);
 	}
 
-	equals(other: Starship): boolean
+	equals(other: OwnerStarshipStatus): boolean
 	{
 		var areEqual =
 		(
@@ -195,7 +195,7 @@ class OwnerStarshipStatus
 		return areEqual;
 	}
 
-	overwriteWith(other: Starship): Starship
+	overwriteWith(other: OwnerStarshipStatus): OwnerStarshipStatus
 	{
 		this.fuelTanks = other.fuelTanks;
 		this.habitats = other.habitats;
@@ -259,7 +259,9 @@ class StarshipPart_Instances
 
 	constructor()
 	{
-		var ssps = (name, industryToBuild) => new StarshipPart(name, industryToBuild);
+		var ssps =
+			(name: string, industryToBuild: number) =>
+				new StarshipPart(name, industryToBuild);
 
 		this.FuelTank	= ssps("Starship Fuel Tank",	160);
 		this.Habitat 	= ssps("Starship Habitat", 		320);

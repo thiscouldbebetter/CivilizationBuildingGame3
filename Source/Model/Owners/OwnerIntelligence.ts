@@ -2,7 +2,7 @@
 class OwnerIntelligence
 {
 	name: string;
-	commandChoose: any;
+	_commandChoose: () => Command;
 
 	constructor(name: string, commandChoose: any)
 	{

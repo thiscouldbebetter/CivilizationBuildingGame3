@@ -1,7 +1,7 @@
 
 class OwnerFinances
 {
-	moneyStockpiled: number;
+	_moneyStockpiled: number;
 	incomeAllocation: OwnerIncomeAllocation;
 
 	constructor

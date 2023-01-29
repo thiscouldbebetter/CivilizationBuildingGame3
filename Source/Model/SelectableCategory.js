@@ -23,6 +23,9 @@ class SelectableCategory_Instances {
                 this.Bases,
                 this.Units
             ];
-        this._AllByName = new Map(this._All.map(x => [x.name, x]));
+        this._AllByName = new Map(this._All.map((x) => [x.name, x]));
+    }
+    byName(name) {
+        return this._AllByName.get(name);
     }
 }

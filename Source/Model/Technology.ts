@@ -441,7 +441,7 @@ class Technology_Instances
 		this._AllByName = new Map(this._All.map(x => [x.name, x] ) );
 	}
 
-	byName(name)
+	byName(name: string): Technology
 	{
 		return this._AllByName.get(name);
 	}

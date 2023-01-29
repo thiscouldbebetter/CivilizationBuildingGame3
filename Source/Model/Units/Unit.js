@@ -24,6 +24,9 @@ class Unit {
     defn(world) {
         return world.defns.unitDefnByName(this.defnName);
     }
+    fortify() {
+        // todo
+    }
     isAwake() {
         return (this.isSleeping() == false);
     }
@@ -71,7 +74,6 @@ class Unit {
     turnUpdate(world) {
         var defn = this.defn(world);
         this.moveThirdsThisTurnSet(defn.movement.moveThirdsPerTurn);
-        var owner = this.owner(world);
         this.activityUpdate(null, world);
     }
     // Activity.
@@ -122,7 +124,8 @@ class Unit {
     hasActionsToSelectFromOnAttack(world) {
         var unitDefns = UnitDefn.Instances();
         var unitDefn = this.defn(world);
-        var hasActions = (unitDefn == unitDefns.Diplomat || defn == unitDefns.Spy);
+        var hasActions = (unitDefn == unitDefns.Diplomat
+            || unitDefn == unitDefns.Spy);
         return hasActions;
     }
     isWaitingForActionSelection() {
@@ -199,7 +202,6 @@ class Unit {
         var cellsFromAndTo = this.cellsFromAndToForDirectionAndWorld(directionToMove, world);
         var cellFrom = cellsFromAndTo[0];
         var cellTo = cellsFromAndTo[1];
-        var cellToTerrain = cellTo.terrain(world);
         var defn = this.defn(world);
         var costToMoveInThirds = defn.movement.costToMoveFromCellToCellInThirds(world, this, cellFrom, cellTo);
         return costToMoveInThirds;

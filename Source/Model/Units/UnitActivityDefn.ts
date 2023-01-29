@@ -3,7 +3,7 @@ class UnitActivityDefn
 {
 	name: string;
 	variableValuesInitialByName: Map<string, any>;
-	perform: any;
+	_perform: (u: Universe, w: World, o: Owner, unit: Unit) => void;
 
 	constructor
 	(
@@ -65,6 +65,7 @@ class UnitActivityDefn_Instances
 	Fortify: UnitActivityDefn;
 	Move: UnitActivityDefn;
 	MoveTo: UnitActivityDefn;
+	NeedsInput: UnitActivityDefn;
 	Pass: UnitActivityDefn;
 	RestAfterMove: UnitActivityDefn;
 	Sleep: UnitActivityDefn;
@@ -83,6 +84,7 @@ class UnitActivityDefn_Instances
 	SettlersBuildIrrigation: UnitActivityDefn;
 	SettlersBuildMines: UnitActivityDefn;
 	SettlersBuildRoads: UnitActivityDefn;
+	SettlersCleanPollution: UnitActivityDefn;
 	SettlersClearForest: UnitActivityDefn;
 	SettlersPlantForest: UnitActivityDefn;
 	SettlersStartCity: UnitActivityDefn;
@@ -94,9 +96,12 @@ class UnitActivityDefn_Instances
 
 	_SettlersBuildAll: UnitActivityDefn;
 
+	_All: UnitActivityDefn[];
+	_AllByName: Map<string, UnitActivityDefn>;
+
 	constructor()
 	{
-		var startNone = () => {};
+		// var startNone = () => {};
 		var uad = (a: string, b: any, c: any) => new UnitActivityDefn(a, b, c);
 		var movesToComplete1 = new Map( [ [ UnitActivityVariableNames.MovesToComplete(), 1 ] ] );
 		var movesToComplete3 = new Map( [ [ UnitActivityVariableNames.MovesToComplete(), 3 ] ] );
@@ -107,6 +112,7 @@ class UnitActivityDefn_Instances
 		this.Fortify 					= uad("Fortify", 			null, 				this.fortify);
 		this.Move 						= uad("Move",				null, 				this.move);
 		this.MoveTo 					= uad("MoveTo",				null, 				this.moveTo);
+		this.NeedsInput 				= uad("NeedsInput",			null, 				this.needsInput);
 		this.Pass 						= uad("Pass", 				null, 				this.pass);
 		this.RestAfterMove 				= uad("RestAfterMove", 		null, 				this.restAfterMove);
 		this.Sleep 						= uad("Sleep", 				null, 				this.sleep);
@@ -119,7 +125,7 @@ class UnitActivityDefn_Instances
 		this.DiplomatInciteRevolt 		= uad("Incite Revolt", 		null, 				this.diplomatInciteRevolt);
 		this.DiplomatInvestigateBase 	= uad("Investigate City", 	null, 				this.diplomatInvestigateBase);
 		this.DiplomatSabotageProduction = uad("Sabotage Production",null, 				this.diplomatSabotageProduction);
-		this.DiplomatTechnologySteal	= uad("Steal Technology", 	null, 				this.diplomatStealTechnology);
+		this.DiplomatTechnologySteal	= uad("Steal Technology", 	null, 				this.diplomatTechnologySteal);
 
 		this.SettlersBuildFort 			= uad("Build Fort", 		movesToComplete3, 	this.settlersBuildFort);
 		this.SettlersBuildIrrigation 	= uad("Build Irrigation", 	movesToComplete3, 	this.settlersBuildIrrigation);
@@ -348,6 +354,14 @@ class UnitActivityDefn_Instances
 		}
 	}
 
+	needsInput
+	(
+		universe: Universe, world: World, owner: Owner, unit: Unit
+	): void
+	{
+		// todo
+	}
+
 	pass
 	(
 		universe: Universe, world: World, owner: Owner, unit: Unit
@@ -355,6 +369,14 @@ class UnitActivityDefn_Instances
 	{
 		unit.movesThisTurnClear();
 		owner.unitSelectNextIdle();
+	}
+
+	restAfterMove
+	(
+		universe: Universe, world: World, owner: Owner, unit: Unit
+	): void
+	{
+		// todo
 	}
 
 	sleep
@@ -422,7 +444,7 @@ class UnitActivityDefn_Instances
 		else
 		{
 			// todo - Confirm?
-			owner.moneyStockpiledSubtract(costToBribeUnitsSoFar);
+			owner.moneyStockpiledSubtract(costToBribeUnitsSoFar, world);
 			unitsToBribe.forEach(x => x.ownerSet(owner));
 			// todo - Diplomatic effects?
 
@@ -445,7 +467,7 @@ class UnitActivityDefn_Instances
 			world.map.cellAtPosInCells(cellContainingBaseToEstablishEmbassyInPos);
 		var baseToEstablishEmbassyIn =
 			cellContainingBaseToEstablishEmbassyIn.basePresent(world);
-		var ownerOther = base.owner(world);
+		var ownerOther = baseToEstablishEmbassyIn.owner(world);
 		var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther); 
 		diplomaticRelations.embassyHasBeenEstablished = true;
 	}
@@ -465,12 +487,14 @@ class UnitActivityDefn_Instances
 			world.map.cellAtPosInCells(cellContainingBaseToInciteRevoltInPos);
 		var baseToInciteRevoltIn =
 			cellContainingBaseToInciteRevoltIn.basePresent(world);
-		var baseValue = base.value(world);
-		var moneyPerValueToInciteRevolt = 10;
+		var baseValue = baseToInciteRevoltIn.value(world);
+		var baseValueMultiplier = 10;
+		var moneyPerValueToInciteRevolt = baseValue * baseValueMultiplier;
 		var moneyToInciteRevolt = moneyPerValueToInciteRevolt;
-		var ownerOther = base.owner(world);
+		owner.finances.moneyStockpiledSubtract(moneyToInciteRevolt);
+		var ownerOther = baseToInciteRevoltIn.owner(world);
 		var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther); 
-		diplomaticRelations.postureSetToWar();
+		diplomaticRelations.postureSetToWar(world);
 	}
 
 	diplomatInvestigateBase
@@ -485,7 +509,7 @@ class UnitActivityDefn_Instances
 		var cellContainingBaseToInvestigatePos =
 			unitDiplomatPos.clone().add(direction.offset);
 		var cellContainingBaseToInvestigate =
-			world.map.cellAtPosInCells(cellContainingBaseToInciteRevoltInPos);
+			world.map.cellAtPosInCells(cellContainingBaseToInvestigatePos);
 		var baseToInvestigate =
 			cellContainingBaseToInvestigate.basePresent(world);
 		var chanceOfSuccess = .8; // todo
@@ -498,6 +522,7 @@ class UnitActivityDefn_Instances
 		{
 			// todo - Notify.
 		}
+		console.log(baseToInvestigate);
 	}
 
 	diplomatSabotageProduction
@@ -536,9 +561,9 @@ class UnitActivityDefn_Instances
 			world.unitRemove(unitDiplomat);
 		}
 
-		var ownerOther = base.owner(world);
+		var ownerOther = baseToSabotage.owner(world);
 		var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther); 
-		diplomaticRelations.postureSetToWar();
+		diplomaticRelations.postureSetToWar(world);
 	}
 
 	diplomatTechnologySteal
@@ -553,7 +578,7 @@ class UnitActivityDefn_Instances
 		var cellContainingBaseToStealTechnologyFromPos =
 			unitDiplomatPos.clone().add(direction.offset);
 		var cellContainingBaseToStealTechnologyFrom =
-			world.map.cellAtPosInCells(cellContainingBaseToStealTechnologyFrom);
+			world.map.cellAtPosInCells(cellContainingBaseToStealTechnologyFromPos);
 		var baseToStealTechnologyFrom =
 			cellContainingBaseToStealTechnologyFrom.basePresent(world);
 
@@ -578,7 +603,7 @@ class UnitActivityDefn_Instances
 
 		var ownerOther = baseToStealTechnologyFrom.owner(world);
 		var diplomaticRelations = owner.diplomacy.relationshipWithOwner(ownerOther); 
-		diplomaticRelations.postureSetToWar();
+		diplomaticRelations.postureSetToWar(world);
 	}
 
 	// Settlers.
@@ -688,6 +713,14 @@ class UnitActivityDefn_Instances
 		var map = world.map;
 		var cell = map.cellAtPosInCells(unit.pos);
 		cell.improvementAddRoads();
+	}
+
+	settlersCleanPollution
+	(
+		universe: Universe, world: World, owner: Owner, unit: Unit
+	): void
+	{
+		// todo
 	}
 
 	settlersClearForest

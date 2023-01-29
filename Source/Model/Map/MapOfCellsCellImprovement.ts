@@ -5,7 +5,8 @@ class MapOfCellsCellImprovement
 	code: string;
 	effect: any;
 
-	constructor(
+	constructor
+	(
 		name: string,
 		code: string,
 		effect: any
@@ -35,15 +36,15 @@ class MapOfCellsCellImprovement
 
 class MapOfCellsCellImprovement_Instances
 {
-	Farmland: MapOfCellsCellImprovment;
-	Fortress: MapOfCellsCellImprovment;
-	Irrigation: MapOfCellsCellImprovment;
-	Mines: MapOfCellsCellImprovment;
-	Railroads: MapOfCellsCellImprovment;
-	Roads: MapOfCellsCellImprovment;
+	Farmland: MapOfCellsCellImprovement;
+	Fortress: MapOfCellsCellImprovement;
+	Irrigation: MapOfCellsCellImprovement;
+	Mines: MapOfCellsCellImprovement;
+	Railroads: MapOfCellsCellImprovement;
+	Roads: MapOfCellsCellImprovement;
 
-	_All: MapOfCellsCellImprovment[];
-	_AllByName: Map<string, MapOfCellsCellImprovment>;
+	_All: MapOfCellsCellImprovement[];
+	_AllByCode: Map<string, MapOfCellsCellImprovement>;
 
 	constructor()
 	{

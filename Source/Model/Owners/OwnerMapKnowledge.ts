@@ -3,8 +3,8 @@ class OwnerMapKnowledge
 {
 	cellsKnownIndicesByIndex: Map<number, number>;
 
-	cellsVisibleIndicesByIndex: Map;
-	_cellsAdjacentPos: Coords;
+	cellsVisibleIndicesByIndex: Map<number, number>;
+	_cellAdjacentPos: Coords;
 	_cellOffsetPos: Coords;
 
 	constructor(cellsKnownIndices: number[])
@@ -32,7 +32,6 @@ class OwnerMapKnowledge
 		var cellPosInCells = Coords.create();
 		var cellPosInPixels = Coords.create();
 
-		var mapSizeInPixels = mapSizeInCells.clone().multiply(cellSizeInPixels);
 		var display = universe.display;
 		display.drawBackground("Black");
 
@@ -103,7 +102,8 @@ class OwnerMapKnowledge
 	{
 		var camera = owner.camera;
 
-		var cellsKnownIndices = Array.from(this.cellsKnownIndicesByIndex.keys());
+		var cellsKnownIndices =
+			Array.from(this.cellsKnownIndicesByIndex.keys());
 		for (var c = 0; c < cellsKnownIndices.length; c++)
 		{
 			var cellIndex = cellsKnownIndices[c];
@@ -155,7 +155,7 @@ class OwnerMapKnowledge
 		cellSizeInPixels: Coords,
 		world: World,
 		display: DisplayCanvas
-	): void
+	): any
 	{
 		var basesVisible = [];
 		var unitsVisible = [];
@@ -309,12 +309,9 @@ class OwnerMapKnowledge
 		});
 	}
 
-	update(universe: Universe, world: world, owner: Owner): void
+	update(universe: Universe, world: World, owner: Owner): void
 	{
 		this.cellsVisibleIndicesByIndex = new Map();
-
-		var map = world.map;
-		var mapSizeInCells = map.sizeInCells;
 
 		var ownerViewerGroups =
 		[
@@ -339,15 +336,12 @@ class OwnerMapKnowledge
 		sightDistance: number
 	): void
 	{
-		var map = world.map;
-		var mapSizeInCells = map.sizeInCells;
 		var cellOffsetPos = this._cellOffsetPos;
 
 		for (var i = 0; i < ownerViewers.length; i++)
 		{
 			var viewer = ownerViewers[i];
 			var viewerPos = viewer.pos;
-			var cellsAdjacentPositions = [];
 
 			for (var y = -sightDistance; y <= sightDistance; y++)
 			{

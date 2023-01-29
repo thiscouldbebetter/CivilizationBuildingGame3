@@ -50,10 +50,9 @@ class MapOfCells {
             cellPosInCells.y = y;
             for (var x = cellPosMin.x; x <= cellPosMax.x; x++) {
                 cellPosInCells.x = x;
-                camera.coordsTransformWorldToView(cellPosInPixels.overwriteWith(cellPosInCells).multiply(cellSizeInPixels));
+                camera.coordsTransformFromWorldToView(cellPosInPixels.overwriteWith(cellPosInCells).multiply(cellSizeInPixels));
                 var cell = this.cellAtPosInCells(cellPosInCells);
                 var cellTerrain = cell.terrain(world);
-                var cellTerrainSymbol = cellTerrain.symbol;
                 var cellTerrainColorName = cellTerrain.colorName;
                 display.drawRectangle(cellPosInPixels, cellSizeInPixels, cellTerrainColorName, "Gray");
             }

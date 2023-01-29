@@ -54,15 +54,15 @@ class Owner {
     notifyByMessageForWorld(message, world) {
         this.notificationLog.notifyByMessageForWorld(message, world);
     }
-    score() {
+    score(world) {
         var populationHappySoFar = 0;
         var populationContentSoFar = 0;
         this.bases.forEach(x => {
-            populationHappySoFar += x.populationHappy();
-            populationContentSoFar += x.populationContent();
+            populationHappySoFar += x.populationHappy(world);
+            populationContentSoFar += x.populationContent(world);
         });
         var wonderCount = this.wondersControlled().length;
-        var cellsControlledWithPollutionCount = this.cellsControlledWithPollutionCount();
+        var cellsControlledWithPollutionCount = this.cellsControlledWithPollutionCount(world);
         var pointsPerPopulationHappy = 2;
         var pointsPerPopulationContent = 1;
         var pointsPerWonder = 20;
@@ -75,6 +75,7 @@ class Owner {
         var scoreTotal = pointsForPopulationHappy
             + pointsForPopulationContent
             + pointsForWonders
+            + pointsForCivilizedBehavior
             - pointsLostToPollution;
         return scoreTotal;
     }
@@ -101,8 +102,9 @@ class Owner {
         this.unitSelectNextIdle();
     }
     wondersControlled() {
-        var wondersSoFar = [];
-        this.bases.forEach(x => wondersSoFar.push(...x.wondersPresent()));
+        var wondersSoFar = new Array();
+        this.bases.forEach(x => wondersSoFar.push(...x.improvementsPresentWonders()));
+        return wondersSoFar;
     }
     // Bases.
     baseAdd(base) {
@@ -132,7 +134,7 @@ class Owner {
         this.finances.moneyStockpiledAdd(moneyToAdd, world, this);
     }
     moneyStockpiledSubtract(moneyToSubtract, world) {
-        this.finances.moneyStockpiledSubtract(moneyToSubtract, world, this);
+        this.finances.moneyStockpiledSubtract(moneyToSubtract);
     }
     researchRate() {
         return this.finances.incomeAllocation.researchFraction;
@@ -196,7 +198,7 @@ class Owner {
         return this.research.buildablesKnown();
     }
     canBuildBuildable(buildable) {
-        return this.research.canBuildBuildable(buildable, this);
+        return this.research.canBuildBuildable(buildable);
     }
     researchThisTurn(world) {
         var researchSoFar = 0;
@@ -235,7 +237,7 @@ class Owner {
         return this.selection.unitSelect(this, unitToSelect);
     }
     unitSelectById(idToSelect) {
-        return this.selection.unitSelectById(this, idSelect);
+        return this.selection.unitSelectById(this, idToSelect);
     }
     unitSelectNextIdle() {
         return this.selection.unitSelectNextIdle(this);
@@ -251,7 +253,7 @@ class Owner {
         var unitSelected = this.unitSelected();
         var unitSelectedActivity = unitSelected.activity();
         var activityDefn = unitSelectedActivity.defn();
-        var returnValue = (activityDefn == ActivityDefn.Instances().NeedsInput);
+        var returnValue = (activityDefn == UnitActivityDefn.Instances().NeedsInput);
         return returnValue;
     }
     // Starship.

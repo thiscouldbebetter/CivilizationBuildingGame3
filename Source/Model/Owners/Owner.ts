@@ -121,7 +121,7 @@ class Owner
 		this.notificationLog.notifyByMessageForWorld(message, world);
 	}
 
-	score(): number
+	score(world: World): number
 	{
 		var populationHappySoFar = 0;
 		var populationContentSoFar = 0;
@@ -129,13 +129,13 @@ class Owner
 		(
 			x =>
 			{
-				populationHappySoFar += x.populationHappy();
-				populationContentSoFar += x.populationContent();
+				populationHappySoFar += x.populationHappy(world);
+				populationContentSoFar += x.populationContent(world);
 			}
 		)
 		var wonderCount = this.wondersControlled().length;
 		var cellsControlledWithPollutionCount =
-			this.cellsControlledWithPollutionCount();
+			this.cellsControlledWithPollutionCount(world);
 
 		var pointsPerPopulationHappy = 2;
 		var pointsPerPopulationContent = 1;
@@ -156,6 +156,7 @@ class Owner
 			pointsForPopulationHappy
 			+ pointsForPopulationContent
 			+ pointsForWonders
+			+ pointsForCivilizedBehavior
 			- pointsLostToPollution;
 
 		return scoreTotal;
@@ -194,13 +195,14 @@ class Owner
 		this.unitSelectNextIdle();
 	}
 
-	wondersControlled(): number
+	wondersControlled(): BaseImprovementDefn[]
 	{
-		var wondersSoFar = [];
+		var wondersSoFar = new Array<BaseImprovementDefn>();
 		this.bases.forEach
 		(
-			x => wondersSoFar.push(...x.wondersPresent() )
+			x => wondersSoFar.push(...x.improvementsPresentWonders() )
 		);
+		return wondersSoFar;
 	}
 
 	// Bases.
@@ -244,14 +246,14 @@ class Owner
 		return this.finances.moneyStockpiled();
 	}
 
-	moneyStockpiledAdd(moneyToAdd: number, world: World): number
+	moneyStockpiledAdd(moneyToAdd: number, world: World): void
 	{
 		this.finances.moneyStockpiledAdd(moneyToAdd, world, this);
 	}
 
-	moneyStockpiledSubtract(moneyToSubtract, world): void
+	moneyStockpiledSubtract(moneyToSubtract: number, world: World): void
 	{
-		this.finances.moneyStockpiledSubtract(moneyToSubtract, world, this);
+		this.finances.moneyStockpiledSubtract(moneyToSubtract);
 	}
 
 	researchRate(): number
@@ -354,7 +356,7 @@ class Owner
 
 	canBuildBuildable(buildable: any): boolean
 	{
-		return this.research.canBuildBuildable(buildable, this);
+		return this.research.canBuildBuildable(buildable);
 	}
 
 	researchThisTurn(world: World): number
@@ -421,7 +423,7 @@ class Owner
 
 	unitSelectById(idToSelect: number): void
 	{
-		return this.selection.unitSelectById(this, idSelect);
+		return this.selection.unitSelectById(this, idToSelect);
 	}
 
 	unitSelectNextIdle(): void
@@ -445,7 +447,8 @@ class Owner
 		var unitSelected = this.unitSelected();
 		var unitSelectedActivity = unitSelected.activity();
 		var activityDefn = unitSelectedActivity.defn();
-		var returnValue = (activityDefn == ActivityDefn.Instances().NeedsInput);
+		var returnValue =
+			(activityDefn == UnitActivityDefn.Instances().NeedsInput);
 		return returnValue;
 	}
 

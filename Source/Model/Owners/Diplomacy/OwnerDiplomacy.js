@@ -28,38 +28,34 @@ class OwnerDiplomacy {
     // Reputation.
     timesSneakAttacksExecuted() {
         var countSoFar = 0;
-        var ownerNames = this.relationshipsByOwnerName.keys;
-        ownerNames.forEach(ownerName => {
+        for (var ownerName in this.relationshipsByOwnerName.keys) {
             var relationship = this.relationshipsByOwnerName.get(ownerName);
             countSoFar += relationship.timesSneakAttacksExecuted;
-        });
+        }
         return countSoFar;
     }
     timesWarDeclaredBeforeAgression() {
         var countSoFar = 0;
-        var ownerNames = this.relationshipsByOwnerName.keys;
-        ownerNames.forEach(ownerName => {
+        for (var ownerName in this.relationshipsByOwnerName.keys) {
             var relationship = this.relationshipsByOwnerName.get(ownerName);
             countSoFar += relationship.timesWarDeclaredBeforeAgression;
-        });
+        }
         return countSoFar;
     }
     timesWarThreatened() {
         var countSoFar = 0;
-        var ownerNames = this.relationshipsByOwnerName.keys;
-        ownerNames.forEach(ownerName => {
+        for (var ownerName in this.relationshipsByOwnerName.keys) {
             var relationship = this.relationshipsByOwnerName.get(ownerName);
             countSoFar += relationship.timesWarThreatened;
-        });
+        }
         return countSoFar;
     }
     turnsOfPeaceWithOwnersOther() {
         var countSoFar = 0;
-        var ownerNames = this.relationshipsByOwnerName.keys;
-        ownerNames.forEach(ownerName => {
+        for (var ownerName in this.relationshipsByOwnerName.keys) {
             var relationship = this.relationshipsByOwnerName.get(ownerName);
             countSoFar += relationship.turnsOfPeace;
-        });
+        }
         return countSoFar;
     }
 }
