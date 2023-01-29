@@ -37,7 +37,7 @@ class DisplayCanvas
 		this.graphics.clearRect(this.sizeInPixels);
 	}
 
-	initialize(universe: any) : void
+	initialize(universe: Universe) : void
 	{
 		var d = document;
 		var canvas = d.createElement("canvas");

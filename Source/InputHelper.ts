@@ -1,7 +1,7 @@
 
 class InputHelper
 {
-	initialize(universe: any): InputHelper
+	initialize(universe: Universe): InputHelper
 	{
 		var d = document;
 
@@ -14,7 +14,7 @@ class InputHelper
 		return this;
 	}
 
-	keyDown(universe: any, event: any): void
+	keyDown(universe: Universe, event: any): void
 	{
 		var outputLog = universe.outputLog;
 		var world = universe.world;
@@ -28,7 +28,7 @@ class InputHelper
 
 		if (key == "Enter")
 		{
-			var commandText : any = inputCommand.value;
+			var commandText : string = inputCommand.value;
 
 			inputCommand.value = "";
 			inputCommand.focus();

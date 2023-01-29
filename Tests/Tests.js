@@ -633,6 +633,7 @@ class TestFixtureMain
 		var base = owner.bases[owner.bases.length - 1];
 		Assert.isNotNull(base);
 		Assert.isTrue(base.pos.equals(unitSettlers.pos));
+		Assert.isTrue(base.isCoastal(world));
 
 		// Rather than building things up the slow way, for now: cheat!
 		var improvements = BaseImprovementDefn.Instances();

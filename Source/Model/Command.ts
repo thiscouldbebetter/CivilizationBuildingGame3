@@ -43,7 +43,7 @@ class Command
 		return commandParsed;
 	}
 
-	execute(universe: any, world: any): void
+	execute(universe: Universe, world: World): void
 	{
 		this.opcode.execute(universe, world, this);
 	}
@@ -53,13 +53,18 @@ class CommandOpcode
 {
 	text: string;
 	keyboardKeys: string[];
-	execute: any;
+	_execute: (u: Universe, w: World, c: Command) => void;
 
-	constructor(text: string, keyboardKeys: string[], execute: any)
+	constructor
+	(
+		text: string,
+		keyboardKeys: string[],
+		execute: (u: Universe, w: World, c: Command) => void
+	)
 	{
 		this.text = text;
 		this.keyboardKeys = keyboardKeys;
-		this.execute = execute;
+		this._execute = execute;
 	}
 
 	static _instances: CommandOpcode_Instances;
@@ -83,6 +88,12 @@ class CommandOpcode
 		var opcode = CommandOpcode.Instances().byKeyboardKey(key);
 		return opcode;
 	}
+
+	execute(universe: Universe, world: World, command: Command): void
+	{
+		this._execute(universe, world, command);
+	}
+
 }
 
 class CommandOpcode_Instances
@@ -133,11 +144,16 @@ class CommandOpcode_Instances
 
 	constructor()
 	{
-		var co = (text: string, keyboardKeys: string[], execute: any) =>
+		var co =
+		(
+			text: string,
+			keyboardKeys: string[],
+			execute: (u: Universe, w: World, c: Command) => void
+		) =>
 			new CommandOpcode(text, keyboardKeys, execute);
 
 		var keysNone = new Array<string>();
-		var executeTodo = (u: any, w: any, c: any) => { alert("todo") };
+		var executeTodo = (u: Universe, w: World, c: Command) => { alert("todo") };
 
 		this.CityList = co("list cities", keysNone, this.cityList);
 		this.CitySelect = co("select city", keysNone, executeTodo);
@@ -244,8 +260,8 @@ class CommandOpcode_Instances
 
 	// Commands.
 
-	cityList(u: any, w: any, c: any): void
-	{
+	cityList(u: Universe, w: World, c: Command): void
+	{56
 		var owner = w.ownerCurrent();
 		var bases = owner.bases;
 
@@ -254,7 +270,7 @@ class CommandOpcode_Instances
 		bases.forEach( (x : any) => outputLog.writeLine( x.toStringForList() ) );
 	}
 
-	help(u: any, w: any, c: any): void
+	help(u: Universe, w: World, c: Command): void
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
@@ -265,7 +281,7 @@ class CommandOpcode_Instances
 		);
 	}
 
-	selectionShow(u: any, w: any, c: any): void
+	selectionShow(u: Universe, w: World, c: Command): void
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
@@ -287,7 +303,7 @@ class CommandOpcode_Instances
 		}
 	}
 
-	techList(u: any, w: any, c: any): void
+	techList(u: Universe, w: World, c: Command): void
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
@@ -299,7 +315,7 @@ class CommandOpcode_Instances
 		);
 	}
 
-	techShow(u: any, w: any, c: any): void
+	techShow(u: Universe, w: World, c: Command): void
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
@@ -310,7 +326,7 @@ class CommandOpcode_Instances
 		outputLog.writeLine(ownerResearchAsString);
 	}
 
-	turnEnd(u: any, w: any, c: any): void
+	turnEnd(u: Universe, w: World, c: Command): void
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
@@ -328,7 +344,7 @@ class CommandOpcode_Instances
 		}
 	}
 
-	unitActionStart(u: any, w: any, c: any): void
+	unitActionStart(u: Universe, w: World, c: Command): void
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
@@ -379,7 +395,7 @@ class CommandOpcode_Instances
 		}
 	}
 
-	unitActionsShow(u: any, w: any, c: any): void
+	unitActionsShow(u: Universe, w: World, c: Command): void
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
@@ -403,7 +419,7 @@ class CommandOpcode_Instances
 		}
 	}
 
-	unitList(u: any, w: any, c: any): void
+	unitList(u: Universe, w: World, c: Command): void
 	{
 		var owner = w.ownerCurrent();
 		var units = owner.units;
@@ -413,7 +429,7 @@ class CommandOpcode_Instances
 		units.forEach( (x: any) => outputLog.writeLine( x.toStringForList() ) );
 	}
 
-	unitMove(u: any, w: any, c: any): void
+	unitMove(u: Universe, w: World, c: Command): void
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
@@ -437,7 +453,7 @@ class CommandOpcode_Instances
 		}
 	}
 
-	unitMove_Move(u: any, w: any, c: any): void
+	unitMove_Move(u: Universe, w: World, c: Command): void
 	{
 		var outputLog = u.outputLog;
 		var ownerCurrent = w.ownerCurrent();
@@ -499,63 +515,63 @@ class CommandOpcode_Instances
 		}
 	}
 
-	unitMoveE(u: any, w: any, c: any): void
+	unitMoveE(u: Universe, w: World, c: Command): void
 	{
 		c.opcode = CommandOpcode.Instances().UnitMove;
 		c.operands = [ "e" ];
 		c.execute(u, w);
 	}
 
-	unitMoveN(u: any, w: any, c: any): void
+	unitMoveN(u: Universe, w: World, c: Command): void
 	{
 		c.opcode = CommandOpcode.Instances().UnitMove;
 		c.operands = [ "n" ];
 		c.execute(u, w);
 	}
 
-	unitMoveNE(u: any, w: any, c: any): void
+	unitMoveNE(u: Universe, w: World, c: Command): void
 	{
 		c.opcode = CommandOpcode.Instances().UnitMove;
 		c.operands = [ "ne" ];
 		c.execute(u, w);
 	}
 
-	unitMoveNW(u: any, w: any, c: any): void
+	unitMoveNW(u: Universe, w: World, c: Command): void
 	{
 		c.opcode = CommandOpcode.Instances().UnitMove;
 		c.operands = [ "nw" ];
 		c.execute(u, w);
 	}
 
-	unitMoveS(u: any, w: any, c: any): void
+	unitMoveS(u: Universe, w: World, c: Command): void
 	{
 		c.opcode = CommandOpcode.Instances().UnitMove;
 		c.operands = [ "s" ];
 		c.execute(u, w);
 	}
 
-	unitMoveSE(u: any, w: any, c: any): void
+	unitMoveSE(u: Universe, w: World, c: Command): void
 	{
 		c.opcode = CommandOpcode.Instances().UnitMove;
 		c.operands = [ "se" ];
 		c.execute(u, w);
 	}
 
-	unitMoveSW(u: any, w: any, c: any): void
+	unitMoveSW(u: Universe, w: World, c: Command): void
 	{
 		c.opcode = CommandOpcode.Instances().UnitMove;
 		c.operands = [ "sw" ];
 		c.execute(u, w);
 	}
 
-	unitMoveW(u: any, w: any, c: any): void
+	unitMoveW(u: Universe, w: World, c: Command): void
 	{
 		c.opcode = CommandOpcode.Instances().UnitMove;
 		c.operands = [ "w" ];
 		c.execute(u, w);
 	}
 
-	unitSelect(u: any, w: any, c: any): void
+	unitSelect(u: Universe, w: World, c: Command): void
 	{
 		var outputLog = u.outputLog;
 		outputLog.clear();
@@ -588,9 +604,9 @@ class CommandOpcode_Instances
 		}
 	}
 
-	worldShow(u: any, w: any, c: any): void
+	worldShow(u: Universe, w: World, c: Command): void
 	{
-		w.draw(u, w);
+		w.draw(u);
 		var outputLog = u.outputLog;
 		outputLog.clear();
 		var worldDetails = "Turn: " + w.turnsSoFar;

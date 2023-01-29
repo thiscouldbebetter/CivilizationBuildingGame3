@@ -105,6 +105,13 @@ class Coords {
         this.z *= scalar;
         return this;
     }
+    normalize() {
+        var magnitude = this.magnitude();
+        if (magnitude != null) {
+            this.divideScalar(magnitude);
+        }
+        return this;
+    }
     overwriteWith(other) {
         this.x = other.x;
         this.y = other.y;

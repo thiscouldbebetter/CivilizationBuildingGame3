@@ -30,7 +30,7 @@ class CommandOpcode {
     constructor(text, keyboardKeys, execute) {
         this.text = text;
         this.keyboardKeys = keyboardKeys;
-        this.execute = execute;
+        this._execute = execute;
     }
     static Instances() {
         if (CommandOpcode._instances == null) {
@@ -45,6 +45,9 @@ class CommandOpcode {
     static fromKeyboardKey(key) {
         var opcode = CommandOpcode.Instances().byKeyboardKey(key);
         return opcode;
+    }
+    execute(universe, world, command) {
+        this._execute(universe, world, command);
     }
 }
 class CommandOpcode_Instances {
@@ -131,6 +134,7 @@ class CommandOpcode_Instances {
     }
     // Commands.
     cityList(u, w, c) {
+        56;
         var owner = w.ownerCurrent();
         var bases = owner.bases;
         var outputLog = u.outputLog;
@@ -362,7 +366,7 @@ class CommandOpcode_Instances {
         }
     }
     worldShow(u, w, c) {
-        w.draw(u, w);
+        w.draw(u);
         var outputLog = u.outputLog;
         outputLog.clear();
         var worldDetails = "Turn: " + w.turnsSoFar;
