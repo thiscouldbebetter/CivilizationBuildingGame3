@@ -91,10 +91,10 @@ class MapOfCellsCellTerrain_Instances
 
 		// 					name,			abbr,	cat,	code,	color,				symbol, moves, 	resourceProd
 		this.Desert 	= t("Desert",		"d",	land,	"/", 	"rgb(255,000,128)",	"/",	1,		rp(0, 1, 0) );
-		this.Forest		= t("Forest", 		"f",	land,	"@",	"rgb(000,255,000)",	"@",	2,		rp(1, 2, 0) );
+		this.Forest		= t("Forest", 		"f",	land,	"@",	"rgb(000,128,000)",	"@",	2,		rp(1, 2, 0) );
 		this.Glacier	= t("Glacier", 		"i",	land,	"#",	"rgb(255,255,255)",	"#",	2,		rp(0, 0, 0) );
 		this.Grassland	= t("Grassland", 	"g",	land,	":",	"rgb(000,255,000)",	":",	1,		rp(2, 0, 0) );
-		this.Hills		= t("Hills",		"h",	land,	"*",	"rgb(000,255,000)",	"*",	2,		rp(1, 0, 0) );
+		this.Hills		= t("Hills",		"h",	land,	"*",	"rgb(032,128,032)",	"*",	2,		rp(1, 0, 0) );
 		this.Jungle		= t("Jungle",		"j",	land, 	"&",	"rgb(000,064,000)",	"&",	2,		rp(1, 0, 0) );
 		this.Mountains	= t("Mountains",	"m",	land, 	"^", 	"rgb(128,128,128)",	"^",	3, 		rp(0, 1, 0) );
 		this.Ocean 		= t("Ocean",		"o",	water,	"~",	"rgb(000,000,255)",	"~",	100,	rp(1, 0, 2) );

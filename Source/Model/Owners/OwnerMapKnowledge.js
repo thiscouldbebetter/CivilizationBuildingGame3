@@ -31,6 +31,7 @@ class OwnerMapKnowledge {
     }
     draw_1_CellsKnown(cellPosInCells, mapSizeInCells, mapComplete, cellPosInPixels, cellSizeInPixels, world, owner, display) {
         var camera = owner.camera;
+        var cellSizeInPixelsHalf = cellSizeInPixels.clone().half();
         var cellsKnownIndices = Array.from(this.cellsKnownIndicesByIndex.keys());
         for (var c = 0; c < cellsKnownIndices.length; c++) {
             var cellIndex = cellsKnownIndices[c];
@@ -40,11 +41,14 @@ class OwnerMapKnowledge {
             camera.coordsTransformFromWorldToView(cellPosInPixels);
             var terrain = cell.terrain(world);
             var terrainColorName = terrain.colorName;
+            var terrainSymbol = terrain.symbol;
             display.drawRectangle(cellPosInPixels, cellSizeInPixels, terrainColorName, "Gray");
             var isCellCurrentlyVisible = this.cellsVisibleIndicesByIndex.has(cellIndex);
             if (isCellCurrentlyVisible == false) {
                 display.drawRectangle(cellPosInPixels, cellSizeInPixels, "rgba(0, 0, 0, 0.5)", null);
             }
+            var cellCenterInPixels = cellPosInPixels.add(cellSizeInPixelsHalf);
+            display.drawTextAtPosWithColorAndHeight(terrainSymbol, cellCenterInPixels, "Black", cellSizeInPixels.y);
         }
     }
     draw_2_CellsVisible(cellPosInCells, mapSizeInCells, mapComplete, cellPosInPixels, cellSizeInPixels, world, display) {
@@ -76,7 +80,7 @@ class OwnerMapKnowledge {
             var isSelected = (base == baseSelected);
             var borderColor = (isSelected ? "White" : "Gray");
             display.drawRectangle(cellPosInPixels, cellSizeInPixels, baseColorName, borderColor);
-            display.drawText(base.name, cellCenterInPixels, borderColor);
+            display.drawTextAtPosWithColorAndHeight(base.name, cellCenterInPixels, borderColor, cellSizeInPixelsHalf.y);
         });
     }
     draw_4_UnitsVisible(owner, unitsVisible, cellPosInPixels, cellSizeInPixels, cellCenterInPixels, cellSizeInPixelsHalf, world, display) {
@@ -98,7 +102,7 @@ class OwnerMapKnowledge {
             if (unit.isSleeping()) {
                 display.drawCircle(cellCenterInPixels, cellRadiusInPixels, "rgb(255, 255, 255, 0.25)", null);
             }
-            display.drawText(unitSymbol, cellCenterInPixels, borderColorName);
+            display.drawTextAtPosWithColorAndHeight(unitSymbol, cellCenterInPixels, borderColorName, cellSizeInPixelsHalf.y);
         });
     }
     update(universe, world, owner) {

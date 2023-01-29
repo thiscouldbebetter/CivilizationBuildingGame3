@@ -99,10 +99,30 @@ class DisplayCanvas
 		}
 	}
 
-	drawText(textToDraw: string, pos: Coords, colorName: string): void
+	drawTextAtPos(textToDraw: string, pos: Coords): void
 	{
+		this.drawTextAtPosWithColor(textToDraw, pos, this.colorForegroundName);
+	}
+
+	drawTextAtPosWithColor(textToDraw: string, pos: Coords, colorName: string): void
+	{
+		this.drawTextAtPosWithColorAndHeight(textToDraw, pos, colorName, null);
+	}
+
+	drawTextAtPosWithColorAndHeight
+	(
+		textToDraw: string, pos: Coords, colorName: string, fontHeightInPixels: number
+	): void
+	{
+		if (fontHeightInPixels != null)
+		{
+			var fontToSetAsString = fontHeightInPixels + "px sans-serif";
+			this.graphics.font = fontToSetAsString;
+		}
 		var textWidth = this.graphics.measureText(textToDraw).width;
+
 		this.graphics.fillStyle = colorName;
+
 		this.graphics.fillText
 		(
 			textToDraw,

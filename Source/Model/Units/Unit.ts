@@ -319,9 +319,9 @@ class Unit
 
 	canMoveInDirection(directionToMove: Direction, world: World): boolean
 	{
-		var costToMoveInThirds =
+		var costToMove =
 			this.costToMoveInDirection(directionToMove, world);
-		var canMove = (costToMoveInThirds <= this.movesThisTurn());
+		var canMove = (costToMove <= this.movesThisTurn());
 		return canMove;
 	}
 

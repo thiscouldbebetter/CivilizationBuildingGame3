@@ -174,8 +174,8 @@ class Unit {
         return (this.defn(world).passengersMax > 0);
     }
     canMoveInDirection(directionToMove, world) {
-        var costToMoveInThirds = this.costToMoveInDirection(directionToMove, world);
-        var canMove = (costToMoveInThirds <= this.movesThisTurn());
+        var costToMove = this.costToMoveInDirection(directionToMove, world);
+        var canMove = (costToMove <= this.movesThisTurn());
         return canMove;
     }
     canMoveInDirectionEast(world) { return this.canMoveInDirection(Direction.Instances().East, world); }

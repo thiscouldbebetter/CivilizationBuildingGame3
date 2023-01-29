@@ -48,7 +48,17 @@ class DisplayCanvas {
             this.graphics.strokeRect(pos.x, pos.y, size.x, size.y);
         }
     }
-    drawText(textToDraw, pos, colorName) {
+    drawTextAtPos(textToDraw, pos) {
+        this.drawTextAtPosWithColor(textToDraw, pos, this.colorForegroundName);
+    }
+    drawTextAtPosWithColor(textToDraw, pos, colorName) {
+        this.drawTextAtPosWithColorAndHeight(textToDraw, pos, colorName, null);
+    }
+    drawTextAtPosWithColorAndHeight(textToDraw, pos, colorName, fontHeightInPixels) {
+        if (fontHeightInPixels != null) {
+            var fontToSetAsString = fontHeightInPixels + "px sans-serif";
+            this.graphics.font = fontToSetAsString;
+        }
         var textWidth = this.graphics.measureText(textToDraw).width;
         this.graphics.fillStyle = colorName;
         this.graphics.fillText(textToDraw, pos.x - textWidth / 2, pos.y + this.fontHeightInPixelsHalf);

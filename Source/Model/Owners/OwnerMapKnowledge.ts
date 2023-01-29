@@ -102,8 +102,11 @@ class OwnerMapKnowledge
 	{
 		var camera = owner.camera;
 
+		var cellSizeInPixelsHalf = cellSizeInPixels.clone().half();
+
 		var cellsKnownIndices =
 			Array.from(this.cellsKnownIndicesByIndex.keys());
+
 		for (var c = 0; c < cellsKnownIndices.length; c++)
 		{
 			var cellIndex = cellsKnownIndices[c];
@@ -128,6 +131,7 @@ class OwnerMapKnowledge
 
 			var terrain = cell.terrain(world);
 			var terrainColorName = terrain.colorName;
+			var terrainSymbol = terrain.symbol;
 
 			display.drawRectangle
 			(
@@ -143,6 +147,12 @@ class OwnerMapKnowledge
 					cellPosInPixels, cellSizeInPixels, "rgba(0, 0, 0, 0.5)", null
 				);
 			}
+
+			var cellCenterInPixels = cellPosInPixels.add(cellSizeInPixelsHalf);
+			display.drawTextAtPosWithColorAndHeight
+			(
+				terrainSymbol, cellCenterInPixels, "Black", cellSizeInPixels.y
+			);
 		}
 	}
 
@@ -236,9 +246,9 @@ class OwnerMapKnowledge
 				cellPosInPixels, cellSizeInPixels,
 				baseColorName, borderColor
 			);
-			display.drawText
+			display.drawTextAtPosWithColorAndHeight
 			(
-				base.name, cellCenterInPixels, borderColor
+				base.name, cellCenterInPixels, borderColor, cellSizeInPixelsHalf.y
 			);
 		});
 	}
@@ -305,7 +315,10 @@ class OwnerMapKnowledge
 				);
 			}
 
-			display.drawText(unitSymbol, cellCenterInPixels, borderColorName);
+			display.drawTextAtPosWithColorAndHeight
+			(
+				unitSymbol, cellCenterInPixels, borderColorName, cellSizeInPixelsHalf.y
+			);
 		});
 	}
 
